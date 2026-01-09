@@ -4,7 +4,7 @@ Structured orchestration for Ralph loops with PRD support, freeform plan support
 
 ## What is Ralph?
 
-Ralph is a development methodology based on continuous AI agent loops. The official `ralph-loop` plugin creates a self-referential feedback loop where Claude repeatedly receives the same prompt, building on its previous work through persistent files and git history.
+Ralph is a development methodology based on continuous AI agent loops, inspired by [snarktank/ralph](https://github.com/snarktank/ralph). The official `ralph-loop` plugin creates a self-referential feedback loop where Claude repeatedly receives the same prompt, building on its previous work through persistent files and git history.
 
 This plugin adds structured scaffolding to make Ralph loops more successful:
 - **PRD-based planning** - Break complex work into right-sized user stories
