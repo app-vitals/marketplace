@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "app-vitals-marketplace",
+  "description": "A marketplace of Claude Code plugins",
+  "owner": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "plugins": [
+    {
+      "name": "ralph-orchestrator",
+      "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches",
+      "version": "1.0.0",
+      "author": {
+        "name": "app-vitals",
+        "email": "dave@app-vitals.com"
+      },
+      "source": "./plugins/ralph-orchestrator",
+      "category": "development",
+      "homepage": "https://github.com/app-vitals/marketplace"
+    }
+  ]
+}
