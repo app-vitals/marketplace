@@ -25,4 +25,4 @@ Structured orchestration for Ralph loops with PRD support, progress tracking, TD
 - `/ralph-freeform <task-name>` - Create a plan for simpler single-goal tasks
 - `/ralph <task-name>` - Start an orchestrated Ralph loop
 
-See [ralph-orchestrator documentation](ralph-orchestrator-plugin/README.md) for details.
+See [ralph-orchestrator documentation](plugins/ralph-orchestrator/README.md) for details.

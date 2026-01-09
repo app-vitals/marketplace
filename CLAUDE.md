@@ -8,21 +8,23 @@ This is a **Claude Code plugin marketplace** - a collection of plugins that exte
 
 ## Architecture
 
-### Plugin Structure
+### Marketplace Structure
 
-Each plugin follows the Claude Code plugin specification:
+Plugins live in the `plugins/` directory:
 
 ```
-plugin-name/
-├── .claude-plugin/
-│   └── plugin.json       # Plugin manifest (name, version, description)
-├── commands/             # Slash commands (*.md files with YAML frontmatter)
-├── skills/               # Complex functionality with references/templates
-│   └── skill-name/
-│       ├── SKILL.md      # Skill definition with YAML frontmatter
-│       ├── assets/       # Templates, configs
-│       └── references/   # Supporting documentation
-└── README.md
+marketplace/
+├── plugins/
+│   └── plugin-name/
+│       ├── .claude-plugin/
+│       │   └── plugin.json   # Plugin manifest (name, version, description)
+│       ├── commands/         # Slash commands (*.md files with YAML frontmatter)
+│       ├── skills/           # Complex functionality with references/templates
+│       │   └── skill-name/
+│       │       ├── SKILL.md  # Skill definition with YAML frontmatter
+│       │       ├── assets/   # Templates, configs
+│       │       └── references/
+│       └── README.md
 ```
 
 ### Ralph Orchestrator Plugin
