@@ -1,0 +1,12 @@
+{
+  "name": "ralph-orchestrator",
+  "version": "1.0.0",
+  "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches. Wraps the official ralph-loop plugin.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["ralph", "agentic", "automation", "prd", "tdd", "iteration", "autonomous"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}
