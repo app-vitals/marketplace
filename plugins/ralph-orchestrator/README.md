@@ -26,7 +26,92 @@ This plugin adds structured scaffolding to make Ralph loops more successful:
 /plugin install ralph-loop@claude-plugins-official
 ```
 
+## Visual Quick-Start
+
+### The Core Concept
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  🔄 THE RALPH LOOP                                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│      1. PLAN         →     2. EXECUTE     →     3. COMPLETE     │
+│                                                                 │
+│   /ralph-freeform         /ralph task        Loop exits when    │
+│   or /prd                 (autonomous)       promise detected   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Pick Your Path
+
+| Your Task | Command | Example |
+|-----------|---------|---------|
+| Multi-feature project | `/prd task-name` | "Build auth system" |
+| Single goal | `/ralph-freeform task-name` | "Add health endpoint" |
+| Quick one-off | `/ralph "prompt" --freeform` | "Fix login bug" |
+
+### The 3-Step Flow
+
+```
+┌─ STEP 1: PLAN ────────────────────────────────┐
+│                                               │
+│  $ /ralph-freeform health-endpoint            │
+│                                               │
+│  Claude asks clarifying questions, then       │
+│  creates PLAN.md + plan.json                  │
+└───────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─ STEP 2: EXECUTE ─────────────────────────────┐
+│                                               │
+│  $ /ralph health-endpoint                     │
+│                                               │
+│  Claude loops autonomously:                   │
+│  • Reads progress.md for context              │
+│  • Works on current phase                     │
+│  • Updates state files                        │
+│  • Commits working code                       │
+└───────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─ STEP 3: COMPLETE ────────────────────────────┐
+│                                               │
+│  <promise>ALL PHASES COMPLETE</promise>       │
+│                                               │
+│  Loop exits. Check git log for commits!       │
+└───────────────────────────────────────────────┘
+```
+
+### Example: Add a Health Endpoint
+
+```
+┌─ REAL EXAMPLE ────────────────────────────────────────────────────┐
+│                                                                   │
+│  1. Create plan:                                                  │
+│     $ /ralph-freeform health-endpoint                             │
+│                                                                   │
+│  2. Answer questions:                                             │
+│     Goal? → "Add /health returning {status: ok}"                  │
+│     Verify? → "Run tests"                                         │
+│                                                                   │
+│  3. Start loop:                                                   │
+│     $ /ralph health-endpoint                                      │
+│                                                                   │
+│  4. Watch it work:                                                │
+│     ✓ P1: Explore routes                                          │
+│     ✓ P2: Implement endpoint                                      │
+│     ✓ P3: Add tests                                               │
+│     → <promise>ALL PHASES COMPLETE</promise>                      │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Quick Start
+
+> **New here?** See the [Visual Quick-Start](#visual-quick-start) above for a quick overview.
 
 ### Option 1: PRD-Based (Complex multi-feature work)
 
