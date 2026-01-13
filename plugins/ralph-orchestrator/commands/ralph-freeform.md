@@ -1,6 +1,6 @@
 ---
 name: ralph-freeform
-description: Create a structured freeform plan for Ralph loop execution. Interactive workflow that gathers context, asks clarifying questions, generates phases with verification steps, and outputs both human-readable PLAN.md and machine-readable plan.json. Use this for simpler tasks that don't need full user stories.
+description: Create a structured freeform plan for Ralph loop execution. Interactive workflow that gathers context, asks clarifying questions, generates phases with verification steps, and outputs both human-readable PLAN.md and machine-readable plan.json. Supports code implementation, analysis/documentation, and investigation tasks.
 ---
 
 # Create Freeform Plan
@@ -18,6 +18,7 @@ Create a structured plan for freeform Ralph loop execution. Simpler than PRD - u
 | Simpler verification | Complex acceptance criteria |
 | "Add a health endpoint" | "Build authentication system" |
 | "Fix the login bug" | "Implement user management" |
+| "Create cost estimate" | "Multi-phase project planning" |
 
 ## Workflow
 
@@ -40,7 +41,29 @@ Use this context to:
 - Generate relevant phases
 - Avoid asking obvious questions
 
-### Step 2: Ask Clarifying Questions
+### Step 2: Determine Task Type
+
+Ask this question FIRST before other clarifying questions:
+
+```
+What type of task is this?
+
+A) Code Implementation (default) - Write or modify code, fix bugs, add features
+B) Analysis/Documentation - Research, estimate, document, or produce a written deliverable
+C) Investigation/Debugging - Find root cause of an issue, explore unknowns
+
+Choose the option that best matches your goal.
+```
+
+Store the task type for use in subsequent questions and phase generation.
+
+---
+
+## Task Type: Code Implementation (Default)
+
+Use this flow when the user selects **Code Implementation** or doesn't specify.
+
+### Step 3A: Ask Clarifying Questions (Code Implementation)
 
 Ask these questions ONE AT A TIME (don't overwhelm):
 
@@ -100,9 +123,7 @@ Ask these questions ONE AT A TIME (don't overwhelm):
    - "Skip browser testing for now"
    ```
 
-### Step 3: Generate Phases
-
-Based on the goal, automatically generate 2-5 phases that:
+### Step 4A: Generate Phases (Code Implementation)
 
 **Phase Generation Rules**:
 - Each phase should be completable in 1-2 Ralph iterations
@@ -138,15 +159,249 @@ Phase 4: Final Verification
 Verify: All tests pass, endpoint works
 ```
 
-### Step 4: Review with User
+---
+
+## Task Type: Analysis/Documentation
+
+Use this flow when the user selects **Analysis/Documentation**.
+
+### Step 3B: Ask Clarifying Questions (Analysis/Documentation)
+
+Ask these questions ONE AT A TIME:
+
+1. **Task Name** (if not provided via $1):
+   ```
+   What should I call this task?
+   Use a short, descriptive name like: "feature-estimate", "architecture-doc", "cost-analysis"
+   ```
+
+2. **Deliverable**:
+   ```
+   What document or deliverable are you producing? (1-2 sentences)
+   Be specific about the output format and audience.
+
+   Examples:
+   - "A cost estimate document for the client covering 3 new features"
+   - "Architecture documentation for the authentication system"
+   - "Technical analysis comparing two implementation approaches"
+   - "Sprint planning breakdown with story points"
+   ```
+
+3. **Required Sections/Content**:
+   ```
+   What sections or information MUST be included in the deliverable?
+   List 3-6 specific items that define completeness.
+
+   Examples:
+   - "Executive summary"
+   - "Per-feature cost breakdown"
+   - "Timeline with milestones"
+   - "Technical complexity analysis"
+   - "Assumptions and risks"
+   - "Recommendations"
+   ```
+
+4. **Input Sources**:
+   ```
+   What materials need to be analyzed to produce this deliverable?
+
+   Examples:
+   - "Three PDF specifications in the project root"
+   - "The existing codebase (hifriends-api, hifriends-app)"
+   - "Current architecture diagrams"
+   - "Competitor analysis documents"
+
+   List all relevant files, directories, or external sources.
+   ```
+
+5. **Verification Method**:
+   ```
+   How will completion be validated?
+
+   A) Checklist review - Document contains all required sections
+   B) Client/stakeholder review - Ready for presentation
+   C) Peer review - Another team member validates
+   D) Self-review against criteria
+   E) Other: [describe]
+   ```
+
+6. **Out of Scope** (optional):
+   ```
+   Anything that should NOT be included? (press Enter to skip)
+
+   Examples:
+   - "Don't include implementation details"
+   - "Skip competitor pricing"
+   - "Exclude timeline beyond Q1"
+   ```
+
+### Step 4B: Generate Phases (Analysis/Documentation)
+
+**Phase Generation Rules for Documentation**:
+- First phase: Gather and review all input materials
+- Middle phases: Analyze each major area or feature
+- Later phase: Draft document structure and content
+- Final phase: Review, refine, and finalize deliverable
+
+**Example for "Feature cost estimate"**:
+```
+Phase 1: Gather and Review Input Materials
+- Read all specification PDFs
+- Review existing codebase structure
+- Identify integration points
+Verify: Have notes on each input source
+
+Phase 2: Analyze Feature 1 (Background Uploads)
+- Review iOS background upload requirements
+- Assess current upload queue implementation
+- Identify complexity factors
+Verify: Have complexity assessment and rough estimate
+
+Phase 3: Analyze Feature 2 (Unmatched Photo Invite)
+- Review invite flow mockups and requirements
+- Assess API and app changes needed
+- Identify AWS Rekognition integration points
+Verify: Have complexity assessment and rough estimate
+
+Phase 4: Analyze Feature 3 (Friend Suite)
+- Review friend tab, search, and profile requirements
+- Assess database schema changes
+- Identify push notification requirements
+Verify: Have complexity assessment and rough estimate
+
+Phase 5: Draft Cost Estimate Document
+- Create document structure
+- Write executive summary
+- Compile per-feature estimates
+- Add timeline and assumptions
+Verify: Document has all required sections
+
+Phase 6: Review and Finalize
+- Review against success criteria
+- Ensure estimates are justified
+- Polish formatting and clarity
+Verify: Document ready for client presentation
+```
+
+---
+
+## Task Type: Investigation/Debugging
+
+Use this flow when the user selects **Investigation/Debugging**.
+
+### Step 3C: Ask Clarifying Questions (Investigation/Debugging)
+
+Ask these questions ONE AT A TIME:
+
+1. **Task Name** (if not provided via $1):
+   ```
+   What should I call this investigation?
+   Use a short, descriptive name like: "login-failure-investigation", "performance-analysis", "memory-leak-debug"
+   ```
+
+2. **Problem Statement**:
+   ```
+   What problem or question are you investigating? (1-3 sentences)
+   Be specific about symptoms, errors, or unknowns.
+
+   Examples:
+   - "Users report login fails intermittently on iOS"
+   - "API response times have degraded over the past week"
+   - "Memory usage grows unbounded after 2 hours"
+   - "Need to understand how the face matching pipeline works"
+   ```
+
+3. **Success Definition**:
+   ```
+   What would count as "investigation complete"?
+   List 2-4 specific outcomes.
+
+   Examples:
+   - "Root cause identified and documented"
+   - "Can reproduce the issue consistently"
+   - "Have a fix implemented and tested"
+   - "Understand the system well enough to explain it"
+   ```
+
+4. **Known Information**:
+   ```
+   What do you already know about this problem?
+
+   Include:
+   - Error messages or logs
+   - When it started
+   - What's been tried
+   - Related recent changes
+
+   Or say "Starting from scratch" if unknown.
+   ```
+
+5. **Verification Method**:
+   ```
+   How will you confirm the investigation is complete?
+
+   A) Root cause documented with evidence
+   B) Issue reproduced and fix verified
+   C) System behavior understood and documented
+   D) Stakeholder accepts findings
+   E) Other: [describe]
+   ```
+
+### Step 4C: Generate Phases (Investigation/Debugging)
+
+**Phase Generation Rules for Investigation**:
+- First phase: Reproduce or observe the issue
+- Middle phases: Form and test hypotheses
+- Later phase: Identify root cause
+- Final phase: Document findings and/or implement fix
+
+**Example for "Login failure investigation"**:
+```
+Phase 1: Reproduce the Issue
+- Set up test environment
+- Attempt to reproduce on iOS
+- Capture logs and network traces
+Verify: Can reproduce issue OR have evidence it's intermittent
+
+Phase 2: Gather Evidence
+- Review error logs in Sentry
+- Check recent code changes
+- Review authentication flow
+Verify: Have list of potential causes
+
+Phase 3: Test Hypotheses
+- Test hypothesis 1: Token expiration
+- Test hypothesis 2: Network timeout
+- Test hypothesis 3: Race condition
+Verify: Have narrowed down to likely cause
+
+Phase 4: Confirm Root Cause
+- Verify hypothesis with targeted testing
+- Document the exact failure mode
+- Identify when/why this started
+Verify: Root cause confirmed with evidence
+
+Phase 5: Document and/or Fix
+- Document findings in investigation report
+- If fix is in scope: implement and test
+- Update CLAUDE.md with learnings
+Verify: Findings documented, fix verified if applicable
+```
+
+---
+
+## Step 5: Review with User (All Task Types)
 
 Present the generated plan:
 
 ```
 Here's the plan I've generated:
 
-## Goal
-<goal statement>
+## Task Type
+<Code Implementation | Analysis/Documentation | Investigation/Debugging>
+
+## Goal / Deliverable / Problem
+<goal statement or deliverable description or problem statement>
 
 ## Success Criteria
 - [ ] <criterion 1>
@@ -182,7 +437,7 @@ Would you like to:
 
 Iterate until user approves.
 
-### Step 5: Create Plan Files
+## Step 6: Create Plan Files (All Task Types)
 
 Create the working directory:
 ```bash
@@ -198,16 +453,22 @@ Write two files:
 **Created**: <timestamp>
 **Status**: draft
 **Type**: freeform
+**Task Type**: <implementation|documentation|investigation>
 
-## Goal
+## Goal / Deliverable / Problem
 
-<goal statement>
+<goal statement, deliverable description, or problem statement>
 
 ## Success Criteria
 
 - [ ] <criterion 1>
 - [ ] <criterion 2>
 - [ ] <criterion 3>
+
+## Input Sources (for documentation/investigation)
+
+- <source 1>
+- <source 2>
 
 ## Verification
 
@@ -244,7 +505,7 @@ Before outputting the completion promise, verify:
 - [ ] All phases completed
 - [ ] All success criteria met
 - [ ] Verification passes
-- [ ] No known regressions
+- [ ] Deliverable is complete (documentation) / Issue understood (investigation) / Code works (implementation)
 ```
 
 **plan.json** (machine-readable):
@@ -254,13 +515,17 @@ Before outputting the completion promise, verify:
   "created_at": "<ISO timestamp>",
   "status": "draft",
   "type": "plan",
-  "goal": "<goal statement>",
+  "task_type": "<implementation|documentation|investigation>",
+  "goal": "<goal statement, deliverable description, or problem statement>",
   "success_criteria": [
     "<criterion 1>",
     "<criterion 2>"
   ],
+  "input_sources": [
+    "<source 1 - for documentation/investigation tasks>"
+  ],
   "verification": {
-    "method": "<test|typecheck|manual|api|other>",
+    "method": "<test|typecheck|manual|checklist|review|other>",
     "command": "<command if applicable>",
     "description": "<what success looks like>"
   },
@@ -291,7 +556,7 @@ Before outputting the completion promise, verify:
 }
 ```
 
-### Step 6: Confirm and Provide Next Steps
+## Step 7: Confirm and Provide Next Steps
 
 ```
 Plan created successfully!
@@ -303,6 +568,7 @@ Files:
 
 Summary:
   - Task: <task-name>
+  - Type: <implementation|documentation|investigation>
   - Goal: <goal summary>
   - Phases: <count>
   - Verification: <method>
@@ -317,24 +583,47 @@ To edit the plan before starting:
   Open .claude/ralph/<task-name>/PLAN.md in your editor
 ```
 
+---
+
 ## Tips for Good Freeform Plans
 
+### For Code Implementation
 **Right-sized phases**:
 - 1-2 Ralph iterations per phase
 - Clear, focused objective
-- Concrete verification
+- Concrete verification (prefer automated tests)
 
 **Clear goal statement**:
 - One sentence
 - Specific outcome
 - No vague words like "improve" or "better"
 
-**Testable success criteria**:
-- Each criterion has yes/no answer
-- Prefer automated verification
-- 2-4 criteria is ideal
+### For Analysis/Documentation
+**Right-sized phases**:
+- Each analysis phase covers one logical area
+- Draft and review are separate phases
+- Verification is checklist-based
 
-**When to use /prd instead**:
+**Clear deliverable**:
+- Specify output format (document, spreadsheet, etc.)
+- Name the audience (client, team, stakeholders)
+- List required sections explicitly
+
+### For Investigation/Debugging
+**Right-sized phases**:
+- Reproduce before investigating
+- One hypothesis per phase
+- Document findings as you go
+
+**Clear problem statement**:
+- Include symptoms and error messages
+- Note when it started
+- List what's already been tried
+
+---
+
+## When to Use /prd Instead
+
 - Task has 5+ distinct features
 - Need detailed acceptance criteria per feature
 - Multiple stakeholder concerns

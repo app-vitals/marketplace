@@ -3,7 +3,9 @@
   "created_at": "2025-01-09T12:00:00Z",
   "status": "draft",
   "type": "plan",
+  "task_type": "implementation",
   "goal": "Add a health check endpoint that returns server status and uptime",
+  "input_sources": [],
   "success_criteria": [
     "GET /health returns 200 with {status: 'ok'}",
     "Response includes server uptime in seconds",

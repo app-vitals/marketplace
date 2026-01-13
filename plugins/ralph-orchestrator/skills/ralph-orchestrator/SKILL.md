@@ -453,6 +453,164 @@ When neither PRD nor plan exists (raw prompt passed to /ralph):
 
 ---
 
+## Task Type Adaptations
+
+Plans created via `/ralph-freeform` include a `task_type` field that determines how the master prompt should be built. Check `plan.json` for the `task_type` field:
+
+### Task Type: implementation (Default)
+
+Standard code implementation workflow. Use the TDD-focused prompt structure described above:
+- Emphasize TDD workflow (write test first, run, implement, verify)
+- Commit code frequently
+- Verification via tests or type checks
+- "What To Do Now" focuses on coding workflow
+
+### Task Type: documentation
+
+For analysis, research, and documentation tasks. Adapt the master prompt:
+
+**Remove TDD Section** - Replace with Research/Writing workflow:
+```markdown
+### 4. Research and Writing Workflow
+
+For each phase:
+
+1. **Gather information first**
+   - Read all relevant input sources
+   - Take notes on key findings
+   - Identify gaps or questions
+
+2. **Analyze before writing**
+   - Synthesize information across sources
+   - Form conclusions or recommendations
+   - Note assumptions being made
+
+3. **Draft incrementally**
+   - Write section by section
+   - Reference source material
+   - Keep deliverable focused on audience needs
+
+4. **Review against criteria**
+   - Check all required sections present
+   - Verify claims are supported
+   - Ensure clarity and completeness
+```
+
+**Adapt Context Health**:
+- Remove "Commit frequently" (no code to commit)
+- Keep "Summarize on milestones" for documentation progress
+- Add "Save drafts" - write intermediate outputs to working directory
+
+**Adapt Verification**:
+- Replace test commands with checklist verification
+- Focus on "deliverable contains all required sections"
+- Verification is typically manual review or checklist-based
+
+**Adapt "What To Do Now" for Documentation**:
+```markdown
+## What To Do Now
+
+1. **Read state files** - progress.md, AGENTS.md, plan.json
+2. **Identify current iteration** from progress.md
+3. **Determine current phase** - first non-complete phase
+4. **If analysis phase**: Read input sources, take notes, form findings
+5. **If drafting phase**: Write sections of deliverable
+6. **Update progress.md** after each meaningful action
+7. **Save work** - write drafts to .claude/ralph/<task-name>/ directory
+8. **Run verification** when phase seems complete (check against criteria)
+9. **Update plan.json** when phase passes: `"complete": true`
+10. **Move to next phase** until all complete
+11. **When ALL phases complete**, output: <promise>ALL PHASES COMPLETE</promise>
+```
+
+**Input Sources**:
+Documentation tasks have an `input_sources` field in plan.json. Include this in the prompt:
+```markdown
+## Input Sources
+
+Read and analyze these materials:
+- <source 1>
+- <source 2>
+- <source 3>
+
+Reference these throughout your analysis phases.
+```
+
+### Task Type: investigation
+
+For debugging, root cause analysis, and exploration tasks. Adapt the master prompt:
+
+**Replace TDD Section** with Investigation workflow:
+```markdown
+### 4. Investigation Workflow
+
+For each phase:
+
+1. **Observe first**
+   - Reproduce the issue if possible
+   - Gather logs, traces, evidence
+   - Document exact symptoms
+
+2. **Form hypotheses**
+   - List possible causes
+   - Rank by likelihood
+   - Identify how to test each
+
+3. **Test hypotheses systematically**
+   - One hypothesis at a time
+   - Document results of each test
+   - Update likelihood based on evidence
+
+4. **Confirm root cause**
+   - Gather definitive evidence
+   - Document the failure mode
+   - Identify when/why it started
+
+5. **Document findings**
+   - Write investigation report
+   - Include evidence and reasoning
+   - Recommend fix if in scope
+```
+
+**Adapt Context Health**:
+- "Commit frequently" only if making code changes as part of fix
+- Emphasize documentation of findings
+- Create investigation artifacts in working directory
+
+**Adapt "What To Do Now" for Investigation**:
+```markdown
+## What To Do Now
+
+1. **Read state files** - progress.md, AGENTS.md, plan.json
+2. **Identify current iteration** from progress.md
+3. **Determine current phase** - first non-complete phase
+4. **If reproduce phase**: Attempt to trigger the issue, capture evidence
+5. **If hypothesis phase**: Test one hypothesis, document results
+6. **If root cause phase**: Confirm with evidence, document findings
+7. **Update progress.md** after each test or finding
+8. **Save artifacts** - logs, screenshots, traces to working directory
+9. **Update plan.json** when phase passes: `"complete": true`
+10. **Move to next phase** until all complete
+11. **When ALL phases complete**, output: <promise>ALL PHASES COMPLETE</promise>
+```
+
+### Detecting Task Type
+
+When building the master prompt:
+
+1. Read `plan.json` and check for `task_type` field
+2. If `task_type` is `"documentation"` - use documentation adaptations
+3. If `task_type` is `"investigation"` - use investigation adaptations
+4. If `task_type` is `"implementation"` or missing - use default TDD workflow
+
+The task type affects:
+- Section 4 workflow (TDD vs Research/Writing vs Investigation)
+- Context health guidance
+- "What To Do Now" instructions
+- Whether `input_sources` section is included
+
+---
+
 ## References
 
 Load these for detailed guidance:
