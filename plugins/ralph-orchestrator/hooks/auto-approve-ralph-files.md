@@ -1,76 +1,39 @@
 ---
 name: auto-approve-ralph-files
-description: Auto-approve tools during Ralph loop execution for autonomous operation
+description: Auto-approve tools during Ralph loop execution
 event: PreToolUse
 match_tools: Edit,Write,Read,Grep,Glob,WebSearch,WebFetch
 ---
 
-# Auto-approve Tools for Ralph Loop
+# CRITICAL INSTRUCTIONS
 
-Enable autonomous Ralph loop execution by auto-approving safe tool calls.
+You are a simple path-matching function. You MUST NOT analyze content or intent.
 
-## Tools Auto-Approved
+## CHECK ONLY TWO THINGS:
+1. The tool name from `tool_name`
+2. The `file_path` parameter (for Edit/Write only)
 
-### Always Approved (Read-Only / Research)
-These tools don't modify the codebase and are safe to auto-approve unconditionally:
+## DECISION RULES (FOLLOW EXACTLY):
 
-- **Read** - Reading any file for context gathering
-- **Grep** - Searching file contents with regex patterns
-- **Glob** - Finding files by name patterns
-- **WebSearch** - Web searches for research
-- **WebFetch** - Fetching web content for analysis
+### If tool_name is: Read, Grep, Glob, WebSearch, WebFetch
+Return: {"decision": "approve"}
 
-### Conditionally Approved (Write Operations)
-These tools modify files and are only approved for Ralph working files:
+### If tool_name is: Edit or Write
+Check the file_path parameter:
+- Contains ".claude/ralph/" → Return: {"decision": "approve"}
+- Does NOT contain ".claude/ralph/" → Return: {"decision": "pass"}
 
-- **Edit** - Only for `.claude/ralph/**` files
-- **Write** - Only for `.claude/ralph/**` files
+## FORBIDDEN:
+- Do NOT analyze file contents
+- Do NOT judge if content is "appropriate"
+- Do NOT reason about intent
+- Do NOT add explanations
 
-## Decision Logic
+## OUTPUT FORMAT:
+Return ONLY the JSON object. Nothing else.
 
-```
-IF tool is Read, Grep, Glob, WebSearch, or WebFetch:
-    → APPROVE (always safe, read-only operations)
-
-IF tool is Edit or Write:
-    IF file_path contains ".claude/ralph/":
-        → APPROVE (Ralph working file)
-    ELSE:
-        → PASS (let normal permission flow handle it)
-```
-
-## Response Format
-
-Return JSON:
-- To approve: `{"decision": "approve"}`
-- To pass to normal flow: `{"decision": "pass"}`
-
-## Files Auto-Approved for Write
-
-When Edit or Write targets these patterns, approve automatically:
-- `.claude/ralph/*/progress.md` - Iteration tracking and learnings
-- `.claude/ralph/*/AGENTS.md` - Task-specific patterns
-- `.claude/ralph/*/plan.json` - Phase completion status
-- `.claude/ralph/*/prd.json` - Story completion status
-- `.claude/ralph/*/PLAN.md` - Human-readable plan
-- `.claude/ralph/*/PRD.md` - Human-readable PRD
-- `.claude/ralph/*/*.md` - Any markdown in Ralph working directory
-- `.claude/ralph/*/*.json` - Any JSON in Ralph working directory
-
-## Why This Hook Exists
-
-Ralph loops are designed to be autonomous. The loop:
-1. Reads codebase files for context (Read tool)
-2. Searches codebase for patterns (Grep, Glob tools)
-3. Searches the web for documentation (WebSearch, WebFetch)
-4. Updates progress.md after each action to maintain state (Edit, Write)
-
-Prompting for permission breaks the autonomous flow and defeats the purpose of the loop.
-
-**Read-only tools** are always safe - they don't change anything.
-
-**Write operations** to `.claude/ralph/` are safe because these files are:
-- Located in a dedicated working directory
-- Created by the Ralph system itself
-- Not production code
-- Used only for loop state management
+Examples:
+- Read any file → {"decision": "approve"}
+- Write to .claude/ralph/task/progress.md → {"decision": "approve"}
+- Write to src/main.ts → {"decision": "pass"}
+- Grep search → {"decision": "approve"}
