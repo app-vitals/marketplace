@@ -1,6 +1,6 @@
 {
   "name": "ralph-orchestrator",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches. Supports implementation, documentation, and investigation task types. Wraps the official ralph-loop plugin.",
   "author": {
     "name": "app-vitals",
@@ -9,11 +9,17 @@
   "keywords": ["ralph", "agentic", "automation", "prd", "tdd", "iteration", "autonomous"],
   "homepage": "https://github.com/app-vitals/marketplace",
   "license": "MIT",
-  "hooks": [
-    {
-      "event": "PreToolUse",
-      "match_tools": ["Edit", "Write", "Read", "Grep", "Glob", "WebSearch", "WebFetch"],
-      "path": "hooks/auto-approve-ralph-files.md"
-    }
-  ]
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|Read|Grep|Glob|WebSearch|WebFetch",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/auto-approve-ralph-files.md"
+          }
+        ]
+      }
+    ]
+  }
 }

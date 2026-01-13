@@ -57,3 +57,7 @@ When modifying plugins:
 - Skill files use YAML frontmatter with `name` and `description` fields
 - Templates in `assets/templates/` are used to initialize working files
 - References in `references/` provide detailed guidance loaded on-demand
+
+### Versioning
+
+When bumping a plugin version, also bump the marketplace version in `.claude-plugin/marketplace.json` to keep them in sync.
