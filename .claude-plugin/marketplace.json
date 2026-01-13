@@ -10,7 +10,7 @@
     {
       "name": "ralph-orchestrator",
       "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches",
-      "version": "1.0.0",
+      "version": "1.4.0",
       "author": {
         "name": "app-vitals",
         "email": "dave@app-vitals.com"
