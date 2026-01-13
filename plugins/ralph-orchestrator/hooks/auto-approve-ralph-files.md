@@ -2,7 +2,7 @@
 name: auto-approve-ralph-files
 description: Auto-approve tools during Ralph loop execution for autonomous operation
 event: PreToolUse
-match_tools: Edit,Write,Read,WebSearch,WebFetch
+match_tools: Edit,Write,Read,Grep,Glob,WebSearch,WebFetch
 ---
 
 # Auto-approve Tools for Ralph Loop
@@ -15,6 +15,8 @@ Enable autonomous Ralph loop execution by auto-approving safe tool calls.
 These tools don't modify the codebase and are safe to auto-approve unconditionally:
 
 - **Read** - Reading any file for context gathering
+- **Grep** - Searching file contents with regex patterns
+- **Glob** - Finding files by name patterns
 - **WebSearch** - Web searches for research
 - **WebFetch** - Fetching web content for analysis
 
@@ -27,7 +29,7 @@ These tools modify files and are only approved for Ralph working files:
 ## Decision Logic
 
 ```
-IF tool is Read, WebSearch, or WebFetch:
+IF tool is Read, Grep, Glob, WebSearch, or WebFetch:
     → APPROVE (always safe, read-only operations)
 
 IF tool is Edit or Write:
@@ -59,8 +61,9 @@ When Edit or Write targets these patterns, approve automatically:
 
 Ralph loops are designed to be autonomous. The loop:
 1. Reads codebase files for context (Read tool)
-2. Searches the web for documentation (WebSearch, WebFetch)
-3. Updates progress.md after each action to maintain state (Edit, Write)
+2. Searches codebase for patterns (Grep, Glob tools)
+3. Searches the web for documentation (WebSearch, WebFetch)
+4. Updates progress.md after each action to maintain state (Edit, Write)
 
 Prompting for permission breaks the autonomous flow and defeats the purpose of the loop.
 
