@@ -22,23 +22,31 @@ Create a structured plan for freeform Ralph loop execution. Simpler than PRD - u
 
 ## Workflow
 
-### Step 1: Gather Context Automatically
+### Step 1: Gather Context and Discover Integrations
 
 Before asking questions, gather context from the codebase:
 
 ```bash
 # Check for project type indicators
 ls package.json pyproject.toml Cargo.toml go.mod Gemfile 2>/dev/null
+
+# Discover MCP servers
+find . -name ".mcp.json" -type f 2>/dev/null | head -5
 ```
 
-Identify:
+**Identify project context**:
 - **Language/framework**: From config files (package.json → Node.js, etc.)
 - **Test framework**: From test directories or config
 - **Existing patterns**: From directory structure
 
+**Discover available integrations**:
+- **MCP Servers**: Parse any `.mcp.json` files found (Sentry, Trello, Toggl, etc.)
+- **MCP Tools**: Use `ListMcpResourcesTool()` to see available tools
+
 Use this context to:
 - Suggest appropriate verification commands
 - Generate relevant phases
+- Recommend integrations based on task type
 - Avoid asking obvious questions
 
 ### Step 2: Determine Task Type
@@ -390,7 +398,39 @@ Verify: Findings documented, fix verified if applicable
 
 ---
 
-## Step 5: Review with User (All Task Types)
+## Step 5: Suggest Relevant Integrations (All Task Types)
+
+Based on discovered integrations from Step 1, suggest relevant ones:
+
+**For Implementation tasks**:
+- Code review plugins → "Add a review phase at the end?"
+- Sentry → "Use Sentry to monitor for errors after deployment?"
+
+**For Documentation tasks**:
+- No special integrations typically needed
+
+**For Investigation tasks**:
+- Sentry → "Use Sentry to fetch error details and stack traces?"
+- Debugging plugins → "Include debugging toolkit for analysis?"
+
+Present discovered integrations:
+```
+I found these integrations that could help:
+
+MCP Servers:
+- Sentry (mcp.sentry.dev) - Error tracking and issue details
+
+Would you like to include any of these in the plan?
+1. Yes, include Sentry for [error investigation / monitoring / etc.]
+2. No, skip integrations
+3. Let me specify which ones
+```
+
+Record selected integrations for inclusion in the plan files.
+
+---
+
+## Step 6: Review with User (All Task Types)
 
 Present the generated plan:
 
@@ -406,6 +446,10 @@ Here's the plan I've generated:
 ## Success Criteria
 - [ ] <criterion 1>
 - [ ] <criterion 2>
+
+## Available Integrations
+- <integration 1> - <how it will be used>
+(or "None configured")
 
 ## Phases
 
@@ -432,12 +476,13 @@ Would you like to:
 2. Add/remove phases
 3. Adjust steps within a phase
 4. Change verification method
-5. Start over with different goal
+5. Modify integrations
+6. Start over with different goal
 ```
 
 Iterate until user approves.
 
-## Step 6: Create Plan Files (All Task Types)
+## Step 7: Create Plan Files (All Task Types)
 
 Create the working directory:
 ```bash
@@ -469,6 +514,10 @@ Write two files:
 
 - <source 1>
 - <source 2>
+
+## Available Integrations
+
+- **<Integration Name>** (<type: mcp|plugin>) - <how it will be used>
 
 ## Verification
 
@@ -524,6 +573,14 @@ Before outputting the completion promise, verify:
   "input_sources": [
     "<source 1 - for documentation/investigation tasks>"
   ],
+  "integrations": [
+    {
+      "name": "<Integration Name>",
+      "type": "<mcp|plugin>",
+      "usage": "<how it will be used in this task>",
+      "tools": ["<tool_name_1>", "<tool_name_2>"]
+    }
+  ],
   "verification": {
     "method": "<test|typecheck|manual|checklist|review|other>",
     "command": "<command if applicable>",
@@ -556,7 +613,7 @@ Before outputting the completion promise, verify:
 }
 ```
 
-## Step 7: Confirm and Provide Next Steps
+## Step 8: Confirm and Provide Next Steps
 
 ```
 Plan created successfully!

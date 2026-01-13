@@ -49,6 +49,7 @@ Determine input mode from the invocation context:
 **PRD Mode** (if `.claude/ralph/<task-name>/prd.json` exists):
 - Read the prd.json file
 - Extract stories, success criteria, verification method
+- Extract integrations array (if present) for available tools
 - Identify which stories are already passing (`"passes": true`)
 - Determine next story to work on
 - Completion promise: `<promise>ALL STORIES PASS</promise>`
@@ -56,6 +57,7 @@ Determine input mode from the invocation context:
 **Plan Mode** (if `.claude/ralph/<task-name>/plan.json` exists):
 - Read the plan.json file
 - Extract phases, goal, success criteria, verification method
+- Extract integrations array (if present) for available tools
 - Identify which phases are already complete (`"complete": true`)
 - Determine next phase to work on
 - Completion promise: `<promise>ALL PHASES COMPLETE</promise>`
@@ -122,6 +124,19 @@ Before doing ANY work, read these files to understand current state:
 - `.claude/ralph/<task-name>/prd.json` - Current story status (which stories pass)
 
 **DO NOT** start working until you've read these files. They contain your memory from previous iterations.
+
+### 1b. Available Integrations
+
+<If plan.json or prd.json has an "integrations" array, include this section>
+
+You have access to these integrations for this task:
+
+<For each integration in the integrations array>
+- **<name>** (<type>): <usage>
+  - Tools: <list tools>
+</For each>
+
+Use these integrations when relevant to the current phase/story.
 
 ### 2. Progress Tracking (MANDATORY)
 

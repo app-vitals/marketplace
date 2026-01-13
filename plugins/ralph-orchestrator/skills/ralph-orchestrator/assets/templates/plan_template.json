@@ -6,6 +6,7 @@
   "task_type": "implementation",
   "goal": "Add a health check endpoint that returns server status and uptime",
   "input_sources": [],
+  "integrations": [],
   "success_criteria": [
     "GET /health returns 200 with {status: 'ok'}",
     "Response includes server uptime in seconds",

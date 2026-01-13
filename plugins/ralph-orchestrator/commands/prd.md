@@ -11,6 +11,24 @@ Create a structured Product Requirements Document for Ralph loop execution.
 
 ## Workflow
 
+### Step 0: Discover Available Integrations
+
+Before gathering requirements, discover available integrations:
+
+```bash
+# Check for project type indicators
+ls package.json pyproject.toml Cargo.toml go.mod Gemfile 2>/dev/null
+
+# Discover MCP servers
+find . -name ".mcp.json" -type f 2>/dev/null | head -5
+```
+
+**Discover**:
+- **MCP Servers**: Parse any `.mcp.json` files found (Sentry, Trello, Toggl, etc.)
+- **MCP Tools**: Use `ListMcpResourcesTool()` to see available tools
+
+Store discovered integrations for later suggestion to the user.
+
 ### Step 1: Gather Basic Information
 
 Ask these questions ONE AT A TIME (don't overwhelm with all at once):
@@ -129,6 +147,25 @@ Would you like to:
 
 Iterate until the user approves the story list.
 
+### Step 3b: Suggest Relevant Integrations
+
+If integrations were discovered in Step 0, present them:
+
+```
+I found these integrations that could help with this project:
+
+MCP Servers:
+- Sentry (mcp.sentry.dev) - Error tracking and issue details
+- Toggl - Time tracking
+
+Would you like to include any of these in the PRD?
+1. Yes, include all discovered integrations
+2. Let me select specific ones
+3. No, skip integrations
+```
+
+Record selected integrations for inclusion in prd.json.
+
 ### Step 4: Create PRD Files
 
 Create the working directory:
@@ -157,6 +194,14 @@ Use the template from `./skills/ralph-orchestrator/assets/templates/prd_template
   "problem_statement": "<from user>",
   "success_criteria": ["<criterion 1>", "<criterion 2>"],
   "out_of_scope": ["<item 1>", "<item 2>"],
+  "integrations": [
+    {
+      "name": "<Integration Name>",
+      "type": "<mcp|plugin>",
+      "usage": "<how it will be used>",
+      "tools": ["<tool_name_1>", "<tool_name_2>"]
+    }
+  ],
   "verification": {
     "method": "<test|typecheck|browser|api|other>",
     "command": "<if applicable>",
