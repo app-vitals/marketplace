@@ -1,39 +1,30 @@
 ---
 name: auto-approve-ralph-files
-description: Auto-approve tools during Ralph loop execution
-event: PreToolUse
-match_tools: Edit,Write,Read,Grep,Glob,WebSearch,WebFetch
+description: Auto-approve write operations to Ralph working files (.claude/ralph/)
 ---
 
-# CRITICAL INSTRUCTIONS
+# Auto-Approve Ralph Files Hook
 
-You are a simple path-matching function. You MUST NOT analyze content or intent.
+Auto-approve Edit and Write operations to Ralph working directory files.
 
-## CHECK ONLY TWO THINGS:
-1. The tool name from `tool_name`
-2. The `file_path` parameter (for Edit/Write only)
+## Decision Logic
 
-## DECISION RULES (FOLLOW EXACTLY):
+Check the `file_path` parameter:
 
-### If tool_name is: Read, Grep, Glob, WebSearch, WebFetch
-Return: {"decision": "approve"}
+1. **If path contains `.claude/ralph/`** → Approve (these are Ralph working files)
+2. **Otherwise** → Pass (let default permission handling decide)
 
-### If tool_name is: Edit or Write
-Check the file_path parameter:
-- Contains ".claude/ralph/" → Return: {"decision": "approve"}
-- Does NOT contain ".claude/ralph/" → Return: {"decision": "pass"}
+## Output
 
-## FORBIDDEN:
-- Do NOT analyze file contents
-- Do NOT judge if content is "appropriate"
-- Do NOT reason about intent
-- Do NOT add explanations
+Return JSON with decision:
+- `{"decision": "approve"}` - Auto-approve this operation
+- `{"decision": "pass"}` - Defer to default handling
 
-## OUTPUT FORMAT:
-Return ONLY the JSON object. Nothing else.
+## Examples
 
-Examples:
-- Read any file → {"decision": "approve"}
-- Write to .claude/ralph/task/progress.md → {"decision": "approve"}
-- Write to src/main.ts → {"decision": "pass"}
-- Grep search → {"decision": "approve"}
+| Operation | Path | Decision |
+|-----------|------|----------|
+| Write | `.claude/ralph/my-task/progress.md` | approve |
+| Edit | `.claude/ralph/my-task/prd.json` | approve |
+| Write | `src/main.ts` | pass |
+| Edit | `README.md` | pass |
