@@ -28,6 +28,30 @@ You should see: `🛑 Blocked by damage-control: rm with recursive or force flag
 
 ---
 
+## About This Plugin
+
+This is a marketplace plugin adaptation of [IndyDevDan's claude-code-damage-control](https://github.com/disler/claude-code-damage-control). The original project provides standalone hooks; this version packages them as a proper Claude Code marketplace plugin with enhanced discoverability, installation, and skill-based customization.
+
+**Why Marketplace Version?**
+
+This marketplace distribution provides:
+- One-command installation via `/plugin install`
+- Proper Claude Code plugin structure (plugin.json, hooks.json)
+- Interactive customization skill for guided setup
+- Project-specific override system
+- Enhanced documentation and examples
+- Maintained by app-vitals for marketplace ecosystem
+
+**Key differences from original:**
+- Marketplace plugin structure (plugin.json, hooks.json)
+- One-command installation via `/plugin install`
+- Interactive customization skill
+- Project-specific override system
+
+**Credit:** Core hook patterns and security logic by [IndyDevDan](https://github.com/disler).
+
+---
+
 ## How It Works
 
 ```
@@ -35,29 +59,29 @@ You should see: `🛑 Blocked by damage-control: rm with recursive or force flag
 │                   Claude Code Tool Call                              │
 └─────────────────────────────────────────────────────────────────────┘
                                 │
-          ┌─────────────────────┼─────────────────────┐
-          ▼                     ▼                     ▼
-    ┌───────────┐         ┌───────────┐         ┌───────────┐
-    │   Bash    │         │   Edit    │         │   Write   │
-    │   Tool    │         │   Tool    │         │   Tool    │
-    └─────┬─────┘         └─────┬─────┘         └─────┬─────┘
-          │                     │                     │
-          ▼                     ▼                     ▼
-┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│ bash-tool-      │   │ edit-tool-      │   │ write-tool-     │
-│ damage-control  │   │ damage-control  │   │ damage-control  │
-│                 │   │                 │   │                 │
-│ • bashTool-     │   │ • zeroAccess-   │   │ • zeroAccess-   │
-│   Patterns      │   │   Paths         │   │   Paths         │
-│ • zeroAccess-   │   │ • readOnlyPaths │   │ • readOnlyPaths │
-│   Paths         │   │                 │   │                 │
-│ • readOnlyPaths │   │                 │   │                 │
-│ • noDeletePaths │   │                 │   │                 │
-└────────┬────────┘   └────────┬────────┘   └────────┬────────┘
-         │                     │                     │
-         ▼                     ▼                     ▼
-   exit 0 = allow        exit 0 = allow        exit 0 = allow
-   exit 2 = BLOCK        exit 2 = BLOCK        exit 2 = BLOCK
+          ┌─────────────────────┼──────────────────────┬──────────────┐
+          ▼                     ▼                      ▼              ▼
+    ┌───────────┐         ┌───────────┐         ┌───────────┐  ┌───────────┐
+    │   Bash    │         │   Read    │         │   Edit    │  │   Write   │
+    │   Tool    │         │   Tool    │         │   Tool    │  │   Tool    │
+    └─────┬─────┘         └─────┬─────┘         └─────┬─────┘  └─────┬─────┘
+          │                     │                     │              │
+          ▼                     ▼                     ▼              ▼
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐  ┌─────────────────┐
+│ bash-tool-      │   │ read-tool-      │   │ edit-tool-      │  │ write-tool-     │
+│ damage-control  │   │ damage-control  │   │ damage-control  │  │ damage-control  │
+│                 │   │                 │   │                 │  │                 │
+│ • bashTool-     │   │ • zeroAccess-   │   │ • zeroAccess-   │  │ • zeroAccess-   │
+│   Patterns      │   │   Paths         │   │   Paths         │  │   Paths         │
+│ • zeroAccess-   │   │                 │   │ • readOnlyPaths │  │ • readOnlyPaths │
+│   Paths         │   │                 │   │                 │  │                 │
+│ • readOnlyPaths │   │                 │   │                 │  │                 │
+│ • noDeletePaths │   │                 │   │                 │  │                 │
+└────────┬────────┘   └────────┬────────┘   └────────┬────────┘  └────────┬────────┘
+         │                     │                     │                    │
+         ▼                     ▼                     ▼                    ▼
+   exit 0 = allow        exit 0 = allow        exit 0 = allow      exit 0 = allow
+   exit 2 = BLOCK        exit 2 = BLOCK        exit 2 = BLOCK      exit 2 = BLOCK
    JSON   = ASK
 ```
 

@@ -1,7 +1,7 @@
 {
   "name": "damage-control",
   "version": "1.0.0",
-  "description": "Defense-in-depth protection for Claude Code (based on IndyDevDan's original work: https://github.com/disler/claude-code-damage-control). Blocks dangerous commands and protects sensitive files via PreToolUse hooks. Features pattern-based blocking, ask confirmations, and three-tier path protection (zero-access, read-only, no-delete).",
+  "description": "Defense-in-depth protection for Claude Code. Plugin adaptation of IndyDevDan's claude-code-damage-control (https://github.com/disler/claude-code-damage-control). Blocks dangerous commands and protects sensitive files via PreToolUse hooks. Features pattern-based blocking, ask confirmations, and three-tier path protection (zero-access, read-only, no-delete).",
   "author": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"

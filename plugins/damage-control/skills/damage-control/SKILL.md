@@ -74,9 +74,8 @@ cp ${CLAUDE_PLUGIN_ROOT}/hooks/patterns.yaml .claude/hooks/damage-control/patter
 **Common patterns by project type:**
 
 **AWS/Cloud Projects:**
-- May want to allow: `aws ecs describe-tasks --query 'tasks[0].containers[0].environment'`
-- Problem: Default `*.env` pattern blocks this
-- Solution: Make `zeroAccessPaths` more specific
+- The `*.env` pattern uses word boundaries and won't match "environment" in commands like `aws ecs describe-tasks --query 'tasks[0].containers[0].environment'`
+- May need to customize patterns for specific cloud provider CLIs or file naming conventions
 
 **Database Projects:**
 - May want to allow: Specific DELETE commands with WHERE clauses
@@ -94,19 +93,16 @@ Based on project analysis, suggest specific edits to the user.
 
 **Example suggestions:**
 
-"I noticed you're using AWS ECS. The default patterns block all `*.env` references, which might interfere with `aws ecs` commands that query environment variables. Consider this change:"
+"I noticed you have multiple environment-specific config files. Consider making your zero-access patterns more specific to your project structure:"
 
 ```yaml
-# Before (too broad):
-zeroAccessPaths:
-  - "*.env"
-
-# After (more specific):
+# Example: Project-specific .env protection
 zeroAccessPaths:
   - ".env"
   - ".env.local"
   - ".env.production"
-  - "**/*.env"  # Still blocks .env files in subdirectories
+  - ".env.staging"
+  - "config/secrets.yml"  # Add project-specific secret files
 ```
 
 "I see you have a SQLite database. Consider changing DELETE protection from blocking to asking:"
@@ -237,18 +233,20 @@ Supports:
 
 ## Common Customizations
 
-### Allow AWS CLI Environment Queries
+### Customize Environment File Protection
 
-**Problem:** `aws ecs describe-tasks --query 'tasks[0].containers[0].environment'` blocked
+**Note:** The `*.env` pattern uses word boundaries, so it won't block commands containing "environment" as part of JSON paths or query outputs. However, you may want to customize patterns for your specific project structure.
 
-**Solution:**
+**Example customization:**
 ```yaml
 zeroAccessPaths:
-  # Remove: "*.env"
-  # Add more specific patterns:
+  # Default includes "*.env" which blocks files ending in .env
+  # Customize for your project's naming conventions:
   - ".env"
   - ".env.local"
   - ".env.production"
+  - ".env.staging"
+  - "config/secrets.yml"  # Add project-specific paths
 ```
 
 ### Allow Specific Directory Cleanup
