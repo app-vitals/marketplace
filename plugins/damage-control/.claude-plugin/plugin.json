@@ -1,0 +1,13 @@
+{
+  "name": "damage-control",
+  "version": "1.0.0",
+  "description": "Defense-in-depth protection for Claude Code (based on IndyDevDan's original work: https://github.com/disler/claude-code-damage-control). Blocks dangerous commands and protects sensitive files via PreToolUse hooks. Features pattern-based blocking, ask confirmations, and three-tier path protection (zero-access, read-only, no-delete).",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["security", "hooks", "protection", "safety", "damage-control", "pre-tool-use", "bash-blocking"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}
