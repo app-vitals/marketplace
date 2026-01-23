@@ -1,6 +1,6 @@
 {
   "name": "ralph-orchestrator",
-  "version": "1.4.4",
+  "version": "1.6.0",
   "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches. Supports implementation, documentation, and investigation task types. Wraps the official ralph-loop plugin.",
   "author": {
     "name": "app-vitals",
@@ -15,8 +15,8 @@
         "matcher": "Edit|Write",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/auto-approve-ralph-files.md"
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/auto-approve-ralph-files.sh"
           }
         ]
       }
