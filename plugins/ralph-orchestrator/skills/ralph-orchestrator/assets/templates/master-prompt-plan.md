@@ -273,6 +273,33 @@ After completing a phase, check if any learnings should be promoted to the proje
 - Temporary workarounds
 - Learnings only relevant to this task
 
+### 8. Completion Summary
+
+When ALL phases are complete and you're about to output the completion promise, **first output a human-friendly summary** of the loop execution:
+
+```
+───────────────────────────────────────
+✓ Ralph loop complete!
+
+Total iterations: <N>
+  • P1 (<phase name>): <X> iterations
+  • P2 (<phase name>): <Y> iterations
+  • ...
+
+All phases complete.
+───────────────────────────────────────
+```
+
+**How to calculate iterations per phase:**
+- Read the Iteration History section in progress.md
+- Count how many iterations focused on each phase
+- Sum to get total iterations
+
+**IMPORTANT:**
+- Output this summary ONLY on successful completion
+- Do NOT output if using escape hatches or if phases are blocked
+- Output the summary BEFORE the `<promise>` tag
+
 ---
 
 ## Phases
@@ -314,7 +341,7 @@ Work on the first non-complete phase listed above.
 10. **Promote to CLAUDE.md** any project-wide conventions discovered
 11. **Commit working code** with descriptive message
 12. **Move to next phase** until all complete
-13. **When ALL phases complete**, output: `<promise>ALL PHASES COMPLETE</promise>`
+13. **When ALL phases complete**, output completion summary (see Section 8), then: `<promise>ALL PHASES COMPLETE</promise>`
 {{/if}}
 
 {{#if task_type_documentation}}
@@ -328,7 +355,7 @@ Work on the first non-complete phase listed above.
 8. **Run verification** when phase seems complete (check against criteria)
 9. **Update plan.json** when phase passes: `"complete": true`
 10. **Move to next phase** until all complete
-11. **When ALL phases complete**, output: `<promise>ALL PHASES COMPLETE</promise>`
+11. **When ALL phases complete**, output completion summary (see Section 8), then: `<promise>ALL PHASES COMPLETE</promise>`
 {{/if}}
 
 {{#if task_type_investigation}}
@@ -342,7 +369,7 @@ Work on the first non-complete phase listed above.
 8. **Save artifacts** - logs, screenshots, traces to working directory
 9. **Update plan.json** when phase passes: `"complete": true`
 10. **Move to next phase** until all complete
-11. **When ALL phases complete**, output: `<promise>ALL PHASES COMPLETE</promise>`
+11. **When ALL phases complete**, output completion summary (see Section 8), then: `<promise>ALL PHASES COMPLETE</promise>`
 {{/if}}
 
 ---

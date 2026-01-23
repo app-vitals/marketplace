@@ -201,6 +201,33 @@ Append to CLAUDE.md under a "## Discovered Patterns" or relevant existing sectio
 - AGENTS.md = Task-specific patterns (stays in `.claude/ralph/{{task-name}}/`)
 - CLAUDE.md = Project-wide conventions (promoted from AGENTS.md)
 
+### 8. Completion Summary
+
+When ALL stories pass and you're about to output the completion promise, **first output a human-friendly summary** of the loop execution:
+
+```
+───────────────────────────────────────
+✓ Ralph loop complete!
+
+Total iterations: <N>
+  • US-001 (<story title>): <X> iterations
+  • US-002 (<story title>): <Y> iterations
+  • ...
+
+All stories pass.
+───────────────────────────────────────
+```
+
+**How to calculate iterations per story:**
+- Read the Iteration History section in progress.md
+- Count how many iterations focused on each story
+- Sum to get total iterations
+
+**IMPORTANT:**
+- Output this summary ONLY on successful completion
+- Do NOT output if using escape hatches or if stories are blocked
+- Output the summary BEFORE the `<promise>` tag
+
 ---
 
 ## User Stories
@@ -242,7 +269,7 @@ Work on the first non-passing, non-blocked story listed above.
 10. **Promote to CLAUDE.md** any project-wide conventions discovered
 11. **Commit working code** with descriptive message
 12. **Move to next story** until all pass
-13. **When ALL criteria met**, output: `<promise>ALL STORIES PASS</promise>`
+13. **When ALL criteria met**, output completion summary (see Section 8), then: `<promise>ALL STORIES PASS</promise>`
 
 ---
 

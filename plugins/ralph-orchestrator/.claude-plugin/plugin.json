@@ -1,6 +1,6 @@
 {
   "name": "ralph-orchestrator",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches. Supports implementation, documentation, and investigation task types. Wraps the official ralph-loop plugin.",
   "author": {
     "name": "app-vitals",

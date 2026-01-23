@@ -70,6 +70,23 @@ After EACH meaningful action, update progress.md:
 
 **Never output the completion promise to escape. That defeats the purpose.**
 
+### 5. Completion Summary
+
+When the task is complete and you're about to output the completion promise, **first output a human-friendly summary**:
+
+```
+───────────────────────────────────────
+✓ Ralph loop complete!
+
+Total iterations: <N>
+───────────────────────────────────────
+```
+
+**IMPORTANT:**
+- Output this summary ONLY on successful completion
+- Do NOT output if stuck or blocked
+- Output the summary BEFORE the `<promise>` tag
+
 ---
 
 ## What To Do Now
@@ -79,7 +96,7 @@ After EACH meaningful action, update progress.md:
 3. **Do the work** incrementally
 4. **Update progress.md** after each action
 5. **Verify** when task seems complete
-6. **When ALL criteria met**, output: `<promise>TASK COMPLETE</promise>`
+6. **When ALL criteria met**, output completion summary (see Section 5), then: `<promise>TASK COMPLETE</promise>`
 
 ---
 
