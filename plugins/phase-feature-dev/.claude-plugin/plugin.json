@@ -1,0 +1,10 @@
+{
+  "name": "phase-feature-dev",
+  "version": "1.0.0",
+  "description": "Phase-isolated feature development with token-aware session boundaries. Breaks complex features into 7 discrete phases, each in its own session, with only distilled markdown artifacts passing between phases.",
+  "author": {
+    "name": "App Vitals",
+    "url": "https://github.com/app-vitals"
+  },
+  "hooks": "./hooks/hooks.json"
+}

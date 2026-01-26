@@ -1,0 +1,15 @@
+{
+  "description": "Phase-isolated feature development stop hook for phase-aware iteration loops",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

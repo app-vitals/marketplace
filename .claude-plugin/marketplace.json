@@ -2,23 +2,17 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "1.6.0",
+  "version": "2.1.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
   },
   "plugins": [
     {
-      "name": "ralph-orchestrator",
-      "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches",
-      "version": "1.6.0",
-      "author": {
-        "name": "app-vitals",
-        "email": "dave@app-vitals.com"
-      },
-      "source": "./plugins/ralph-orchestrator",
-      "category": "development",
-      "homepage": "https://github.com/app-vitals/marketplace"
+      "name": "phase-feature-dev",
+      "version": "1.0.0",
+      "description": "Phase-isolated feature development with token-aware session boundaries. Breaks complex features into 7 discrete phases, each in its own session.",
+      "path": "./plugins/phase-feature-dev"
     }
   ]
 }
