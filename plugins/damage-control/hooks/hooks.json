@@ -1,0 +1,47 @@
+{
+  "description": "Defense-in-depth protection for Claude Code. Blocks dangerous commands and protects sensitive files.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/bash-tool-damage-control.py",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/edit-tool-damage-control.py",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Edit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/write-tool-damage-control.py",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Write"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/read-tool-damage-control.py",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Read"
+      }
+    ]
+  }
+}
