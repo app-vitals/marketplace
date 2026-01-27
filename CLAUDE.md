@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a **Claude Code plugin marketplace** - a collection of plugins that extend Claude Code's functionality. Currently contains the `ralph-orchestrator` plugin.
+This is a **Claude Code plugin marketplace** - a collection of plugins that extend Claude Code's functionality.
 
 ## Architecture
 
@@ -29,27 +29,6 @@ marketplace/
 │       │       └── references/
 │       └── README.md
 ```
-
-### Ralph Orchestrator Plugin
-
-Wraps the official `ralph-loop` plugin to add structured scaffolding for autonomous development loops:
-
-**Commands:**
-- `/prd <task-name>` - Create PRD for complex multi-feature work
-- `/ralph-freeform <task-name>` - Create plan for simpler single-goal tasks
-- `/ralph <task-name>` - Start orchestrated loop (detects PRD vs plan vs raw freeform)
-
-**Working Files Location:** `.claude/ralph/<task-name>/`
-- `progress.md` - Append-only learnings, iteration history
-- `AGENTS.md` - Task-specific patterns
-- `prd.json` / `plan.json` - Machine-readable status tracking
-- `PRD.md` / `PLAN.md` - Human-readable documents
-
-**Key Concepts:**
-- Stories/phases should be completable in 1-3 iterations
-- 3-attempt escape hatch rule prevents infinite loops
-- TDD workflow: write test → fail → implement → pass → commit
-- Completion promises: `<promise>ALL STORIES PASS</promise>`, `<promise>ALL PHASES COMPLETE</promise>`, or `<promise>TASK COMPLETE</promise>`
 
 ## Development
 
