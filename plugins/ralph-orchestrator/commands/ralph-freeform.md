@@ -92,36 +92,85 @@ Ask these questions ONE AT A TIME (don't overwhelm):
    - "Add input validation to the user registration form"
    ```
 
-3. **Success Criteria**:
+3. **Generate & Present Success Criteria and Verification**:
+
+   > **IMPORTANT**: Before asking the user for criteria, YOU generate them first using project context.
+
+   **Think carefully** using context gathered in Step 1:
+   - Project type (Node.js, Python, Go, etc.)
+   - Test framework detected (Jest, pytest, etc.)
+   - Verification commands available (`npm test`, `go test`, etc.)
+   - MCP servers available (Sentry for monitoring, etc.)
+   - The specific goal the user just stated
+
+   **Generate suggestions** based on the goal:
+   - 2-4 testable success criteria specific to the stated goal
+   - Include "All existing tests still pass" when tests are detected
+   - Consider project-specific checks (TypeScript → no type errors, API → endpoint checks)
+   - A verification method appropriate to the project type
+
+   **Present to user**:
    ```
-   How will we know when this is DONE?
-   List 2-4 specific, testable criteria.
+   Based on your goal and project context, I've drafted success criteria and verification:
 
-   Good examples:
-   - "GET /health returns {status: 'ok'} with 200"
-   - "Login works in Safari mobile (tested manually)"
-   - "Invalid emails show error message, form doesn't submit"
-   - "All existing tests still pass"
+   ## Suggested Success Criteria
+   1. [specific criterion derived from the goal]
+   2. [specific criterion derived from the goal]
+   3. All existing tests still pass (no regressions)
+   4. [optional: additional criterion if relevant]
 
-   Bad examples:
-   - "It works" (too vague)
-   - "Good UX" (not testable)
+   ## Suggested Verification Method
+   [Method based on detected project type]
+   - Command: `[detected test command]`
+   - Fallback: [manual verification if no tests detected]
+
+   ---
+
+   Would you like to:
+   A) Approve these criteria as-is
+   B) Edit the success criteria (I'll ask what to change)
+   C) Edit the verification method (I'll ask what to change)
+   D) Edit both
+   E) Start fresh - I'll ask you to provide criteria manually
    ```
 
-4. **Verification Method**:
-   Based on gathered context, suggest options:
-   ```
-   How should completion be verified?
+   **Handle user response**:
+   - **A (Approve)**: Use the generated criteria and proceed to Out of Scope question
+   - **B (Edit criteria)**: Ask "What would you like to change about the success criteria? You can add, remove, or modify items." After edits, re-present for confirmation.
+   - **C (Edit verification)**: Ask "What verification method would you prefer?" and present the standard options. After selection, re-present for confirmation.
+   - **D (Edit both)**: Handle B then C sequentially
+   - **E (Start fresh)**: Fall back to manual questions:
 
-   Based on your project, I suggest:
-   A) Run tests: `npm test` (detected Jest config)
-   B) Type check: `npx tsc --noEmit`
-   C) Manual verification: [describe what to check]
-   D) Combination of above
-   E) Other: [describe]
-   ```
+     **3a. Success Criteria (manual fallback)**:
+     ```
+     How will we know when this is DONE?
+     List 2-4 specific, testable criteria.
 
-5. **Out of Scope** (optional):
+     Good examples:
+     - "GET /health returns {status: 'ok'} with 200"
+     - "Login works in Safari mobile (tested manually)"
+     - "Invalid emails show error message, form doesn't submit"
+     - "All existing tests still pass"
+
+     Bad examples:
+     - "It works" (too vague)
+     - "Good UX" (not testable)
+     ```
+
+     **3b. Verification Method (manual fallback)**:
+     Based on gathered context, suggest options:
+     ```
+     How should completion be verified?
+
+     Based on your project, I suggest:
+     A) Run tests: `npm test` (detected Jest config)
+     B) Type check: `npx tsc --noEmit`
+     C) Manual verification: [describe what to check]
+     D) Combination of above
+     E) Other: [describe]
+     ```
+
+4. **Out of Scope** (optional):
    ```
    Anything that should NOT be attempted? (press Enter to skip)
 
@@ -195,19 +244,76 @@ Ask these questions ONE AT A TIME:
    - "Sprint planning breakdown with story points"
    ```
 
-3. **Required Sections/Content**:
-   ```
-   What sections or information MUST be included in the deliverable?
-   List 3-6 specific items that define completeness.
+3. **Generate & Present Required Sections and Verification**:
 
-   Examples:
-   - "Executive summary"
-   - "Per-feature cost breakdown"
-   - "Timeline with milestones"
-   - "Technical complexity analysis"
-   - "Assumptions and risks"
-   - "Recommendations"
+   > **IMPORTANT**: Before asking the user for sections, YOU generate them first using context.
+
+   **Think carefully** about:
+   - The deliverable type stated (estimate, architecture doc, analysis, etc.)
+   - The audience mentioned (client, team, stakeholders)
+   - Standard sections for this document type
+   - Available integrations that might inform content
+
+   **Generate suggestions**:
+   - 3-6 required sections based on deliverable type
+   - Appropriate verification method (checklist, stakeholder review, etc.)
+
+   **Present to user**:
    ```
+   Based on your deliverable and context, I've drafted required sections and verification:
+
+   ## Suggested Required Sections
+   1. [section appropriate to deliverable type, e.g., "Executive Summary"]
+   2. [section appropriate to deliverable type]
+   3. [section appropriate to deliverable type]
+   4. [section appropriate to deliverable type]
+   5. [optional: additional section if relevant]
+
+   ## Suggested Verification Method
+   [Method: Checklist review / Stakeholder review / etc.]
+   - Verification: [specific approach, e.g., "Document contains all required sections with substantive content"]
+
+   ---
+
+   Would you like to:
+   A) Approve these as-is
+   B) Edit the required sections (I'll ask what to change)
+   C) Edit the verification method (I'll ask what to change)
+   D) Edit both
+   E) Start fresh - I'll ask you to provide sections manually
+   ```
+
+   **Handle user response**:
+   - **A (Approve)**: Use the generated sections and proceed to Input Sources question
+   - **B (Edit sections)**: Ask "What would you like to change about the required sections? You can add, remove, or modify items." After edits, re-present for confirmation.
+   - **C (Edit verification)**: Ask "What verification method would you prefer?" and present the standard options. After selection, re-present for confirmation.
+   - **D (Edit both)**: Handle B then C sequentially
+   - **E (Start fresh)**: Fall back to manual questions:
+
+     **3a. Required Sections/Content (manual fallback)**:
+     ```
+     What sections or information MUST be included in the deliverable?
+     List 3-6 specific items that define completeness.
+
+     Examples:
+     - "Executive summary"
+     - "Per-feature cost breakdown"
+     - "Timeline with milestones"
+     - "Technical complexity analysis"
+     - "Assumptions and risks"
+     - "Recommendations"
+     ```
+
+     **3b. Verification Method (manual fallback)**:
+     ```
+     How will completion be validated?
+
+     A) Checklist review - Document contains all required sections
+     B) Client/stakeholder review - Ready for presentation
+     C) Peer review - Another team member validates
+     D) Self-review against criteria
+     E) Other: [describe]
+     ```
 
 4. **Input Sources**:
    ```
@@ -222,18 +328,7 @@ Ask these questions ONE AT A TIME:
    List all relevant files, directories, or external sources.
    ```
 
-5. **Verification Method**:
-   ```
-   How will completion be validated?
-
-   A) Checklist review - Document contains all required sections
-   B) Client/stakeholder review - Ready for presentation
-   C) Peer review - Another team member validates
-   D) Self-review against criteria
-   E) Other: [describe]
-   ```
-
-6. **Out of Scope** (optional):
+5. **Out of Scope** (optional):
    ```
    Anything that should NOT be included? (press Enter to skip)
 
@@ -319,17 +414,72 @@ Ask these questions ONE AT A TIME:
    - "Need to understand how the face matching pipeline works"
    ```
 
-3. **Success Definition**:
-   ```
-   What would count as "investigation complete"?
-   List 2-4 specific outcomes.
+3. **Generate & Present Success Definition and Verification**:
 
-   Examples:
-   - "Root cause identified and documented"
-   - "Can reproduce the issue consistently"
-   - "Have a fix implemented and tested"
-   - "Understand the system well enough to explain it"
+   > **IMPORTANT**: Before asking the user for success definition, YOU generate it first using context.
+
+   **Think carefully** about:
+   - The problem statement provided
+   - Available MCP servers (Sentry for error details, etc.)
+   - Whether this is a "find root cause" or "understand system" investigation
+   - Typical investigation completion criteria for this problem type
+
+   **Generate suggestions**:
+   - 2-4 outcomes that define "investigation complete"
+   - Appropriate verification method
+
+   **Present to user**:
    ```
+   Based on your problem statement and context, I've drafted success definitions and verification:
+
+   ## Suggested Success Definition
+   1. [outcome appropriate to problem type, e.g., "Root cause identified and documented"]
+   2. [outcome appropriate to problem type, e.g., "Can reproduce the issue consistently"]
+   3. [optional: fix-related outcome if appropriate]
+
+   ## Suggested Verification Method
+   [Method based on problem type]
+   - Verification: [specific approach, e.g., "Root cause documented with evidence and reproduction steps"]
+
+   ---
+
+   Would you like to:
+   A) Approve these as-is
+   B) Edit the success definition (I'll ask what to change)
+   C) Edit the verification method (I'll ask what to change)
+   D) Edit both
+   E) Start fresh - I'll ask you to provide definitions manually
+   ```
+
+   **Handle user response**:
+   - **A (Approve)**: Use the generated definitions and proceed to Known Information question
+   - **B (Edit definition)**: Ask "What would you like to change about the success definition? You can add, remove, or modify items." After edits, re-present for confirmation.
+   - **C (Edit verification)**: Ask "What verification method would you prefer?" and present the standard options. After selection, re-present for confirmation.
+   - **D (Edit both)**: Handle B then C sequentially
+   - **E (Start fresh)**: Fall back to manual questions:
+
+     **3a. Success Definition (manual fallback)**:
+     ```
+     What would count as "investigation complete"?
+     List 2-4 specific outcomes.
+
+     Examples:
+     - "Root cause identified and documented"
+     - "Can reproduce the issue consistently"
+     - "Have a fix implemented and tested"
+     - "Understand the system well enough to explain it"
+     ```
+
+     **3b. Verification Method (manual fallback)**:
+     ```
+     How will you confirm the investigation is complete?
+
+     A) Root cause documented with evidence
+     B) Issue reproduced and fix verified
+     C) System behavior understood and documented
+     D) Stakeholder accepts findings
+     E) Other: [describe]
+     ```
 
 4. **Known Information**:
    ```
@@ -342,17 +492,6 @@ Ask these questions ONE AT A TIME:
    - Related recent changes
 
    Or say "Starting from scratch" if unknown.
-   ```
-
-5. **Verification Method**:
-   ```
-   How will you confirm the investigation is complete?
-
-   A) Root cause documented with evidence
-   B) Issue reproduced and fix verified
-   C) System behavior understood and documented
-   D) Stakeholder accepts findings
-   E) Other: [describe]
    ```
 
 ### Step 4C: Generate Phases (Investigation/Debugging)
