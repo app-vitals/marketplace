@@ -1,5 +1,4 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
   "version": "1.7.0",
@@ -11,26 +10,12 @@
     {
       "name": "ralph-orchestrator",
       "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches",
-      "version": "1.6.0",
-      "author": {
-        "name": "app-vitals",
-        "email": "dave@app-vitals.com"
-      },
-      "source": "./plugins/ralph-orchestrator",
-      "category": "development",
-      "homepage": "https://github.com/app-vitals/marketplace"
+      "source": "./plugins/ralph-orchestrator"
     },
     {
       "name": "damage-control",
       "description": "Defense-in-depth protection for Claude Code. Blocks dangerous commands and protects sensitive files via PreToolUse hooks. Features pattern-based blocking, ask confirmations, and three-tier path protection.",
-      "version": "1.0.0",
-      "author": {
-        "name": "app-vitals",
-        "email": "dave@app-vitals.com"
-      },
-      "source": "./plugins/damage-control",
-      "category": "security",
-      "homepage": "https://github.com/app-vitals/marketplace"
+      "source": "./plugins/damage-control"
     }
   ]
 }
