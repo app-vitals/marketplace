@@ -16,6 +16,11 @@
       "name": "damage-control",
       "description": "Defense-in-depth protection for Claude Code. Blocks dangerous commands and protects sensitive files via PreToolUse hooks. Features pattern-based blocking, ask confirmations, and three-tier path protection.",
       "source": "./plugins/damage-control"
+    },
+    {
+      "name": "learning-loop",
+      "description": "Captures corrections, discoveries, and preferences as you work with Claude. Stores learnings in CLAUDE.md, promotes to global scope, and helps contribute improvements back to marketplace plugins.",
+      "source": "./plugins/learning-loop"
     }
   ]
 }

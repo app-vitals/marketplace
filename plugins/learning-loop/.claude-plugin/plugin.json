@@ -1,0 +1,19 @@
+{
+  "name": "learning-loop",
+  "version": "0.1.0",
+  "description": "Captures corrections, discoveries, and preferences as you work with Claude. Stores learnings in CLAUDE.md, promotes to global scope, and helps contribute improvements back to marketplace plugins.",
+  "author": {
+    "name": "App Vitals",
+    "url": "https://github.com/app-vitals"
+  },
+  "repository": "https://github.com/app-vitals/app-vitals-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "learning",
+    "memory",
+    "self-improvement",
+    "corrections",
+    "skills",
+    "knowledge-capture"
+  ]
+}

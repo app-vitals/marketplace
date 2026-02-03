@@ -1,0 +1,106 @@
+---
+name: learning-capture
+description: >
+  This skill captures learnings to staging. Triggers on: "that worked", "it's fixed",
+  "working now", "problem solved", "save this", "remember this", /learn command,
+  or when user corrects Claude ("use X instead of Y", "no, do X", "always X",
+  "never Y", "I prefer X"). Also trigger after solving non-obvious problems together.
+---
+
+# Learning Capture
+
+Capture learnings to the staging area in `.claude/CLAUDE.md`.
+
+**Keep it simple**: Just capture the insight. Don't over-structure. `/learn-promote` will figure out where it belongs.
+
+## Two-Phase Approach
+
+1. **Capture (this skill)**: Quick, lightweight staging
+2. **Promote (/learn-promote)**: Smart routing to CLAUDE.md or skills
+
+## When to Capture
+
+**Capture when you notice:**
+- User corrects you ("use X instead of Y", "no, do X")
+- A non-obvious solution is discovered together
+- User states a preference ("I prefer X", "always do Y")
+- User explicitly asks to save something
+- Trigger phrases: "that worked", "it's fixed", "problem solved"
+
+**Don't capture:**
+- Trivial or one-time instructions
+- Things already documented
+- Vague statements without actionable content
+
+## Capture Protocol
+
+### Step 1: Check for Duplicates
+
+Search `.claude/CLAUDE.md` for similar content:
+
+```bash
+grep -i "keyword" .claude/CLAUDE.md
+```
+
+If similar exists, don't duplicate. Offer to update if the new learning adds context.
+
+### Step 2: Identify the Core Insight
+
+Ask yourself:
+- What's the actionable takeaway?
+- Is it reusable for future sessions?
+- Can it be stated simply?
+
+### Step 3: Propose Briefly
+
+Keep proposals minimal - don't interrupt the flow:
+
+```
+Got it - want me to save "use uv instead of pip" as a learning?
+```
+
+Or for discoveries:
+
+```
+That was a non-obvious fix. Save to learnings?
+"Prisma pool errors in serverless → use connection pooling"
+```
+
+### Step 4: Save on Approval
+
+Add to `## Staged Learnings` section in `.claude/CLAUDE.md`:
+
+```markdown
+## Staged Learnings
+
+- Use uv instead of pip for Python package management
+- Always run tests before committing
+- ralph loop: check progress.md before starting
+```
+
+**Format**: Just a simple bullet point. Natural language. No complex tags.
+
+### Step 5: Confirm
+
+```
+Saved to staged learnings. Run /learn-promote when ready to route.
+```
+
+## Quality Filters
+
+**Skip if:**
+- Too vague ("do it differently")
+- One-time ("just this once")
+- Already exists
+- Not actionable
+
+**Capture if:**
+- Would help future sessions
+- Required discovery to learn
+- User explicitly corrected behavior
+
+## File Location
+
+All staged learnings go to `.claude/CLAUDE.md` in the `## Staged Learnings` section.
+
+For promotion to final destinations, use `/learn-promote`.
