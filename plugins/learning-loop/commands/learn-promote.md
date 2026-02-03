@@ -110,16 +110,37 @@ Choose destination:
 
 #### → CLAUDE.md Instruction (Most Common)
 
-For simple preferences and reminders, add directly to CLAUDE.md:
+For simple preferences and reminders, route to the appropriate CLAUDE.md file.
+
+**Step 1: Discover CLAUDE.md files**
+
+```bash
+find . -name "CLAUDE.md" -o -name ".claude.local.md" 2>/dev/null | head -20
+```
+
+**Step 2: Choose the right file**
+
+| Learning Type | Destination | Example |
+|--------------|-------------|---------|
+| Team-shared preference | `./CLAUDE.md` or `./.claude/CLAUDE.md` | "Use uv instead of pip" |
+| Personal preference | `./.claude.local.md` (gitignored) | "I prefer verbose output" |
+| Package-specific | `./packages/foo/CLAUDE.md` | "This package uses Jest" |
+| User-wide default | `~/.claude/CLAUDE.md` | "Always use TypeScript" |
+
+Ask the user if unclear: "Is this a team preference or personal?"
+
+**Step 3: Add concisely**
+
+Keep it brief - one line per concept. CLAUDE.md is part of the prompt.
 
 ```markdown
-# Project Instructions
+# Project Learnings
 
 - Use uv instead of pip for Python package management
 - Always run tests before committing
 ```
 
-Just add as a bullet point in the appropriate place. No special section needed.
+Avoid verbose explanations. Actionable > descriptive.
 
 #### → Update Existing Skill
 
