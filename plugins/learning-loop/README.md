@@ -70,8 +70,26 @@ Learning Loop analyzes each learning and recommends:
 ## Installation
 
 ```bash
-claude plugins install learning-loop
+claude plugin install learning-loop@app-vitals-marketplace
 ```
+
+## Recommended Plugins
+
+Learning Loop integrates with these plugins for enhanced functionality:
+
+| Plugin | Purpose | Used By |
+|--------|---------|---------|
+| [plugin-dev](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/plugin-dev) | Skill analysis and creation guidance | `/learn-promote` (when creating/updating skills) |
+| [claude-md-management](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-md-management) | Multi-file CLAUDE.md routing | `/learn-promote` (patterns for file selection) |
+
+Install recommended plugins:
+
+```bash
+claude plugin install plugin-dev@claude-plugins-official
+claude plugin install claude-md-management@claude-plugins-official
+```
+
+These are soft dependencies - learning-loop works without them but provides smarter routing when they're installed.
 
 ## The Philosophy
 
