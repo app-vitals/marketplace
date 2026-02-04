@@ -100,10 +100,10 @@ Save all? [Yes / Select individually / Skip]
 
 ### Step 4: Stage Approved Learnings
 
-Add to `.claude/CLAUDE.md` under `## Staged Learnings`:
+Add to `CLAUDE.local.md` (gitignored):
 
 ```markdown
-## Staged Learnings
+# Staged Learnings
 
 - Use uv instead of pip for Python package management
 - Next.js SSR errors: check terminal, not browser console
@@ -116,7 +116,7 @@ End analysis with:
 
 ```
 ---
-Staged X learnings to .claude/CLAUDE.md
+Staged X learnings to CLAUDE.local.md
 
 Run /learn-promote to route them to final destinations.
 Run /learn-review to see all staged learnings.
