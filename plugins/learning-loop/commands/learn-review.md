@@ -19,7 +19,7 @@ See what's been captured and waiting for promotion.
 
 ## Process
 
-1. **Read `.claude/CLAUDE.md`**
+1. **Read `CLAUDE.local.md`**
 
 2. **Show staged learnings:**
    ```

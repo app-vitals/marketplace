@@ -9,7 +9,7 @@ description: >
 
 # Learning Capture
 
-Capture learnings to the staging area in `.claude/CLAUDE.md`.
+Capture learnings to the staging area in `CLAUDE.local.md`.
 
 **Keep it simple**: Just capture the insight. Don't over-structure. `/learn-promote` will figure out where it belongs.
 
@@ -36,10 +36,10 @@ Capture learnings to the staging area in `.claude/CLAUDE.md`.
 
 ### Step 1: Check for Duplicates
 
-Search `.claude/CLAUDE.md` for similar content:
+Search `CLAUDE.local.md` for similar content:
 
 ```bash
-grep -i "keyword" .claude/CLAUDE.md
+grep -i "keyword" CLAUDE.local.md
 ```
 
 If similar exists, don't duplicate. Offer to update if the new learning adds context.
@@ -68,10 +68,10 @@ That was a non-obvious fix. Save to learnings?
 
 ### Step 4: Save on Approval
 
-Add to `## Staged Learnings` section in `.claude/CLAUDE.md`:
+Add to `CLAUDE.local.md` (gitignored):
 
 ```markdown
-## Staged Learnings
+# Staged Learnings
 
 - Use uv instead of pip for Python package management
 - Always run tests before committing
@@ -101,6 +101,6 @@ Saved to staged learnings. Run /learn-promote when ready to route.
 
 ## File Location
 
-All staged learnings go to `.claude/CLAUDE.md` in the `## Staged Learnings` section.
+All staged learnings go to `CLAUDE.local.md` (automatically gitignored).
 
 For promotion to final destinations, use `/learn-promote`.

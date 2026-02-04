@@ -34,7 +34,7 @@ Or capture manually:
 /learn always run tests before committing
 ```
 
-Learnings are staged simply in `.claude/CLAUDE.md`:
+Learnings are staged simply in `CLAUDE.local.md`:
 
 ```markdown
 ## Staged Learnings
@@ -104,7 +104,8 @@ These are soft dependencies - learning-loop works without them but provides smar
 
 | Location | Purpose |
 |----------|---------|
-| `.claude/CLAUDE.md` | Staged learnings + promoted instructions |
+| `CLAUDE.local.md` | Staged learnings (gitignored) |
+| `CLAUDE.md` | Promoted instructions (shared) |
 | `.claude/skills/` | Project skills (after promotion) |
 | `~/.claude/skills/` | User skills (after promotion) |
 

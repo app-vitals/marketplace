@@ -32,20 +32,20 @@ Quickly capture a learning to the staging area.
 
 1. **Parse the insight** provided by the user
 
-2. **Check for duplicates** in `.claude/CLAUDE.md`
+2. **Check for duplicates** in `CLAUDE.local.md`
 
 3. **Preview before saving:**
    ```
    Staging this learning:
 
    Content: Use uv instead of pip for package management
-   Destination: .claude/CLAUDE.md > Staged Learnings
+   Destination: CLAUDE.local.md (gitignored)
 
    Stage this? [Yes / No / Edit]
    ```
 
 4. **On approval:**
-   - Ensure `.claude/CLAUDE.md` exists with `## Staged Learnings` section
+   - Ensure `CLAUDE.local.md` exists
    - Add as simple bullet point
    - Confirm: "Saved to staged learnings."
 
@@ -58,10 +58,10 @@ If user runs `/learn` without arguments:
 
 ## Format
 
-Learnings are staged as simple bullet points:
+Learnings are staged in `CLAUDE.local.md` as simple bullet points:
 
 ```markdown
-## Staged Learnings
+# Staged Learnings
 
 - Use uv instead of pip for Python package management
 - Always run tests before committing
@@ -69,6 +69,8 @@ Learnings are staged as simple bullet points:
 ```
 
 **Keep it natural**: Just write what you learned. No special syntax needed.
+
+**Why CLAUDE.local.md?** It's gitignored by default - staged learnings are private until you promote them to a shared location.
 
 ## What Happens Next
 

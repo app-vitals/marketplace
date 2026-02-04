@@ -17,7 +17,7 @@ claude plugin install ./plugins/learning-loop
 **Goal:** Verify session start shows staged count
 
 **Steps:**
-1. Make sure there are staged learnings in `.claude/CLAUDE.md`
+1. Make sure there are staged learnings in `CLAUDE.local.md`
 2. Exit Claude Code
 3. Start new session: `claude`
 4. **Expected:** See "Learning Loop: X staged learning(s)" message
@@ -35,12 +35,12 @@ claude plugin install ./plugins/learning-loop
 4. Complete the task
 5. **Expected:** Claude offers "Want me to stage that as a learning?"
 6. Say "yes"
-7. **Expected:** Learning staged to `.claude/CLAUDE.md`
+7. **Expected:** Learning staged to `CLAUDE.local.md`
 
 **Verify:**
 ```bash
-cat .claude/CLAUDE.md
-# Should see under "## Staged Learnings":
+cat CLAUDE.local.md
+# Should see:
 # - Use uv instead of pip...
 ```
 
@@ -58,7 +58,7 @@ cat .claude/CLAUDE.md
 
 **Verify:**
 ```bash
-grep "always run tests" .claude/CLAUDE.md
+grep "always run tests" CLAUDE.local.md
 ```
 
 ---
@@ -83,12 +83,15 @@ grep "always run tests" .claude/CLAUDE.md
 2. Select a simple correction (e.g., "use uv instead of pip")
 3. **Expected:** Analysis suggests promoting to CLAUDE.md
 4. Confirm
-5. **Expected:** Moved from "## Staged Learnings" to "# Project Learnings"
+5. **Expected:** Removed from CLAUDE.local.md, added to CLAUDE.md
 
 **Verify:**
 ```bash
-grep -B5 "uv instead of pip" .claude/CLAUDE.md
-# Should be under "# Project Learnings", not "## Staged Learnings"
+# Should be in CLAUDE.md now
+grep "uv instead of pip" CLAUDE.md
+
+# Should NOT be in staging anymore
+grep "uv instead of pip" CLAUDE.local.md  # should not find it
 ```
 
 ---
@@ -136,7 +139,7 @@ cat .claude/skills/*/SKILL.md
 2. Ask: "What did we learn in this session?"
 3. **Expected:** Agent analyzes conversation, proposes learnings
 4. Approve some
-5. **Expected:** Staged to `.claude/CLAUDE.md`
+5. **Expected:** Staged to `CLAUDE.local.md`
 
 ---
 
@@ -144,5 +147,5 @@ cat .claude/skills/*/SKILL.md
 
 ```bash
 # Reset test artifacts (careful - removes all project learnings)
-rm -rf .claude/CLAUDE.md .claude/skills/
+rm -rf CLAUDE.local.md .claude/skills/
 ```

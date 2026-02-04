@@ -36,7 +36,7 @@ Intelligently route staged learnings to their final destination.
 
 ### Step 1: Show Staged Learnings
 
-Read `.claude/CLAUDE.md` and display staged learnings:
+Read `CLAUDE.local.md` and display staged learnings:
 
 ```
 ## Staged Learnings (3)
@@ -170,8 +170,8 @@ If the learning improves a marketplace plugin:
 ### Step 5: Clean Up Staging
 
 After successful promotion:
-- Remove the learning from `## Staged Learnings`
-- If section is empty, leave just the header
+- Remove the learning from `CLAUDE.local.md`
+- If file is empty, delete it
 
 ## Decision Hints
 

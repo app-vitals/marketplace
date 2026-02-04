@@ -1,2 +1,5 @@
 # Ralph loop working files
 .claude/ralph/
+
+# Local preferences (not shared)
+CLAUDE.local.md

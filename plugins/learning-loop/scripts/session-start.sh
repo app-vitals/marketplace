@@ -4,21 +4,15 @@
 # Shows staged learnings count if any exist
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-CLAUDE_MD="${PROJECT_DIR}/.claude/CLAUDE.md"
+STAGED_FILE="${PROJECT_DIR}/CLAUDE.local.md"
 
-# Exit silently if no CLAUDE.md
-if [[ ! -f "$CLAUDE_MD" ]]; then
+# Exit silently if no staging file
+if [[ ! -f "$STAGED_FILE" ]]; then
   exit 0
 fi
 
-# Count bullet points under "## Staged Learnings" section
-staged_count=$(awk '
-  /^## Staged Learnings/ { in_section=1; next }
-  /^## / && in_section { in_section=0 }
-  /^#[^#]/ && in_section { in_section=0 }
-  in_section && /^- / { count++ }
-  END { print count+0 }
-' "$CLAUDE_MD" | tr -d '\n')
+# Count bullet points (whole file is staging)
+staged_count=$(grep -c '^- ' "$STAGED_FILE" 2>/dev/null || echo 0)
 
 # Show message if there are staged learnings
 if [[ "$staged_count" -gt 0 ]]; then

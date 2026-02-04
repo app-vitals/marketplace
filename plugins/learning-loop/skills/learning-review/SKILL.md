@@ -19,7 +19,7 @@ Show and manage staged learnings.
 
 ### Step 1: Read Staged Learnings
 
-Read `.claude/CLAUDE.md` and find the `## Staged Learnings` section.
+Read `CLAUDE.local.md` (the entire file is staged learnings).
 
 ### Step 2: Display
 
@@ -41,4 +41,4 @@ Run /learn-promote to route these to their final destination.
 
 ## File Location
 
-Staged learnings are in `.claude/CLAUDE.md` under `## Staged Learnings`.
+Staged learnings are in `CLAUDE.local.md` (gitignored by default).
