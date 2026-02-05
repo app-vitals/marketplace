@@ -31,6 +31,7 @@ Intelligently route staged learnings to their final destination.
 - Simple preference? → Add to CLAUDE.md as an instruction
 - Related to an existing skill? → Update that skill
 - Complex workflow? → Maybe create a new skill
+- Not ready yet? → Keep as personal learning (bakes locally)
 
 ## Process
 
@@ -109,6 +110,20 @@ Choose destination:
 ```
 
 ### Step 4: Route to Destination
+
+#### → Keep as Personal Learning
+
+If the learning isn't ready to promote yet, move it from "Staged" to "Personal" in `CLAUDE.local.md`:
+
+```markdown
+# Staged Learnings
+- (other staged items)
+
+# Personal Learnings
+- The learning that's still baking
+```
+
+Personal learnings stay local and accumulate. As the list grows, **categorize** related ones under headings. When patterns emerge, promote the insight.
 
 #### → CLAUDE.md Instruction (Most Common)
 
@@ -201,8 +216,9 @@ Writing to: ~/src/app-vitals-marketplace/plugins/pr-review/skills/...
 ### Step 5: Clean Up Staging
 
 After successful promotion:
-- Remove the learning from `CLAUDE.local.md`
-- If no staged learnings remain, delete the file entirely
+- Remove the learning from the Staged section
+- If moved to Personal, it stays in `CLAUDE.local.md` under Personal Learnings
+- If no staged or personal learnings remain, delete the file entirely
 - Do NOT leave comments like `<!-- promoted to X -->` - they add noise and confusion
 
 ## Decision Hints
@@ -214,6 +230,8 @@ After successful promotion:
 | "for [tool], do X" | Update related skill |
 | Multi-step workflow | Consider new skill |
 | Plugin-specific tip | Marketplace source (if local) or cached |
+| Single observation, not pattern yet | Keep as personal learning |
+| Vague/uncertain preference | Keep as personal, watch for pattern |
 
 ## Batch Mode
 
