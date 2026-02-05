@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Check if Claude is installed
+if ! command -v claude &> /dev/null; then
+  echo -e "${RED}Error: Claude not found${NC}"
+  echo ""
+  echo "Install Claude from:"
+  echo "  https://www.anthropic.com/claude/download"
+  echo ""
+  exit 1
+fi
+
+# Check if PR URL/number provided
+if [ -z "$1" ]; then
+  echo -e "${RED}Error: No PR URL or number provided${NC}"
+  echo ""
+  echo "Usage:"
+  echo "  review-pr https://github.com/owner/repo/pull/123"
+  echo "  review-pr 123  (in a git repository)"
+  echo ""
+  exit 1
+fi
+
+# Start Claude with review-pr command and pre-approved tools
+echo -e "${BLUE}Starting PR review...${NC}"
+echo ""
+exec claude "/pr-review:review-pr $*" \
+  --allowedTools "Bash(gh pr view:*)" \
+  --allowedTools "Bash(gh pr diff:*)" \
+  --allowedTools "Bash(gh pr checks:*)" \
+  --allowedTools "Bash(gh pr checkout:*)" \
+  --allowedTools "Bash(gh pr list:*)" \
+  --allowedTools "Bash(gh api:*)" \
+  --allowedTools "Bash(gh auth status)" \
+  --allowedTools "Bash(git log:*)" \
+  --allowedTools "Bash(git diff:*)" \
+  --allowedTools "Bash(git show:*)" \
+  --allowedTools "Bash(git status)" \
+  --allowedTools "Bash(git branch:*)" \
+  --allowedTools "Bash(git checkout:*)" \
+  --allowedTools "Bash(git fetch:*)" \
+  --allowedTools "Read" \
+  --allowedTools "Write" \
+  --allowedTools "Glob" \
+  --allowedTools "Grep"

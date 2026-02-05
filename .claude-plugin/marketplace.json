@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
@@ -21,6 +21,11 @@
       "name": "learning-loop",
       "description": "Captures corrections, discoveries, and preferences as you work with Claude. Stores learnings in CLAUDE.md, promotes to global scope, and helps contribute improvements back to marketplace plugins.",
       "source": "./plugins/learning-loop"
+    },
+    {
+      "name": "pr-review",
+      "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, follow-up reviews, and parallel batch processing via cloud-agent.",
+      "source": "./plugins/pr-review"
     }
   ]
 }
