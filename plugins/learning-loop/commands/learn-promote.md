@@ -66,11 +66,13 @@ For each selected learning, analyze:
    # Search user skills
    rg -i "keyword" ~/.claude/skills/ 2>/dev/null
 
-   # Search plugin skills
+   # Search plugin skills (cached)
    rg -i "keyword" ~/.claude/plugins/*/skills/ 2>/dev/null
    ```
 
-3. **Determine best destination**
+3. **Determine best destination** - Use skills to help decide:
+   - `claude-md-management:claude-md-improver` - audit CLAUDE.md files, decide if learning fits there
+   - `plugin-dev:skill-development` - evaluate if learning belongs in a skill
 
 ### Step 3: Smart Matching
 
@@ -112,13 +114,9 @@ Choose destination:
 
 For simple preferences and reminders, route to the appropriate CLAUDE.md file.
 
-**Step 1: Discover CLAUDE.md files**
+**Use `claude-md-management:claude-md-improver`** to audit existing CLAUDE.md files and determine the best placement for the learning. This skill evaluates quality and suggests improvements.
 
-```bash
-find . -name "CLAUDE.md" -o -name ".claude.local.md" 2>/dev/null | head -20
-```
-
-**Step 2: Choose the right file**
+**Choose the right file:**
 
 | Learning Type | Destination | Example |
 |--------------|-------------|---------|
@@ -129,22 +127,13 @@ find . -name "CLAUDE.md" -o -name ".claude.local.md" 2>/dev/null | head -20
 
 Ask the user if unclear: "Is this a team preference or personal?"
 
-**Step 3: Add concisely**
-
-Keep it brief - one line per concept. CLAUDE.md is part of the prompt.
-
-```markdown
-# Project Learnings
-
-- Use uv instead of pip for Python package management
-- Always run tests before committing
-```
-
-Avoid verbose explanations. Actionable > descriptive.
+**Add concisely** - one line per concept. CLAUDE.md is part of the prompt. Avoid verbose explanations.
 
 #### → Update Existing Skill
 
 If the learning relates to an existing skill:
+
+**Use `plugin-dev:skill-development`** for guidance on skill structure and best practices.
 
 1. Read the skill's SKILL.md
 2. Find the appropriate section
@@ -155,23 +144,66 @@ If the learning relates to an existing skill:
 
 If the learning is complex enough to warrant a new skill:
 
-1. Invoke `plugin-dev:skill-development` for guidance
-2. Create skill structure
-3. Choose location (project or user level)
+**Use `plugin-dev:create-plugin`** for guided end-to-end plugin creation with component design, implementation, and validation.
 
 #### → Contribute to Marketplace
 
 If the learning improves a marketplace plugin:
 
-1. Locate the plugin repo
-2. Create branch and PR
-3. Use contribution template
+**Use the appropriate `plugin-dev:*-development` skill** for guidance:
+- `plugin-dev:skill-development` - for updating or creating skills
+- `plugin-dev:command-development` - for updating or creating commands
+- `plugin-dev:hook-development` - for updating or creating hooks
+
+**Step 1: Check configured marketplaces for local sources**
+```bash
+claude plugin marketplace list
+```
+
+Example output:
+```
+Configured marketplaces:
+
+  ❯ claude-plugins-official
+    Source: GitHub (anthropics/claude-plugins-official)
+
+  ❯ app-vitals-marketplace
+    Source: Directory (~/src/app-vitals-marketplace)
+```
+
+**Step 2: Determine destination based on marketplace source**
+
+If the plugin's marketplace has `Source: Directory (/path/to/marketplace)`:
+- This is a **local marketplace** - the user likely cloned it for contribution
+- Write to the source path: `/path/to/marketplace/plugins/<plugin-name>/`
+- User can commit and create PR in their normal workflow
+
+If the plugin's marketplace has `Source: GitHub (org/repo)`:
+- This is a **remote marketplace** - updates go to cache
+- Write to cached path: `~/.claude/plugins/<marketplace>/<plugin>/`
+- Warn: Changes may be overwritten on plugin upgrade
+- For permanent changes, suggest cloning the marketplace repo
+
+**Example: Promoting a learning about pr-review plugin**
+
+```
+Learning: "pr-review: always check for draft PRs before posting"
+
+Checking marketplace sources...
+Found: app-vitals-marketplace → Directory (~/src/app-vitals-marketplace)
+
+pr-review is from app-vitals-marketplace (local source).
+Writing to: ~/src/app-vitals-marketplace/plugins/pr-review/skills/...
+
+✓ Updated source. You can commit and create a PR when ready.
+```
 
 ### Step 5: Clean Up Staging
 
 After successful promotion:
 - Remove the learning from `CLAUDE.local.md`
-- If file is empty, delete it
+- If no staged learnings remain, delete the file entirely
+- Do NOT leave comments like `<!-- promoted to X -->` - they add noise and confusion
 
 ## Decision Hints
 
@@ -181,7 +213,7 @@ After successful promotion:
 | "always/never do X" | CLAUDE.md instruction |
 | "for [tool], do X" | Update related skill |
 | Multi-step workflow | Consider new skill |
-| Plugin-specific tip | Contribute to marketplace |
+| Plugin-specific tip | Marketplace source (if local) or cached |
 
 ## Batch Mode
 

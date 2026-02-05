@@ -50,6 +50,7 @@ This command is for follow-up reviews after a PR has been updated. It references
    ```bash
    gh pr diff <number>
    ```
+   For file counts, use `gh pr diff <number> --name-only | wc -l` (not `git checkout` output, which shows local branch changes).
 
 6. **Check for new comments**:
    ```bash
