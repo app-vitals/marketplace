@@ -68,15 +68,19 @@ That was a non-obvious fix. Save to learnings?
 
 ### Step 4: Save on Approval
 
-Add to `CLAUDE.local.md` (gitignored):
+Add to the `# Staged Learnings` section in `CLAUDE.local.md` (gitignored):
 
 ```markdown
 # Staged Learnings
 
 - Use uv instead of pip for Python package management
 - Always run tests before committing
-- ralph loop: check progress.md before starting
+
+# Personal Learnings
+(these are already promoted/permanent - don't add here)
 ```
+
+**IMPORTANT**: Always add new learnings under `# Staged Learnings`, never under other sections. If the section doesn't exist, create it at the top of the file. The `# Personal Learnings` section (and any other sections) contains already-promoted items that should not be mixed with staged ones.
 
 **Format**: Just a simple bullet point. Natural language. No complex tags.
 

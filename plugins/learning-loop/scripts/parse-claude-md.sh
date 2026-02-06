@@ -27,34 +27,66 @@ EOF
   fi
 }
 
-# Stage a learning (simple format)
+# Stage a learning (adds under # Staged Learnings section)
 stage_learning() {
   local learning_content="$1"
 
   init_staged > /dev/null 2>&1 || true
 
-  # Append to file
-  echo "- $learning_content" >> "$STAGED_FILE"
+  # Find the Staged Learnings section and append after it
+  if grep -q '^# Staged Learnings' "$STAGED_FILE"; then
+    # Find the line number of the next section header (or end of file)
+    local staged_line
+    staged_line=$(grep -n '^# Staged Learnings' "$STAGED_FILE" | head -1 | cut -d: -f1)
+    local next_header
+    next_header=$(tail -n +"$((staged_line + 1))" "$STAGED_FILE" | grep -n '^# ' | head -1 | cut -d: -f1)
+
+    if [[ -n "$next_header" ]]; then
+      # Insert before the next section header
+      local insert_line=$((staged_line + next_header - 1))
+      local temp_file
+      temp_file=$(mktemp)
+      head -n "$insert_line" "$STAGED_FILE" > "$temp_file"
+      echo "- $learning_content" >> "$temp_file"
+      tail -n +"$((insert_line + 1))" "$STAGED_FILE" >> "$temp_file"
+      mv "$temp_file" "$STAGED_FILE"
+    else
+      # No next section, append to end
+      echo "- $learning_content" >> "$STAGED_FILE"
+    fi
+  else
+    # No staged section exists, prepend one
+    local temp_file
+    temp_file=$(mktemp)
+    echo "# Staged Learnings" > "$temp_file"
+    echo "" >> "$temp_file"
+    echo "- $learning_content" >> "$temp_file"
+    echo "" >> "$temp_file"
+    cat "$STAGED_FILE" >> "$temp_file"
+    mv "$temp_file" "$STAGED_FILE"
+  fi
   echo "Staged: $learning_content"
+}
+
+# Extract only the Staged Learnings section content
+_get_staged_section() {
+  if [[ ! -f "$STAGED_FILE" ]]; then
+    return
+  fi
+  # Print lines from "# Staged Learnings" until the next "# " header (exclusive)
+  awk '/^# Staged Learnings/{found=1; next} found && /^# /{exit} found{print}' "$STAGED_FILE"
 }
 
 # List staged learnings
 list_staged() {
-  if [[ ! -f "$STAGED_FILE" ]]; then
-    return
-  fi
-
-  grep '^- ' "$STAGED_FILE" | sed 's/^- //'
+  _get_staged_section | grep '^- ' | sed 's/^- //'
 }
 
 # Count staged learnings
 count_staged() {
-  if [[ ! -f "$STAGED_FILE" ]]; then
-    echo "0"
-    return
-  fi
-
-  grep -c '^- ' "$STAGED_FILE" 2>/dev/null || echo "0"
+  local count
+  count=$(_get_staged_section | grep -c '^- ' 2>/dev/null || echo "0")
+  echo "$count"
 }
 
 # Remove a staged learning by pattern match

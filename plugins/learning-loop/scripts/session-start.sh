@@ -11,8 +11,8 @@ if [[ ! -f "$STAGED_FILE" ]]; then
   exit 0
 fi
 
-# Count bullet points (whole file is staging)
-staged_count=$(grep -c '^- ' "$STAGED_FILE" 2>/dev/null || echo 0)
+# Count bullet points only in # Staged Learnings section
+staged_count=$(awk '/^# Staged Learnings/{found=1; next} found && /^# /{exit} found{print}' "$STAGED_FILE" | grep -c '^- ' 2>/dev/null || echo 0)
 
 # Show message if there are staged learnings
 if [[ "$staged_count" -gt 0 ]]; then

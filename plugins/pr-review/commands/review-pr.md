@@ -42,7 +42,8 @@ Review this pull request: $ARGUMENTS
    Stay on this branch throughout the review for follow-up questions.
 
 5. **Gather context**:
-   - Get the diff: `gh pr diff <number>`
+   - Get the base branch: `gh pr view <number> --json baseRefName -q '.baseRefName'`
+   - Get the diff against the base branch: `git diff <base>...HEAD` (not always main — PRs may target feature branches)
    - List changed files: `gh pr view <number> --json files`
    - Check CI status: `gh pr checks <number>`
    - Read existing comments: `gh pr view <number> --json comments,reviews`
@@ -136,47 +137,7 @@ Review this pull request: $ARGUMENTS
 
 ## Posting the Review
 
-12. **When user requests posting**:
-
-    **Important**: The posted review is from the **gh auth user** (the reviewer) to the **PR author**. Reframe the tone accordingly - the draft was Claude presenting findings to the reviewer, but the posted review is the reviewer's feedback to the author.
-
-    a. **Prepare inline comments** (if any):
-       - Only lines in the diff are valid for inline comments
-       - For new files: any line works
-       - For modified files: only lines in diff hunks
-       - If a line isn't in the diff, move comment to PR body or reference the triggering line
-
-    b. **Create review JSON**: `pr_review_<number>.json`
-       ```json
-       {
-         "commit_id": "<head_sha>",
-         "body": "<overall review body>",
-         "event": "APPROVE|REQUEST_CHANGES|COMMENT",
-         "comments": [
-           {
-             "path": "path/to/file.ts",
-             "line": 123,
-             "side": "RIGHT",
-             "body": "Comment text"
-           }
-         ]
-       }
-       ```
-
-    c. **Submit review**:
-       ```bash
-       gh api -X POST /repos/{owner}/{repo}/pulls/{number}/reviews --input pr_review_<number>.json
-       ```
-
-    d. **Confirm success** and show link to posted review
-
-## Approval Phrases
-
-Use clear, concise approval language:
-- "Looks good, approved"
-- "Looks good, approved with comments"
-- "Looks good, I have a few suggestions"
-- "Awesome!" - when genuinely warranted
+12. **When user requests posting**, use the `post-review` skill to submit the review to GitHub. It handles building the review JSON, mapping inline comments to diff lines, and submitting via `gh api`.
 
 ## Important Notes
 

@@ -169,9 +169,7 @@ For the next completed review:
    - Let the user edit or adjust the review
    - Discuss any findings
 
-4. **Post to GitHub** using the review-pr workflow:
-   - For approvals, prefer simple messages (e.g., "thanks! this looks great") over verbose summaries
-   - For changes requested, include actionable feedback
+4. **Post to GitHub** using the `post-review` skill — it handles building the review JSON with inline comments and submitting via `gh api`
 
 5. **Move to the next PR** — repeat from step 1
 
