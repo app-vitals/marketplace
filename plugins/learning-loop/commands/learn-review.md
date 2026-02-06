@@ -7,9 +7,9 @@ allowed-tools:
   - Glob
 ---
 
-# /learn-review - Review Staged Learnings
+# /learn-review - Review Learnings
 
-See what's been captured and waiting for promotion.
+See what's been captured - both staged (ready to promote) and personal (baking locally).
 
 ## Usage
 
@@ -21,32 +21,61 @@ See what's been captured and waiting for promotion.
 
 1. **Read `CLAUDE.local.md`**
 
-2. **Show staged learnings:**
+2. **Show both sections:**
    ```
-   ## Staged Learnings (3)
+   ## Staged Learnings (2)
+   Ready to promote to CLAUDE.md, skills, or plugins.
 
-   1. Use uv instead of pip for Python package management
+   1. ralph loop: check progress.md before starting
    2. Always run tests before committing
-   3. ralph loop: check progress.md before starting
+
+   ## Personal Learnings (3)
+   Baking locally. Watch for patterns to emerge.
+
+   - Use uv instead of pip
+   - Prefer explicit imports over wildcards
+   - Check CI status before reviewing PRs
 
    Actions:
-   - /learn-promote to route these to final destinations
-   - Edit or delete individual learnings below
+   - /learn-promote to route staged learnings
+   - Edit or delete individual items
    ```
 
 3. **Offer actions:**
    - Edit a learning
    - Delete a learning
-   - Promote all
+   - Move between staged/personal
+   - Promote staged learnings
+
+## CLAUDE.local.md Structure
+
+```markdown
+# Staged Learnings
+- Ready to promote somewhere
+
+# Personal Learnings
+- Observation baking locally
+- Another preference
+
+## [Category] (emerges as list grows)
+- Related learning 1
+- Related learning 2
+```
 
 ## Actions
 
 - **Edit** - Modify the learning text
-- **Delete** - Remove from staging
-- **Promote** - Run /learn-promote
+- **Delete** - Remove entirely
+- **Unstage** - Move from staged to personal (not ready to promote yet)
+- **Stage** - Move from personal to staged (ready to promote)
+- **Promote** - Run /learn-promote on staged learnings
+- **Categorize** - Group related personal learnings under a heading
 
-## What's Not Here
+## Personal Learnings
 
-This just shows staged learnings. Once promoted, learnings live in:
-- CLAUDE.md (as regular instructions)
-- Skill files (`.claude/skills/` or `~/.claude/skills/`)
+Personal learnings are observations that:
+- Aren't ready to promote yet
+- Might become patterns over time
+- Are useful locally but not universally
+
+As the list grows, **categorize** related learnings under headings. When a pattern emerges across multiple learnings, consider promoting the insight.

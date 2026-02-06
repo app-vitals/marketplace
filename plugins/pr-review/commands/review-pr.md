@@ -59,6 +59,7 @@ Review this pull request: $ARGUMENTS
    - Assess error handling and security
    - Check test coverage if tests exist
    - Note code quality and maintainability
+   - **Check for breaking API changes**: Assume rolling deployments - clients and servers rarely deploy atomically. Flag any breaking changes (removed endpoints, changed request/response shapes, renamed fields) as critical issues.
 
 ## Issue Classification
 
@@ -77,6 +78,8 @@ Review this pull request: $ARGUMENTS
 ## Draft Review
 
 10. **Write review to file**: `PR_REVIEW_<number>.md`
+
+    This file is a **draft for the reviewer** (the `gh auth` user) to iterate on before posting. Write in a collaborative tone - Claude is presenting findings to the reviewer for discussion.
 
     Format:
     ```markdown
@@ -134,6 +137,8 @@ Review this pull request: $ARGUMENTS
 ## Posting the Review
 
 12. **When user requests posting**:
+
+    **Important**: The posted review is from the **gh auth user** (the reviewer) to the **PR author**. Reframe the tone accordingly - the draft was Claude presenting findings to the reviewer, but the posted review is the reviewer's feedback to the author.
 
     a. **Prepare inline comments** (if any):
        - Only lines in the diff are valid for inline comments
