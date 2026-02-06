@@ -147,6 +147,7 @@ This command is for follow-up reviews after a PR has been updated. It references
 - **Stay on PR branch**: Continue enabling follow-up questions
 - **Append, don't overwrite**: Keep history of review iterations
 - **Be specific**: Show exact file:line evidence for resolution status
+- **Review quality**: Apply the same standards as `/review-pr` — verify before flagging, no filler language, keep it tight, organize by file/line
 
 ## Usage
 

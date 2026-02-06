@@ -139,6 +139,14 @@ Review this pull request: $ARGUMENTS
 
 12. **When user requests posting**, use the `post-review` skill to submit the review to GitHub. It handles building the review JSON, mapping inline comments to diff lines, and submitting via `gh api`.
 
+## Review Quality
+
+- **Verify before flagging**: Check the actual codebase before raising issues. Confirm library versions (e.g. Zod 4 supports `z.enum()` with TS enums), check if both branches of a conditional do the same thing before calling a removal a concern, etc.
+- **Drop CLAUDE.md contradictions**: Don't suggest comments/JSDoc if CLAUDE.md says "no comments explaining what code does." Don't suggest patterns the project explicitly avoids.
+- **No filler language**: No "FYI", "Note:", "Just a heads up" in review comments. Be direct.
+- **Keep it tight**: A good review has 2-5 actionable items, not 20. Drop low-confidence suggestions and nitpicks. If the review file exceeds ~50 lines of findings, it probably needs trimming.
+- **Organize by file and line**: List issues in diff order (matching `gh pr diff` reading order) so the reviewer can follow along. Label each with severity: critical, important, suggestion.
+
 ## Important Notes
 
 - **Stay on PR branch**: Don't checkout main after reviewing. User may have follow-up questions.

@@ -56,8 +56,9 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
 4. **Get open PRs**:
    ```bash
-   gh pr list --state open --json number,title,author,createdAt,updatedAt,reviews,reviewRequests,isDraft --limit <limit>
+   gh pr list --state open --json number,title,author,createdAt,updatedAt,reviews,reviewRequests,isDraft,commits --limit <limit>
    ```
+   The `commits` field is needed to compare the latest commit date against your review timestamp (do not rely on `updatedAt` for this — see category C below).
 
 5. **Filter PRs** into categories:
 
@@ -65,12 +66,14 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
    - PRs where you're in `reviewRequests`
 
    **B. Not Yet Reviewed**:
-   - PRs where you haven't submitted any review
+   - PRs where you haven't submitted any review in ANY state (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED all count as "reviewed")
    - Exclude your own PRs (author != you)
    - Exclude drafts
 
    **C. Updated Since Your Review**:
-   - PRs where you reviewed, but `updatedAt` > your review timestamp
+   - PRs where you reviewed, but there are new commits since your last review
+   - To check: fetch the PR's commits and compare the latest commit date against your review `submittedAt`
+   - Do NOT use the PR `updatedAt` field — it gets bumped by any activity including your own review comments
    - Candidates for `/review-pr-update`
 
 ### Display Queue
@@ -158,11 +161,11 @@ For the next completed review:
    gh pr checkout <number>
    ```
 
-2. **Apply the review**:
+2. **Apply the review** (from project root — `ca task apply` writes files to CWD):
    ```bash
    ca task apply <task_id> --no-resume
    ```
-   This creates `PR_REVIEW_<number>.md` in your local session.
+   This creates `PR_REVIEW_<number>.md` in the current directory.
 
 3. **Iterate with the user** on the review content:
    - Show the review summary

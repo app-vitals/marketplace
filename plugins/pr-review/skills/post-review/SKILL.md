@@ -27,7 +27,7 @@ PRs targeting feature branches will show wrong diffs if compared to main.
 
 ## Tone Shift
 
-The `PR_REVIEW_<number>.md` is a draft for the reviewer. The posted review is from the reviewer to the PR author. Reframe the tone accordingly.
+The `PR_REVIEW_<number>.md` is a draft for the reviewer. The posted review is from the reviewer to the PR author. Reframe the tone accordingly. Be direct — no filler language ("FYI", "Note:", "Just a heads up").
 
 ## Step 1: Get PR Metadata
 
