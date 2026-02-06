@@ -147,29 +147,33 @@ ca task logs <task_id>
 ```
 Ask user: Retry, Skip, or Debug?
 
-## Apply Reviews
+## Apply Reviews (One at a Time)
 
-For each successful review, ask user:
+Process reviews **sequentially** — finish one PR before moving to the next:
 
-"PR #<number> review complete. Options:"
-1. Apply review locally: `ca task apply <task_id> --no-resume`
-2. View review details first
-3. Skip to next PR
-4. Examine PR branch: `gh pr checkout <number>`
+For the next completed review:
 
-When applying:
-```bash
-ca task apply <task_id> --no-resume
-```
+1. **Checkout the PR branch first**:
+   ```bash
+   gh pr checkout <number>
+   ```
 
-This brings the review into your local session for iteration before posting.
+2. **Apply the review**:
+   ```bash
+   ca task apply <task_id> --no-resume
+   ```
+   This creates `PR_REVIEW_<number>.md` in your local session.
 
-## Post-Apply Workflow
+3. **Iterate with the user** on the review content:
+   - Show the review summary
+   - Let the user edit or adjust the review
+   - Discuss any findings
 
-After applying each review:
-- Review file is created: `PR_REVIEW_<number>.md`
-- User can edit, discuss, or post
-- Use standard review-pr workflow for posting
+4. **Post to GitHub** using the review-pr workflow:
+   - For approvals, prefer simple messages (e.g., "thanks! this looks great") over verbose summaries
+   - For changes requested, include actionable feedback
+
+5. **Move to the next PR** — repeat from step 1
 
 ---
 
