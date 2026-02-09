@@ -172,9 +172,11 @@ For the next completed review:
    - Let the user edit or adjust the review
    - Discuss any findings
 
-4. **Post to GitHub** using the `post-review` skill — it handles building the review JSON with inline comments and submitting via `gh api`
+4. **Get explicit approval before posting** — reviews are visible to the PR author and team. Always show the final review body and inline comments, then ask the user to confirm before submitting. Never auto-post.
 
-5. **Move to the next PR** — repeat from step 1
+5. **Post to GitHub** using the `post-review` skill — it handles building the review JSON with inline comments and submitting via `gh api`
+
+6. **Move to the next PR** — repeat from step 1
 
 ---
 
