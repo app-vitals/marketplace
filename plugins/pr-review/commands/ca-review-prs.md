@@ -167,7 +167,9 @@ For the next completed review:
    ```
    This creates `PR_REVIEW_<number>.md` in the current directory.
 
-3. **Iterate with the user** on the review content:
+3. **Trim and iterate with the user** on the review content:
+   - Cloud agent reviews tend to be verbose (~400+ lines) — trim to essentials before presenting
+   - Apply the same "keep it tight" standard from `/review-pr`: 2-5 actionable items, drop low-confidence nitpicks
    - Show the review summary
    - Let the user edit or adjust the review
    - Discuss any findings

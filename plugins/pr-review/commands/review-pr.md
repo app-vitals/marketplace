@@ -142,9 +142,12 @@ Review this pull request: $ARGUMENTS
 ## Review Quality
 
 - **Verify before flagging**: Check the actual codebase before raising issues. Confirm library versions (e.g. Zod 4 supports `z.enum()` with TS enums), check if both branches of a conditional do the same thing before calling a removal a concern, etc.
+- **Check scope**: Before flagging a bug, check if it's pre-existing with `git show <base>:<file>`. If it exists on the base branch, it's out of scope for the PR review.
+- **Don't echo CI**: Don't call out failing tests unless confident your findings are the cause. CI status is visible to the author — speculating adds noise.
 - **Drop CLAUDE.md contradictions**: Don't suggest comments/JSDoc if CLAUDE.md says "no comments explaining what code does." Don't suggest patterns the project explicitly avoids.
 - **No filler language**: No "FYI", "Note:", "Just a heads up" in review comments. Be direct.
 - **Keep it tight**: A good review has 2-5 actionable items, not 20. Drop low-confidence suggestions and nitpicks. If the review file exceeds ~50 lines of findings, it probably needs trimming.
+- **Concise approvals**: If a PR already has active reviewer engagement and all items are addressed with no new issues, a concise APPROVE to unblock is more valuable than a duplicate detailed review.
 - **Organize by file and line**: List issues in diff order (matching `gh pr diff` reading order) so the reviewer can follow along. Label each with severity: critical, important, suggestion.
 
 ## Important Notes
