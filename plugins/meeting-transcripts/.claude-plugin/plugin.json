@@ -1,0 +1,13 @@
+{
+  "name": "meeting-transcripts",
+  "version": "1.0.0",
+  "description": "Browse and read meeting transcripts captured by the mt CLI tool. Provides a /transcripts command to list recent recordings and read specific transcripts by time reference.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["meetings", "transcripts", "mt", "audio", "recordings"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}
