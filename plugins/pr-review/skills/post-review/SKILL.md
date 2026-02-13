@@ -12,7 +12,7 @@ Post a review from `PR_REVIEW_<number>.md` to GitHub using the reviews API.
 
 - PR branch checked out
 - `PR_REVIEW_<number>.md` exists with review content
-- User has approved posting
+- **User has explicitly approved posting** — reviews are visible to the PR author and team. Always show the final review body and inline comments, then confirm before submitting. Never auto-post.
 
 ## Diff Against the Correct Base Branch
 
@@ -70,11 +70,11 @@ Create `pr_review_<number>.json`:
 }
 ```
 
-### Critical: Don't Duplicate Inline Comments in the Body
+### Keep the Body Minimal
 
-The review body should **only contain items NOT covered by inline comments**. If all critical/important issues have inline comments, the body should just have minor notes, strengths, or other context that doesn't reference specific lines.
+The review body should be brief — the inline comments carry the detail. A good body is just the verdict and a sentence of context. Don't enumerate what was addressed, list strengths, or repeat inline comment content.
 
-This prevents the PR author from seeing the same feedback twice.
+If all issues have inline comments, the body needs only: verdict + one-liner + signature. Don't duplicate inline feedback in the body — the PR author sees both.
 
 ## Step 4: Submit
 
