@@ -26,6 +26,11 @@
       "name": "pr-review",
       "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, follow-up reviews, and parallel batch processing via cloud-agent.",
       "source": "./plugins/pr-review"
+    },
+    {
+      "name": "meeting-transcripts",
+      "description": "Browse and read meeting transcripts captured by the mt CLI tool. Provides a /transcripts command to list, search, and read recordings by time reference.",
+      "source": "./plugins/meeting-transcripts"
     }
   ]
 }
