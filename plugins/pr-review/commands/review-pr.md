@@ -123,7 +123,7 @@ Review this pull request: $ARGUMENTS
 
     ## Recommendation
 
-    <APPROVE / REQUEST_CHANGES / COMMENT>
+    <APPROVE / COMMENT>
     <Summary reasoning>
     ```
 
@@ -148,6 +148,8 @@ Review this pull request: $ARGUMENTS
 - **No filler language**: No "FYI", "Note:", "Just a heads up" in review comments. Be direct.
 - **Keep it tight**: A good review has 2-5 actionable items, not 20. Drop low-confidence suggestions and nitpicks. If the review file exceeds ~50 lines of findings, it probably needs trimming.
 - **Concise approvals**: If a PR already has active reviewer engagement and all items are addressed with no new issues, a concise APPROVE to unblock is more valuable than a duplicate detailed review.
+- **Never REQUEST_CHANGES**: Only use APPROVE or COMMENT. REQUEST_CHANGES is too blocking — flag concerns as comments instead and let the author decide.
+- **Check teammate comments first**: Before posting, read existing PR comments and reviews from teammates. Don't approve over substantive feedback without acknowledging it — if a teammate raised a valid concern, reference it in your review.
 - **Organize by file and line**: List issues in diff order (matching `gh pr diff` reading order) so the reviewer can follow along. Label each with severity: critical, important, suggestion.
 
 ## Important Notes

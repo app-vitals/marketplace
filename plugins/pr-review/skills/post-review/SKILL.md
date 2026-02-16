@@ -58,7 +58,7 @@ Create `pr_review_<number>.json`:
 {
   "commit_id": "<head_sha>",
   "body": "<review body>",
-  "event": "APPROVE|REQUEST_CHANGES|COMMENT",
+  "event": "APPROVE|COMMENT",
   "comments": [
     {
       "path": "path/to/file.ts",
