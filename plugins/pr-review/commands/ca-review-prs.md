@@ -167,9 +167,12 @@ For the next completed review:
    ```
    This creates `PR_REVIEW_<number>.md` in the current directory.
 
-3. **Trim and iterate with the user** on the review content:
+3. **Verify and trim** the review content:
+   - **Always verify claims against the actual PR diff** using `gh pr diff <number>` (NOT `git diff main...HEAD` which may include unrelated commits from the checked-out branch)
+   - Cloud agent reviews often have false positives on "critical" findings — check the code before trusting severity ratings
    - Cloud agent reviews tend to be verbose (~400+ lines) — trim to essentials before presenting
    - Apply the same "keep it tight" standard from `/review-pr`: 2-5 actionable items, drop low-confidence nitpicks
+   - Don't call out obvious CI failures (lint, formatting) in reviews — the author will see and fix them
    - Show the review summary
    - Let the user edit or adjust the review
    - Discuss any findings
