@@ -176,6 +176,7 @@ For the next completed review:
    - Cloud agent reviews tend to be verbose (~400+ lines) — trim to essentials before presenting
    - Apply the same "keep it tight" standard from `/review-pr`: 2-5 actionable items, drop low-confidence nitpicks
    - Don't call out obvious CI failures (lint, formatting) in reviews — the author will see and fix them
+   - If another reviewer already flagged the same issue and the author hasn't addressed it, skip posting — adding the same comment adds no value
    - Show the review summary
    - Let the user edit or adjust the review
    - Discuss any findings
