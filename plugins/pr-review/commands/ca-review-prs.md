@@ -111,10 +111,12 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
 ## Queue Reviews
 
-For each PR number:
+For each PR number, use the `--repo` flag with `org/name` format:
 ```bash
-ca pr review <pr_number>
+ca pr review <pr_number> --repo <org/name>
 ```
+
+**Important**: `ca pr review` takes PR numbers (not full GitHub URLs) with an optional `--repo` flag. If `--repo` is omitted, it uses the current git repo.
 
 Track each queued task:
 | PR | Task ID | Status |
