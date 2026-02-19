@@ -172,45 +172,67 @@ If the learning improves a marketplace plugin:
 
 **Step 1: Check configured marketplaces for local sources**
 ```bash
-claude plugin marketplace list
+cat ~/.claude/plugins/known_marketplaces.json
 ```
 
 Example output:
-```
-Configured marketplaces:
-
-  ❯ claude-plugins-official
-    Source: GitHub (anthropics/claude-plugins-official)
-
-  ❯ app-vitals-marketplace
-    Source: Directory (~/src/app-vitals-marketplace)
+```json
+{
+  "claude-plugins-official": {
+    "source": { "source": "github", "repo": "anthropics/claude-plugins-official" },
+    "installLocation": "/Users/dan/.claude/plugins/marketplaces/claude-plugins-official"
+  },
+  "app-vitals-marketplace": {
+    "source": { "source": "directory", "path": "/Users/dan/src/app-vitals-marketplace" },
+    "installLocation": "/Users/dan/src/app-vitals-marketplace"
+  }
+}
 ```
 
 **Step 2: Determine destination based on marketplace source**
 
-If the plugin's marketplace has `Source: Directory (/path/to/marketplace)`:
+If the marketplace entry has `"source": "directory"`:
 - This is a **local marketplace** - the user likely cloned it for contribution
-- Write to the source path: `/path/to/marketplace/plugins/<plugin-name>/`
+- Write to `installLocation/plugins/<plugin-name>/` (same as `source.path`)
 - User can commit and create PR in their normal workflow
 
-If the plugin's marketplace has `Source: GitHub (org/repo)`:
-- This is a **remote marketplace** - updates go to cache
-- Write to cached path: `~/.claude/plugins/<marketplace>/<plugin>/`
-- Warn: Changes may be overwritten on plugin upgrade
-- For permanent changes, suggest cloning the marketplace repo
+If the marketplace entry has `"source": "github"`:
+- This is a **remote marketplace** - don't write to the cache (changes will be overwritten on upgrade)
+- Instead, promote the learning to `CLAUDE.md` or stage it in `CLAUDE.local.md` as a personal reminder
+- Add a note: "To contribute this upstream, clone the marketplace repo, install it as a local directory source, make the change, and submit a PR"
 
-**Example: Promoting a learning about pr-review plugin**
+**Example: Learning from a local marketplace plugin (pr-review)**
 
 ```
 Learning: "pr-review: always check for draft PRs before posting"
 
-Checking marketplace sources...
-Found: app-vitals-marketplace → Directory (~/src/app-vitals-marketplace)
+Checking ~/.claude/plugins/known_marketplaces.json...
+Found: app-vitals-marketplace → source: directory, path: ~/src/app-vitals-marketplace
 
 pr-review is from app-vitals-marketplace (local source).
 Writing to: ~/src/app-vitals-marketplace/plugins/pr-review/skills/...
 
 ✓ Updated source. You can commit and create a PR when ready.
+```
+
+**Example: Learning from a remote marketplace plugin (github source)**
+
+```
+Learning: "claude-plugins-official/some-plugin: prefer X over Y"
+
+Checking ~/.claude/plugins/known_marketplaces.json...
+Found: claude-plugins-official → source: github, repo: anthropics/claude-plugins-official
+
+This marketplace is remote - changes to the cache will be overwritten on upgrade.
+
+Routing to CLAUDE.md instead:
+  + some-plugin: prefer X over Y
+
+✓ Saved to CLAUDE.md.
+
+Note: To contribute this upstream, clone https://github.com/anthropics/claude-plugins-official,
+install it as a local directory source (`claude plugin marketplace add --dir /path/to/clone`),
+make your change, and submit a PR.
 ```
 
 ### Step 5: Clean Up Staging
