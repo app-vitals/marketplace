@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a GitHub pull request with local draft, CLAUDE.md compliance checking, and iterative refinement before posting
+description: Review a GitHub pull request. Automatically detects whether this is a first review or follow-up based on your GitHub review history.
 argument-hint: "<pr-number-or-url>"
 allowed-tools:
   - Bash
@@ -31,29 +31,39 @@ Review this pull request: $ARGUMENTS
 3. **Eligibility check**:
    - If PR is closed, inform user and stop
    - If PR is a draft, ask user if they want to proceed
-   - Check if you've already reviewed: `gh pr view <number> --json reviews`
 
-## Analysis
+4. **Detect review mode**:
+   ```bash
+   gh pr view <number> --json reviews
+   ```
+   - If you have no prior reviews on this PR → **Fresh Review** (go to Fresh Review section)
+   - If you have prior reviews → **Update Review** (go to Update Review section)
 
-4. **Checkout the PR branch**:
+---
+
+## Fresh Review
+
+### Analysis
+
+5. **Checkout the PR branch**:
    ```bash
    gh pr checkout <number>
    ```
    Stay on this branch throughout the review for follow-up questions.
 
-5. **Gather context**:
+6. **Gather context**:
    - Get the base branch: `gh pr view <number> --json baseRefName -q '.baseRefName'`
    - Get the diff against the base branch: `git diff <base>...HEAD` (not always main — PRs may target feature branches)
    - List changed files: `gh pr view <number> --json files`
    - Check CI status: `gh pr checks <number>`
    - Read existing comments: `gh pr view <number> --json comments,reviews`
 
-6. **Find and read CLAUDE.md files**:
+7. **Find and read CLAUDE.md files**:
    - Read root CLAUDE.md if it exists
    - Find CLAUDE.md files in directories containing changed files
    - Note relevant patterns, conventions, and requirements
 
-7. **Deep review** - For each changed file:
+8. **Deep review** - For each changed file:
    - Read the full file for context (not just the diff)
    - Check adherence to CLAUDE.md guidelines
    - Look for bugs, logic errors, edge cases
@@ -62,23 +72,23 @@ Review this pull request: $ARGUMENTS
    - Note code quality and maintainability
    - **Check for breaking API changes**: Assume rolling deployments - clients and servers rarely deploy atomically. Flag any breaking changes (removed endpoints, changed request/response shapes, renamed fields) as critical issues.
 
-## Issue Classification
+### Issue Classification
 
-8. **Score each issue** on confidence (0-100):
+9. **Score each issue** on confidence (0-100):
    - **90-100**: Critical bug or explicit CLAUDE.md violation
    - **75-89**: Important issue, likely to cause problems
    - **50-74**: Valid concern but lower impact
    - **Below 50**: Nitpick or possible false positive
 
-9. **Categorize findings**:
-   - **Critical Issues** (confidence 90+): Must fix before merge
-   - **Important Issues** (confidence 75-89): Should fix
-   - **Suggestions** (confidence 50-74): Consider fixing
-   - **Positive observations**: What's done well
+10. **Categorize findings**:
+    - **Critical Issues** (confidence 90+): Must fix before merge
+    - **Important Issues** (confidence 75-89): Should fix
+    - **Suggestions** (confidence 50-74): Consider fixing
+    - **Positive observations**: What's done well
 
-## Draft Review
+### Draft Review
 
-10. **Write review to file**: `PR_REVIEW_<number>.md`
+11. **Write review to file**: `PR_REVIEW_<number>.md`
 
     This file is a **draft for the reviewer** (the `gh auth` user) to iterate on before posting. Write in a collaborative tone - Claude is presenting findings to the reviewer for discussion.
 
@@ -127,7 +137,7 @@ Review this pull request: $ARGUMENTS
     <Summary reasoning>
     ```
 
-11. **Present to user**:
+12. **Present to user**:
     - Show the draft review
     - Ask: "Review draft saved to PR_REVIEW_<number>.md. Would you like to:"
       - Edit the review
@@ -135,23 +145,134 @@ Review this pull request: $ARGUMENTS
       - Discuss specific points
       - Skip posting
 
+---
+
+## Update Review
+
+### Load Prior Review
+
+5. **Fetch your previous review(s)**:
+   ```bash
+   gh pr view <number> --json reviews
+   ```
+   Find your most recent review: note `submittedAt` and `id`.
+
+6. **Fetch your prior inline comments**:
+   ```bash
+   gh api repos/<owner>/<repo>/pulls/<number>/reviews/<review_id>/comments
+   ```
+   These are the findings you previously flagged — you'll check each for resolution.
+
+7. **Checkout latest code**:
+   ```bash
+   gh pr checkout <number>
+   ```
+
+### Identify Changes Since Your Review
+
+8. **Find new commits** since your review:
+   ```bash
+   gh pr view <number> --json commits
+   ```
+   Compare commit timestamps against your review `submittedAt`. List commits added after.
+
+9. **Get the latest diff**:
+   ```bash
+   gh pr diff <number>
+   ```
+
+10. **Check for new discussion**:
+    ```bash
+    gh pr view <number> --json comments,reviews
+    ```
+    Note any author responses or teammate comments since your review.
+
+### Verify Comment Resolution
+
+11. **For each issue from your prior review**, check the current code:
+
+    - ✅ **Addressed**: Fixed/implemented as suggested
+    - ⚠️ **Partially addressed**: Some progress but incomplete
+    - ❌ **Not addressed**: Still needs attention
+    - 🔄 **Changed approach**: Different solution — evaluate if acceptable
+
+    Provide specific file:line evidence for each assessment.
+
+### Review New Code
+
+12. **Analyze additions since your review**:
+    - New features, functions, or code blocks added
+    - Apply the same review criteria as a fresh review (CLAUDE.md compliance, bugs, error handling, tests)
+    - Score new issues with confidence levels (same scale)
+
+### Append Update to Review File
+
+13. **Append to `PR_REVIEW_<number>.md`** (create it if it doesn't exist locally):
+
+    ```markdown
+
+    ---
+
+    ## Review Update - <date>
+
+    ### Commits Since Last Review
+
+    - <commit sha>: <commit message>
+
+    ### Comment Resolution Status
+
+    | Issue | Status | Evidence |
+    |-------|--------|----------|
+    | <issue 1> | ✅ Addressed | Fixed in `file.ts:45` |
+    | <issue 2> | ⚠️ Partial | Logging added but no error ID |
+    | <issue 3> | ❌ Not addressed | Still missing validation |
+
+    ### New Issues Found
+
+    #### Critical Issues (X found)
+    ...
+
+    #### Important Issues (X found)
+    ...
+
+    ### CI Status
+
+    <current status>
+
+    ### Updated Recommendation
+
+    <APPROVE / COMMENT>
+
+    **Previous**: <previous recommendation>
+    **Now**: <updated recommendation with reasoning>
+    ```
+
+14. **Present to user**:
+    - Show the update summary
+    - Highlight what changed in your recommendation
+    - Ask if they want to post an updated review
+
+---
+
 ## Posting the Review
 
-12. **When user requests posting**, use the `post-review` skill to submit the review to GitHub. It handles building the review JSON, mapping inline comments to diff lines, and submitting via `gh api`.
+When user requests posting, use the `post-review` skill to submit the review to GitHub. It handles building the review JSON, mapping inline comments to diff lines, and submitting via `gh api`. Note: posting an update creates a new review — it does not modify the previous one.
+
+---
 
 ## Review Quality
 
-- **Verify before flagging**: Check the actual codebase before raising issues. Confirm library versions (e.g. Zod 4 supports `z.enum()` with TS enums), check if both branches of a conditional do the same thing before calling a removal a concern, etc.
-- **Check scope**: Before flagging a bug, check if it's pre-existing with `git show <base>:<file>`. If it exists on the base branch, it's out of scope for the PR review.
-- **Cross-reference prior reviews**: Check related/parent PRs for review comments that should carry forward. API review findings often flag client-side work needed in the follow-up app PR (e.g., composite keys, event handling patterns).
-- **Don't echo CI**: Don't call out failing tests unless confident your findings are the cause. CI status is visible to the author — speculating adds noise.
-- **Drop CLAUDE.md contradictions**: Don't suggest comments/JSDoc if CLAUDE.md says "no comments explaining what code does." Don't suggest patterns the project explicitly avoids.
-- **No filler language**: No "FYI", "Note:", "Just a heads up" in review comments. Be direct.
-- **Keep it tight**: A good review has 2-5 actionable items, not 20. Drop low-confidence suggestions and nitpicks. If the review file exceeds ~50 lines of findings, it probably needs trimming.
-- **Concise approvals**: If a PR already has active reviewer engagement and all items are addressed with no new issues, a concise APPROVE to unblock is more valuable than a duplicate detailed review.
-- **Never REQUEST_CHANGES**: Only use APPROVE or COMMENT. REQUEST_CHANGES is too blocking — flag concerns as comments instead and let the author decide.
-- **Check teammate comments first**: Before posting, read existing PR comments and reviews from teammates. Don't approve over substantive feedback without acknowledging it — if a teammate raised a valid concern, reference it in your review.
-- **Organize by file and line**: List issues in diff order (matching `gh pr diff` reading order) so the reviewer can follow along. Label each with severity: critical, important, suggestion.
+- **Verify before flagging**: Check the actual codebase before raising issues. Confirm library versions, check if both branches of a conditional do the same thing before calling a removal a concern, etc.
+- **Check scope**: Before flagging a bug, check if it's pre-existing with `git show <base>:<file>`. If it exists on the base branch, it's out of scope.
+- **Cross-reference prior reviews**: Check related/parent PRs for review comments that should carry forward.
+- **Don't echo CI**: Don't call out failing tests unless confident your findings are the cause.
+- **Drop CLAUDE.md contradictions**: Don't suggest patterns the project explicitly avoids.
+- **No filler language**: No "FYI", "Note:", "Just a heads up". Be direct.
+- **Keep it tight**: A good review has 2-5 actionable items. Drop low-confidence suggestions and nitpicks. If the review file exceeds ~50 lines of findings, it probably needs trimming.
+- **Concise approvals**: If all items are addressed with no new issues, a concise APPROVE to unblock is more valuable than a duplicate detailed review.
+- **Never REQUEST_CHANGES**: Only use APPROVE or COMMENT.
+- **Check teammate comments first**: Before posting, read existing PR comments and reviews from teammates. Don't approve over substantive feedback without acknowledging it.
+- **Organize by file and line**: List issues in diff order so the reviewer can follow along.
 
 ## Important Notes
 

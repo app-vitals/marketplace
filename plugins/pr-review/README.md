@@ -7,15 +7,16 @@ Interactive PR review workflow for Claude Code with local drafts, CLAUDE.md comp
 - **Local-first drafts**: Review saved to `PR_REVIEW_<number>.md` for iteration before posting
 - **CLAUDE.md compliance**: Checks code against project guidelines
 - **Confidence scoring**: Issues rated 0-100 to reduce false positives
-- **Follow-up reviews**: Track if previous comments were addressed
+- **Auto-detects follow-ups**: Checks GitHub review history — automatically switches to update mode if you've reviewed before
 - **Review queue + parallel batch**: Fetch PRs needing attention and process via cloud-agent
 
 ## Commands
 
 ### `/review-pr <pr-number-or-url>`
 
-Full PR review with local draft workflow.
+Full PR review with local draft workflow. Automatically detects whether this is a first review or a follow-up based on your GitHub review history.
 
+**First review**:
 1. Checks out PR branch
 2. Analyzes diff and reads CLAUDE.md
 3. Scores issues by confidence
@@ -23,14 +24,12 @@ Full PR review with local draft workflow.
 5. Iterates with you before posting
 6. Posts bundled review with inline comments
 
-### `/review-pr-update <pr-number>`
-
-Follow-up review after PR is updated.
-
-- References your previous review
-- Checks if comments were addressed (✅/⚠️/❌)
-- Reviews new code added since last review
-- Appends update section to original review file
+**Follow-up review** (if you've reviewed this PR before):
+1. Loads your prior inline comments from GitHub
+2. Finds commits added since your last review
+3. Checks resolution status of each previous comment (✅/⚠️/❌)
+4. Reviews new code added since last review
+5. Appends update section to `PR_REVIEW_<number>.md`
 
 ### `/ca-review-prs [pr-numbers...] or [repo] [--limit N]`
 
@@ -72,8 +71,8 @@ Fetch PRs needing review and process them in parallel via cloud-agent.
 ### Follow-up on Updated PRs
 
 ```bash
-# After PR author pushes changes
-/review-pr-update 123
+# After PR author pushes changes — review-pr auto-detects the update case
+/review-pr 123
 ```
 
 ### Review Approval Phrases

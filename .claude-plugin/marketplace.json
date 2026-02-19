@@ -24,7 +24,7 @@
     },
     {
       "name": "pr-review",
-      "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, follow-up reviews, and parallel batch processing via cloud-agent.",
+      "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, auto-detected follow-ups, and parallel batch processing via cloud-agent.",
       "source": "./plugins/pr-review"
     },
     {

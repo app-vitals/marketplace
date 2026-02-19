@@ -14,12 +14,13 @@ Manual test plan for the pr-review plugin.
 
 **Setup**: Find an open PR in a repo you have access to.
 
-**Test basic review**:
+**Test first review**:
 ```bash
 /review-pr <pr-number>
 ```
 
 **Verify**:
+- [ ] Checks GitHub review history — detects no prior review → fresh mode
 - [ ] Checks out PR branch
 - [ ] Reads CLAUDE.md files
 - [ ] Analyzes diff
@@ -32,23 +33,20 @@ Manual test plan for the pr-review plugin.
 - [ ] Posts review to GitHub
 - [ ] Shows confirmation
 
-### 2. review-pr-update Command
-
-**Setup**: Use a PR you've already reviewed with review-pr.
-
-**Test follow-up**:
+**Test follow-up** (use a PR you've previously reviewed):
 ```bash
-/review-pr-update <pr-number>
+/review-pr <pr-number>
 ```
 
 **Verify**:
-- [ ] Loads previous review from file or conversation
+- [ ] Checks GitHub review history — detects prior review → update mode
+- [ ] Fetches your prior inline comments from GitHub API
 - [ ] Identifies commits since last review
-- [ ] Checks resolution status of each issue
+- [ ] Checks resolution status of each issue (✅/⚠️/❌)
 - [ ] Appends update section to `PR_REVIEW_<number>.md`
 - [ ] Shows updated recommendation
 
-### 3. ca-review-prs Command
+### 2. ca-review-prs Command
 
 **Setup**: Need cloud-agent CLI installed.
 
@@ -112,7 +110,7 @@ review-pr <pr-number>
 
 - [ ] Closed PR: Should inform user and stop
 - [ ] Draft PR: Should ask if user wants to proceed
-- [ ] Already reviewed PR: Should note existing review
+- [ ] Already reviewed PR: Should auto-switch to update mode
 - [ ] PR with no CLAUDE.md: Should proceed without compliance check
 - [ ] Invalid PR number: Should show helpful error
 
@@ -124,7 +122,7 @@ review-pr <pr-number>
 3. Edit draft if needed
 4. Post review
 5. Wait for PR update
-6. `/review-pr-update <number>` - Follow up
+6. `/review-pr <number>` - Follow up (auto-detected as update mode)
 
 ## Notes
 

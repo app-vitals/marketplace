@@ -75,7 +75,7 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
    - PRs where you reviewed, but there are new commits since your last review
    - To check: fetch the PR's commits and compare the latest commit date against your review `submittedAt`
    - Do NOT use the PR `updatedAt` field — it gets bumped by any activity including your own review comments
-   - Candidates for `/review-pr-update`
+   - Routed the same as A and B — `review-pr` auto-detects the update case via GitHub review history
 
 ### Display Queue
 
@@ -205,7 +205,7 @@ For the next completed review:
 ## Tips
 
 - Run without arguments to see what needs review first
-- "Updated since review" PRs are candidates for `/review-pr-update`
+- "Updated since review" PRs are auto-detected by `review-pr` — no separate command needed
 - Start with 3-5 PRs to gauge timing
 - Apply and iterate on one review before moving to next
 

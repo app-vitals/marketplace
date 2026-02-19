@@ -1,7 +1,7 @@
 {
   "name": "pr-review",
-  "version": "0.1.0",
-  "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, follow-up reviews, and batch processing. Supports iterating on reviews before posting to GitHub.",
+  "version": "0.2.0",
+  "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, and batch processing. Auto-detects first reviews vs. follow-ups via GitHub history. Supports iterating on reviews before posting to GitHub.",
   "author": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
