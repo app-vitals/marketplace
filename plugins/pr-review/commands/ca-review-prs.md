@@ -68,7 +68,8 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
    **B. Not Yet Reviewed**:
    - PRs where you haven't submitted any review in ANY state (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED all count as "reviewed")
    - Exclude your own PRs (author != you)
-   - Exclude drafts
+   - Exclude drafts with "not ready for review" (or similar) in the title
+   - For other drafts: include if not yet reviewed, or if there are new commits since your last review
 
    **C. Updated Since Your Review**:
    - PRs where you reviewed, but there are new commits since your last review
