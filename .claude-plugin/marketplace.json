@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
@@ -31,6 +31,11 @@
       "name": "meeting-transcripts",
       "description": "Browse and read meeting transcripts captured by the mt CLI tool. Provides a /transcripts command to list, search, and read recordings by time reference.",
       "source": "./plugins/meeting-transcripts"
+    },
+    {
+      "name": "distill",
+      "description": "Distill conversations into persistent context files. Extracts long-term facts, goals, and decisions into your project's context/ directory before clearing.",
+      "source": "./plugins/distill"
     }
   ]
 }

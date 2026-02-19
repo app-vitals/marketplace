@@ -11,6 +11,9 @@ This is a **Claude Code plugin marketplace** - a collection of plugins that exte
 - **ralph-orchestrator** - Structured orchestration for autonomous development loops with PRD support
 - **damage-control** - Defense-in-depth protection via PreToolUse hooks
 - **learning-loop** - Captures corrections and discoveries, promotes to skills
+- **pr-review** - Interactive PR review workflow with local drafts and parallel batch processing
+- **meeting-transcripts** - Browse and read meeting transcripts captured by the mt CLI tool
+- **distill** - Distill conversations into persistent context files for continuity across /clear cycles
 
 ## Architecture
 

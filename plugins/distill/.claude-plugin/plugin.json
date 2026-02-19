@@ -1,0 +1,19 @@
+{
+  "name": "distill",
+  "version": "0.1.0",
+  "description": "Distill conversations into persistent context files. Extracts long-term facts, goals, and decisions into your project's context/ directory before clearing.",
+  "author": {
+    "name": "App Vitals",
+    "url": "https://github.com/app-vitals"
+  },
+  "repository": "https://github.com/app-vitals/app-vitals-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "distill",
+    "session",
+    "memory",
+    "continuity",
+    "notes"
+  ]
+}
