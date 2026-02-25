@@ -1,6 +1,6 @@
 # Meeting Transcripts
 
-Browse and read meeting transcripts captured by the [mt](https://github.com/app-vitals/mt) CLI tool.
+Browse and read meeting transcripts captured by the [mt](https://github.com/app-vitals/meeting-transcriber) CLI tool.
 
 ## Prerequisites
 
