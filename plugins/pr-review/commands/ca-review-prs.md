@@ -45,18 +45,23 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
    gh auth status
    ```
 
-2. **Determine target repository**:
-   - If repo specified (e.g., `owner/repo`), use that
-   - Otherwise, use current repo: `gh repo view --json nameWithOwner`
+2. **Determine target repositories**:
+   - If repo specified (e.g., `owner/repo`), use that single repo
+   - If CWD is a git repo: `gh repo view --json nameWithOwner -q '.nameWithOwner'`
+   - If CWD is **not** a git repo (workspace root with nested repos): auto-discover
+     ```bash
+     for d in */; do [ -d "$d/.git" ] && git -C "$d" remote get-url origin 2>/dev/null; done
+     ```
+     Parse each remote URL to `owner/repo` format. Track the local subdirectory path alongside each repo name — you'll need it for checkout later.
 
 3. **Parse options**:
    - `--limit N`: Max PRs to fetch (default: 20)
 
 ### Fetch PRs
 
-4. **Get open PRs**:
+4. **Get open PRs** — fetch all repos **in parallel**:
    ```bash
-   gh pr list --state open --json number,title,author,createdAt,updatedAt,reviews,reviewRequests,isDraft,commits --limit <limit>
+   gh pr list --state open --json number,title,author,createdAt,updatedAt,reviews,reviewRequests,isDraft,commits --limit <limit> --repo <owner/repo>
    ```
    The `commits` field is needed to compare the latest commit date against your review timestamp (do not rely on `updatedAt` for this — see category C below).
 
@@ -79,28 +84,30 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
 ### Display Queue
 
-6. **Show the queue**:
+6. **Show the queue** — group by repo when multiple repos are in scope:
 
    ```
-   ## PR Review Queue for <owner/repo>
+   ## PR Review Queue
 
    ### Review Requested (X)
-   | PR | Title | Author | Age |
-   |----|-------|--------|-----|
-   | #123 | Add feature X | @alice | 2d |
+   | Repo | PR | Title | Author | Age |
+   |------|----|-------|--------|-----|
+   | ok-wow | #123 | Add feature X | @alice | 2d |
 
    ### Updated Since Your Review (X)
-   | PR | Title | Author | Updated | Your Review |
-   |----|-------|--------|---------|-------------|
-   | #456 | Fix bug Y | @bob | 3h ago | 2d ago |
+   | Repo | PR | Title | Author | Updated | Your Review |
+   |------|----|----- -|--------|---------|-------------|
+   | ok-wow-ai | #456 | Fix bug Y | @bob | 3h ago | 2d ago |
 
    ### Not Yet Reviewed (X)
-   | PR | Title | Author | Age |
-   |----|-------|--------|-----|
-   | #789 | Refactor Z | @carol | 5d |
+   | Repo | PR | Title | Author | Age |
+   |------|----|-------|--------|-----|
+   | ok-wow | #789 | Refactor Z | @carol | 5d |
 
-   Total: X PRs need attention
+   Total: X PRs need attention across Y repos
    ```
+
+   For single-repo mode, omit the Repo column.
 
 7. **Ask user how to proceed**:
    - "Queue all for parallel review" → Continue to Queue Reviews
@@ -159,12 +166,18 @@ Process reviews **sequentially** — finish one PR before moving to the next:
 
 For the next completed review:
 
-1. **Checkout the PR branch first**:
+1. **Checkout the PR branch** — run from within the repo's subdirectory:
    ```bash
+   # Single repo (already in the repo dir)
    gh pr checkout <number>
-   ```
 
-2. **Apply the review** (from project root — `ca task apply` writes files to CWD):
+   # Workspace with nested repos — use -C to target the right subdir
+   git -C <subdir> fetch
+   gh pr checkout <number> --repo <owner/repo>   # then: cd <subdir>
+   ```
+   If in a workspace root, `cd` into the repo subdirectory before continuing.
+
+2. **Apply the review** (from the repo directory — `ca task apply` writes files to CWD):
    ```bash
    ca task apply <task_id> --no-resume
    ```
@@ -191,28 +204,35 @@ For the next completed review:
 
 ## Example Usage
 
-**Fetch queue and review**:
+**Workspace root (auto-discovers all nested repos)**:
 ```bash
 /ca-review-prs
+```
+
+**Single repo**:
+```bash
 /ca-review-prs anthropics/claude-code
 /ca-review-prs --limit 10
 ```
 
-**Review specific PRs**:
+**Specific PRs** (include `--repo` when PRs span multiple repos):
 ```bash
 /ca-review-prs 626 636 637 642
+/ca-review-prs ok-wow/ok-wow 852 ok-wow/ok-wow-ai 893
 ```
 
 ## Tips
 
-- Run without arguments to see what needs review first
+- Run from a workspace root to see all repos at once
 - "Updated since review" PRs are auto-detected by `review-pr` — no separate command needed
 - Start with 3-5 PRs to gauge timing
 - Apply and iterate on one review before moving to next
+- When in a workspace, `cd` into the right subdirectory before `gh pr checkout`
 
 ## Notes
 
 - All reviews run in parallel on cloud infrastructure
 - Failed reviews don't block others
+- Workspace mode excludes repos with no open PRs from the queue
 - Excludes draft PRs and your own PRs from queue
 - Queue state is session-only (not persisted)
