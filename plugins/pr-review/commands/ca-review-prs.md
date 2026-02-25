@@ -47,8 +47,13 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
 2. **Determine target repositories**:
    - If repo specified (e.g., `owner/repo`), use that single repo
-   - If CWD is a git repo: `gh repo view --json nameWithOwner -q '.nameWithOwner'`
-   - If CWD is **not** a git repo (workspace root with nested repos): auto-discover
+   - If CWD is a git repo — **stop here, use only this repo**:
+     ```bash
+     git rev-parse --is-inside-work-tree 2>/dev/null && echo "is git repo"
+     gh repo view --json nameWithOwner -q '.nameWithOwner'
+     ```
+     Do **not** look at parent directories or explore beyond CWD.
+   - Only if CWD is **not** a git repo (true workspace root): auto-discover direct subdirectories
      ```bash
      for d in */; do [ -d "$d/.git" ] && git -C "$d" remote get-url origin 2>/dev/null; done
      ```
@@ -61,9 +66,9 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
 4. **Get open PRs** — fetch all repos **in parallel**:
    ```bash
-   gh pr list --state open --json number,title,author,createdAt,updatedAt,reviews,reviewRequests,isDraft,commits --limit <limit> --repo <owner/repo>
+   gh pr list --state open --json number,title,author,createdAt,updatedAt,reviews,reviewRequests,isDraft --limit <limit> --repo <owner/repo>
    ```
-   The `commits` field is needed to compare the latest commit date against your review timestamp (do not rely on `updatedAt` for this — see category C below).
+   Note: omit `commits` from the JSON fields — it multiplies node count and hits GitHub's GraphQL 500k node limit on repos with many PRs. To check for new commits since your last review (category C), compare the latest review's `commit.oid` against the PR's current head: `gh pr view <number> --json headRefOid --repo <owner/repo>`.
 
 5. **Filter PRs** into categories:
 
