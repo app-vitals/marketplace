@@ -46,7 +46,8 @@ Quickly capture a learning to the staging area.
 
 4. **On approval:**
    - Ensure `CLAUDE.local.md` exists
-   - Add as simple bullet point
+   - Find or create a `# Staged Learnings` section (NOT `# Personal Learnings` — staged learnings must be in their own section so `learn-promote` can find them)
+   - Add as a simple bullet point under `# Staged Learnings`
    - Confirm: "Saved to staged learnings."
 
 ## Without Arguments

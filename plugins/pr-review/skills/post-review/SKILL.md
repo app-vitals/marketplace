@@ -86,6 +86,15 @@ gh api -X POST /repos/{owner}/{repo}/pulls/{number}/reviews --input pr_review_<n
 
 Show the link to the posted review from the API response `html_url`.
 
+## Choosing the Event (APPROVE vs COMMENT)
+
+Use this heuristic when deciding between `APPROVE` and `COMMENT`:
+
+- **COMMENT** (request changes): broken behavior, missing functionality, or functional gaps — even if the fix is a one-liner. Approving broken behavior risks inline comments being ignored once the PR is unblocked.
+- **APPROVE**: style issues, consistency nits, or suggestions the author can choose to act on. These don't warrant blocking merge.
+
+When in doubt: if it's something that *should* be fixed before shipping, use COMMENT.
+
 ## Approval Shorthand
 
 For approvals, prefer concise messages:

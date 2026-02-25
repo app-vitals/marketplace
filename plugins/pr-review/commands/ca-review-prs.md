@@ -47,17 +47,21 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
 2. **Determine target repositories**:
    - If repo specified (e.g., `owner/repo`), use that single repo
-   - If CWD is a git repo — **stop here, use only this repo**:
+   - Otherwise, check if CWD is a git repo AND has nested git repos:
      ```bash
      git rev-parse --is-inside-work-tree 2>/dev/null && echo "is git repo"
-     gh repo view --json nameWithOwner -q '.nameWithOwner'
+     for d in */; do [ -d "$d/.git" ] && echo "has nested repos" && break; done
      ```
-     Do **not** look at parent directories or explore beyond CWD.
-   - Only if CWD is **not** a git repo (true workspace root): auto-discover direct subdirectories
+   - **Workspace mode** (CWD is a git repo with nested git repos below it): include the root repo AND all nested repos as one flat list:
      ```bash
+     # Root repo
+     gh repo view --json nameWithOwner -q '.nameWithOwner'
+     # Nested repos
      for d in */; do [ -d "$d/.git" ] && git -C "$d" remote get-url origin 2>/dev/null; done
      ```
-     Parse each remote URL to `owner/repo` format. Track the local subdirectory path alongside each repo name — you'll need it for checkout later.
+     Parse each remote URL to `owner/repo` format. Track the local subdirectory path alongside each repo name — you'll need it for checkout later. Root repo has no subdirectory (use CWD).
+   - **Single-repo mode** (CWD is a git repo with no nested repos): use only the CWD repo. Do **not** traverse upward.
+   - **Not a git repo**: auto-discover direct subdirectories only (same as nested repo discovery above).
 
 3. **Parse options**:
    - `--limit N`: Max PRs to fetch (default: 20)
