@@ -9,25 +9,26 @@ You are distilling a conversation session into structured context files.
 ## Instructions
 
 1. **Review the ENTIRE conversation history** for:
-   - New information (clients, projects, people, decisions)
-   - Strategic thinking (options considered, tradeoffs, reasoning)
+   - New information (clients, projects, people, decisions, or any domain-specific entities)
+   - Strategic or analytical thinking (options considered, tradeoffs, reasoning)
    - Updates to existing context (progress, status changes)
    - Goals with dates, deadlines, and progress
    - Important decisions and their rationale
    - Uncertainty and open questions
 
-2. **Check for existing context** using Bash tool:
+2. **Discover the repo structure** using Bash tool:
    ```bash
-   ls context/ 2>/dev/null
+   ls -1
    ```
-   - If context/ doesn't exist, you'll create it
-   - If it exists, list files to see what's there
-   - Read `context/index.md` first if it exists
+   - Look for an index file (INDEX.md, README.md, etc.) and read it first — it will tell you how this repo is organized and what each directory is for
+   - List top-level directories to understand the layout
+   - Do NOT assume a fixed structure. This command is used across different repos (business context, personal health/finances, project notes, etc.)
 
-3. **Create directories if needed** using Bash tool:
-   ```bash
-   mkdir -p context context-archive
-   ```
+3. **Map conversation content to existing structure**:
+   - Find the directories and files that already exist
+   - Update files that are clearly the right home for new information
+   - If you need to create a new file, place it where it fits the existing pattern
+   - If no relevant file exists yet, create one that matches the style and naming conventions of what's already there
 
 4. **Create or update context files**:
    - Use Write tool to create new files as needed
@@ -37,91 +38,38 @@ You are distilling a conversation session into structured context files.
    - Keep content concise but complete
    - User will confirm each change
 
-5. **Maintain index.md**:
-   - If no index.md exists, create it with Write tool
-   - If creating new context files, update index.md to describe them
-   - Index should briefly explain each file and when to load it
-   - Format:
-     ```markdown
-     # Context Index
+5. **Maintain the index file**:
+   - Find the repo's index (INDEX.md, README.md, or similar)
+   - If a new file was created, add it to the index
+   - If the quick-reference or status section at the top of the index is stale, update it
+   - If no index exists, create one that describes the structure
 
-     ## Available Files
-
-     ### filename.md
-     Brief description of what's in this file
-     *Load when: specific situations*
-
-     ## Last Updated
-     YYYY-MM-DD
-     ```
-
-6. **Create session archive** using Write tool:
-   - Filename: `context-archive/YYYY-MM-DD-brief-topic.md`
-   - Include: date, conversation summary, key insights extracted
-   - Note: which context files were created/updated and why
+6. **Create session archive**:
+   - Find where archives live in this repo (look for an `archive/` directory or similar)
+   - If none exists, create `archive/`
+   - Filename: `archive/YYYY-MM-DD-brief-topic.md`
+   - Include: date, conversation summary, key insights extracted, which files were created/updated and why
 
 7. **Inform user** to run `/clear` to reset the conversation with context preserved
-
-## File Organization Guidelines
-
-**Let the conversation guide structure.** Common patterns that often emerge:
-
-### goals.md
-If conversation includes goals, deadlines, or priorities:
-- Use temporal tracking (start dates, deadlines, progress %)
-- Use checkboxes for completion tracking
-- Organize by timeframe or however makes sense
-- Example format:
-  ```markdown
-  ## Immediate Goals
-  - [ ] Goal title
-    - Started: YYYY-MM-DD
-    - Deadline: YYYY-MM-DD
-    - Progress: Current status
-  ```
-
-### business.md
-If conversation includes business context:
-- Clients, customers, partnerships
-- Team members and roles
-- Revenue and metrics
-- Operational details
-
-### strategy.md
-If conversation includes strategic thinking:
-- Market positioning
-- Strategic decisions and pivots
-- Competitive landscape
-- Value proposition
-
-### decisions.md
-If significant decisions were made:
-- Document the decision and date
-- Options considered
-- Reasoning and tradeoffs
-- Expected impact
-
-**You decide what files make sense based on what was discussed.**
 
 ## Writing Guidelines
 
 - **Use headers and subheaders** for hierarchy
-- **Include specific details** - dates, numbers, names
-- **Capture "why" not just "what"** - reasoning matters
-- **Avoid duplication** - information should live in one primary place
-- **Link between files** - reference other context files instead of duplicating
-  - Example: "See strategy.md for pivot decision details"
-  - Example: "Related goal in goals.md: Launch v2.0"
+- **Include specific details** — dates, numbers, names
+- **Capture "why" not just "what"** — reasoning matters
+- **Avoid duplication** — information should live in one primary place
+- **Link between files** — reference other files instead of duplicating
 - **Use checkboxes** for trackable items
-- **Preserve uncertainty** - "considering X vs Y" when undecided
-- **Keep sections scannable** - use lists, short paragraphs
+- **Preserve uncertainty** — "considering X vs Y" when undecided
+- **Keep sections scannable** — use lists, short paragraphs
+- **Match the style** of existing files in the repo
 
 ## Quality Checklist
 
 Before completing distillation:
-- [ ] Context directory exists
-- [ ] index.md describes all files
-- [ ] Significant information captured in appropriate files
+- [ ] Repo structure discovered and index read
+- [ ] Significant information captured in appropriate existing files (or new files that fit the pattern)
+- [ ] Index updated if new files were created or status has changed
 - [ ] Goals have temporal tracking if applicable
 - [ ] Strategic thinking and reasoning preserved
 - [ ] Session archived
