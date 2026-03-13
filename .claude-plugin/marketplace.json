@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
@@ -36,6 +36,11 @@
       "name": "distill",
       "description": "Distill conversations into persistent context files. Extracts long-term facts, goals, and decisions into your project's context/ directory before clearing.",
       "source": "./plugins/distill"
+    },
+    {
+      "name": "dependabot-review",
+      "description": "AI-powered triage of Dependabot PRs. Posts patrol-style risk assessments on individual PRs and bulk-processes all open Dependabot PRs to get them merge-ready.",
+      "source": "./plugins/dependabot-review"
     }
   ]
 }

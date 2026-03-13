@@ -1,0 +1,13 @@
+{
+  "name": "dependabot-review",
+  "version": "0.1.0",
+  "description": "AI-powered triage of Dependabot PRs. Analyzes individual PRs and posts patrol-style risk assessments. Bulk command works through all open Dependabot PRs and gets them to merge-ready.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["github", "dependabot", "dependencies", "security", "triage", "patrol"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}
