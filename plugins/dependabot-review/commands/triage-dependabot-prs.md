@@ -33,69 +33,9 @@ List the PRs found at the top of your response before diving in.
 
 ## 3. Triage each PR
 
-For each PR, run the `triage-dependabot-pr` skill (or inline the same logic):
+For each PR, run the `triage-dependabot-pr` skill with the PR number as the argument.
 
-### 3a. Fetch PR details and diff
-
-```bash
-gh pr view <number> --json number,title,body,author,files,checksUrl
-gh pr diff <number>
-gh pr checks <number> 2>/dev/null || true
-```
-
-### 3b. Analyze risk
-
-Apply the patrol triage rubric:
-
-**Recommendation:**
-- `merge` — patch/minor update, no breaking changes, CI passing (or failures unrelated to this bump)
-- `review` — major version bump, breaking changes possible, security-relevant, or CI failing due to this change
-- `hold` — confirmed breaking change, deprecated package, or requires code changes
-
-**Flags:**
-- `breakingChange` — major version bump OR body explicitly mentions breaking changes
-- `securityRelevant` — CVE in body, or security package (helmet, bcrypt, jsonwebtoken, etc.)
-- `productionImpact` — package is in `dependencies` not `devDependencies`
-
-**Heuristics:**
-- Patch bump → `merge` unless security issue
-- Minor bump → `merge`, scan body for deprecation warnings
-- Major bump → `review` or `hold`, read carefully
-- devDependencies only → lower risk; lean toward `merge`
-
-### 3c. Check for existing patrol comment
-
-```bash
-gh pr view <number> --json comments --jq '.comments[] | select(.body | contains("<!-- patrol -->")) | .databaseId'
-```
-
-Delete if found:
-```bash
-gh api repos/<owner>/<repo>/issues/comments/<id> -X DELETE
-```
-
-### 3d. Post the patrol comment
-
-Format:
-```
-### {icon} Patrol: {label}
-
-**{summary}**
-
-{flags}
-
-{reasoning}
-
-<sub>🏔️ [patrol](https://github.com/app-vitals/patrol) · claude-sonnet-4-6</sub><!-- patrol -->
-```
-
-Icons: ✅ merge, ⚠️ review, 🛑 hold
-Labels: "Safe to merge", "Needs review", "Hold — action required"
-Flags (only if applicable): `🔴 Breaking change`  `🔒 Security relevant`  `🏭 Production impact`
-
-```bash
-gh pr comment <number> --body "..."
-```
+The skill handles fetching PR details and diff, analyzing risk, replacing any existing patrol comment, and posting the triage comment. Collect the recommendation (`merge`, `review`, or `hold`) from each skill run for use in step 4.
 
 ## 4. Act on recommendations
 
