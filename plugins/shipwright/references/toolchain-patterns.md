@@ -1,0 +1,153 @@
+# Toolchain Detection Patterns
+
+Lookup table for auto-detecting project toolchains from config files. Used by all Shipwright commands at startup.
+
+## Detection Order
+
+Scan the project root for these files in priority order. A project may match multiple ecosystems (e.g., Node.js + Rust in a monorepo).
+
+## Node.js
+
+| Signal | Detection |
+|--------|-----------|
+| `package-lock.json` | npm |
+| `yarn.lock` | yarn |
+| `pnpm-lock.yaml` | pnpm |
+| `bun.lockb` or `bun.lock` | bun |
+| `package.json` (no lockfile) | npm (fallback) |
+
+**Commands** — read from `package.json` `scripts` field:
+
+| Script Key | Purpose | Fallback |
+|------------|---------|----------|
+| `validate` | Full validation (lint + types + tests + build) | Run `lint`, `typecheck`, `test`, `build` individually |
+| `build` | Build/compile | `tsc` if `tsconfig.json` exists |
+| `test` | Unit tests | `vitest run` or `jest` based on devDependencies |
+| `lint` | Linting | `eslint .` if eslint config exists |
+| `typecheck` or `check` | Type checking | `tsc --noEmit` if TypeScript |
+| `format` | Code formatting | `prettier --check .` if prettier config exists |
+
+**Monorepo detection:**
+- `pnpm-workspace.yaml` → pnpm workspaces
+- `package.json` → `workspaces` field (npm/yarn workspaces)
+- `lerna.json` → Lerna monorepo
+- `nx.json` → Nx monorepo
+- `turbo.json` → Turborepo
+
+**Per-package commands** (monorepo): `{manager} --filter {package} {script}`
+
+## Rust
+
+| Signal | Detection |
+|--------|-----------|
+| `Cargo.toml` | Cargo |
+| `Cargo.lock` | Confirms Rust project |
+
+| Command | Purpose |
+|---------|---------|
+| `cargo build` | Build |
+| `cargo test` | Tests |
+| `cargo clippy --workspace -- -D warnings` | Lint |
+| `cargo fmt --check` | Format check |
+| `cargo doc --no-deps` | Documentation |
+
+**Workspace detection:** `[workspace]` section in root `Cargo.toml`
+
+## Go
+
+| Signal | Detection |
+|--------|-----------|
+| `go.mod` | Go modules |
+| `go.sum` | Confirms Go project |
+
+| Command | Purpose |
+|---------|---------|
+| `go build ./...` | Build |
+| `go test ./...` | Tests |
+| `go vet ./...` | Vet |
+| `golangci-lint run` | Lint (if installed) |
+| `gofmt -l .` | Format check |
+
+**Workspace detection:** `go.work` file
+
+## Python
+
+| Signal | Detection |
+|--------|-----------|
+| `pyproject.toml` | Modern Python (check `[build-system]` for tool) |
+| `setup.py` / `setup.cfg` | Legacy Python |
+| `requirements.txt` | pip |
+| `Pipfile` | pipenv |
+| `poetry.lock` | Poetry |
+| `uv.lock` | uv |
+
+| Tool | Build | Test | Lint | Format |
+|------|-------|------|------|--------|
+| Poetry | `poetry build` | `poetry run pytest` | `poetry run ruff check` | `poetry run ruff format --check` |
+| uv | `uv build` | `uv run pytest` | `uv run ruff check` | `uv run ruff format --check` |
+| pip | `python -m build` | `pytest` | `ruff check` | `ruff format --check` |
+
+**Monorepo detection:** Multiple `pyproject.toml` files in subdirectories
+
+## Ruby
+
+| Signal | Detection |
+|--------|-----------|
+| `Gemfile` | Bundler |
+| `Gemfile.lock` | Confirms Ruby project |
+| `*.gemspec` | Gem project |
+
+| Command | Purpose |
+|---------|---------|
+| `bundle exec rake build` | Build (if Rakefile) |
+| `bundle exec rspec` | Tests (RSpec) |
+| `bundle exec rake test` | Tests (Minitest) |
+| `bundle exec rubocop` | Lint |
+| `bundle exec standardrb` | Lint (Standard) |
+
+## Generic / Makefile
+
+| Signal | Detection |
+|--------|-----------|
+| `Makefile` | Make-based project |
+
+Scan for common targets: `build`, `test`, `lint`, `check`, `clean`, `install`
+
+| Command | Purpose |
+|---------|---------|
+| `make build` | Build |
+| `make test` | Test |
+| `make lint` | Lint |
+| `make check` | Full check |
+
+## Multi-Ecosystem Projects
+
+Some projects use multiple ecosystems. When this happens:
+1. Detect all ecosystems present
+2. Run validation commands for each ecosystem
+3. Report results per-ecosystem in coverage and pre-ship checks
+
+Example: A project with `package.json` + `Cargo.toml` runs both `pnpm validate` and `cargo test`.
+
+## Permission Patterns
+
+Map detected tools to Bash permission patterns for `.claude/settings.local.json`:
+
+| Tool | Pattern |
+|------|---------|
+| git | `Bash(git:*)` |
+| GitHub CLI | `Bash(gh:*)` |
+| pnpm | `Bash(pnpm:*)` |
+| npm | `Bash(npm:*)` |
+| yarn | `Bash(yarn:*)` |
+| bun | `Bash(bun:*)` |
+| cargo | `Bash(cargo:*)` |
+| go | `Bash(go:*)` |
+| python/pytest | `Bash(python:*)`, `Bash(pytest:*)` |
+| poetry | `Bash(poetry:*)` |
+| uv | `Bash(uv:*)` |
+| bundle | `Bash(bundle:*)` |
+| make | `Bash(make:*)` |
+| npx | `Bash(npx:*)` |
+| node | `Bash(node:*)` |
+| Shell utilities | `Bash(wc:*)`, `Bash(find:*)`, `Bash(grep:*)` |
