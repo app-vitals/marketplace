@@ -294,7 +294,7 @@ COVERAGE REPORT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**Coverage threshold**: Use the threshold from the planning doc's Project Metadata (default: 80%).
+**Coverage threshold**: Use the threshold from the planning doc's Project Metadata (default: 90%).
 
 **Pause point:** If any coverage is below the threshold, warn the user:
 "Coverage for {package} is at {X}% (target: >{threshold}%). Add tests to bring it up, or continue anyway?" **{In merge-mode, skip this pause — log the warning and auto-proceed.}**

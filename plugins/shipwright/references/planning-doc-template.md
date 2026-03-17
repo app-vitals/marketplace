@@ -142,7 +142,7 @@ If auto-detection finds fewer than 2 layers, ask the user to describe their proj
 
 | Placeholder | Source |
 |-------------|--------|
-| `{coverage_threshold}` | Default: 80. Override via user input during planning. |
+| `{coverage_threshold}` | Default: 90. Override via user input during planning. |
 | `{auto-detected layer}` | From directory scanning (see table above) |
 | `{detected project type}` | From toolchain detection |
 | `{detected package manager + key tools}` | From toolchain detection |

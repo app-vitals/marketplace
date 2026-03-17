@@ -132,7 +132,7 @@ Run coverage checks for each package with changed files in the PR, using the det
 
 1. **Detect changed packages**: From the diff, identify which packages/modules were modified
 2. **Run tests with coverage**: Use the detected test command with coverage enabled (e.g., `--coverage` flag for vitest/jest, `--cov` for pytest, `tarpaulin` for Rust)
-3. **Compare to threshold**: Use the threshold from the planning doc's Project Metadata (default: 80%)
+3. **Compare to threshold**: Use the threshold from the planning doc's Project Metadata (default: 90%)
 
 Add coverage results to the review report in Step 7. If coverage is below the threshold for any package, add it as a finding with category **Coverage** and confidence 100.
 

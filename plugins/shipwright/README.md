@@ -103,7 +103,7 @@ Shipwright is fully self-contained — no external plugins required. But it inte
 
 ### Coverage Threshold
 
-Default: 80%. Set during `/plan-session` and stored in the planning doc's Project Metadata section.
+Default: 90%. Set during `/plan-session` and stored in the planning doc's Project Metadata section.
 
 ### Planning Doc Location
 

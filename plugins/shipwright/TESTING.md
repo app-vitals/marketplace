@@ -225,6 +225,6 @@ Run these across ALL scenarios to verify genericization:
 - [ ] No `/simplify` skill invocation — replaced with inline simplification
 - [ ] No `pr-review-toolkit:*` agent types — replaced with generic agents
 - [ ] No required `Skill(learn)` or `Skill(learning-loop:learn-promote)` — optional only
-- [ ] No hardcoded coverage threshold of 90% — uses configurable threshold (default 80%)
+- [ ] Coverage threshold defaults to 90% (configurable)
 - [ ] No `frontend-design` as required — optional Design Skill tag
 - [ ] No hardcoded layer names "Background/UI/Content Script/Shared" — uses auto-detected layers

@@ -137,7 +137,7 @@ Do NOT tag tasks that are purely wiring, minor layout adjustments, or non-UI wor
 Use the full template from `references/planning-doc-template.md`, filling in:
 - **Project Metadata**: Use detected toolchain information from Phase 0
 - **Layer field**: Use auto-detected layers from Phase 3
-- **Coverage Target**: Default 80% (ask user if they want a different threshold)
+- **Coverage Target**: Default 90% (ask user if they want a different threshold)
 
 ## Phase 5: Quality Checks
 
