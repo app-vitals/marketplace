@@ -10,7 +10,42 @@ arguments:
 
 Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 8 phases in order. Do not skip phases or combine them without user confirmation.
 
-## Phase 0: Detect Project Toolchain
+## Phase 0: Setup
+
+### 0a. Check Recommended Plugins
+
+Check if the following plugins are installed by looking for their skills in the available skills list:
+
+| Plugin | Check For | Used In |
+|--------|-----------|---------|
+| `learning-loop` | `/learn` skill | Phase 7 (Permission pre-flight — adds skill permissions) |
+| `frontend-design` | `frontend-design` skill | Phase 4 (Design Skill tagging for UI tasks) |
+
+If any are missing, present:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED PLUGINS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The following plugins enhance the Shipwright pipeline:
+
+MISSING:
+  ✗ learning-loop — captures review learnings
+    Install: /plugin install learning-loop@app-vitals/marketplace
+  ✗ frontend-design — high-quality UI for design-tagged tasks
+    Install: /plugin install frontend-design
+
+INSTALLED:
+  ✓ {installed plugins}
+
+Continue without them? (Yes / Install first)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+If all plugins are installed, skip the prompt and continue. If plugins are missing and the user chooses to continue, note which are unavailable so later phases can skip those features (e.g., omit Design Skill tags in Phase 4 if frontend-design is not installed, skip learning-loop permissions in Phase 7).
+
+### 0b. Detect Project Toolchain
 
 Before starting the planning phases, auto-detect the project's toolchain. This information is used throughout the session.
 

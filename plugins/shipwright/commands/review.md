@@ -8,7 +8,39 @@ Auto-detecting code review for a fresh session. Follow all steps in order. Only 
 
 ---
 
-## Step 0: Detect Project Toolchain
+## Step 0: Setup
+
+### 0a. Check Recommended Plugins
+
+Check if the following plugins are installed by looking for their skills in the available skills list:
+
+| Plugin | Check For | Used In |
+|--------|-----------|---------|
+| `learning-loop` | `/learn` skill | Step 11 (Learning Capture) |
+
+If any are missing, present:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED PLUGINS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The following plugins enhance this workflow:
+
+MISSING:
+  ✗ learning-loop — captures review learnings
+    Install: /plugin install learning-loop@app-vitals/marketplace
+
+INSTALLED:
+  ✓ {installed plugins}
+
+Continue without them? (Yes / Install first)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+If all plugins are installed, skip the prompt and continue. If plugins are missing and the user chooses to continue, note which are unavailable so later steps can skip those features.
+
+### 0b. Detect Project Toolchain
 
 Auto-detect the project toolchain (run once, reuse throughout):
 

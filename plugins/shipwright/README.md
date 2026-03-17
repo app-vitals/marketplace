@@ -98,14 +98,22 @@ Multi-ecosystem projects (e.g., Node.js + Rust) are fully supported — validati
 
 Monorepo detection: pnpm workspaces, npm/yarn workspaces, Lerna, Nx, Turborepo, Cargo workspaces, Go workspaces.
 
-## Optional Integrations
+## Recommended Plugins
 
-Shipwright is fully self-contained — no external plugins required. But it integrates with these plugins if installed:
+Shipwright works standalone but is designed to integrate with these plugins for the full experience. Each command checks for them at startup and prompts you to install any that are missing.
 
-| Plugin | Integration |
-|--------|-------------|
-| `learning-loop` | Captures review learnings via `/learn` + `/learn-promote` |
-| `frontend-design` | Invoked during implementation for UI-heavy tasks tagged with Design Skill |
+| Plugin | Used By | Purpose |
+|--------|---------|---------|
+| `learning-loop` | `/review`, `/dev-task --merge` | Captures review learnings and promotes them to CLAUDE.md |
+| `frontend-design` | `/dev-task` | High-quality UI implementation for Design Skill-tagged tasks |
+
+Install both with:
+```
+/plugin install learning-loop@app-vitals/marketplace
+/plugin install frontend-design
+```
+
+If you skip installation, those features are disabled — everything else works normally.
 
 ## Configuration
 

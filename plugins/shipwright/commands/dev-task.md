@@ -25,7 +25,42 @@ When **merge-mode is ON**:
 
 ---
 
-## Step 0: Detect Project Toolchain
+## Step 0: Setup
+
+### 0a. Check Recommended Plugins
+
+Check if the following plugins are installed by looking for their skills in the available skills list:
+
+| Plugin | Check For | Used In |
+|--------|-----------|---------|
+| `learning-loop` | `/learn` skill | Step 12f (Learning Capture, merge-mode only) |
+| `frontend-design` | `frontend-design` skill | Step 7a (Discovery, for Design Skill-tagged tasks) |
+
+If any are missing, present:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED PLUGINS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The following plugins enhance this workflow:
+
+MISSING:
+  ✗ learning-loop — captures review learnings
+    Install: /plugin install learning-loop@app-vitals/marketplace
+  ✗ frontend-design — high-quality UI for design-tagged tasks
+    Install: /plugin install frontend-design
+
+INSTALLED:
+  ✓ {installed plugins}
+
+Continue without them? (Yes / Install first)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+If all plugins are installed, skip the prompt and continue. If plugins are missing and the user chooses to continue, note which are unavailable so later steps can skip those features. **In merge-mode, skip this prompt — log missing plugins and auto-proceed.**
+
+### 0b. Detect Project Toolchain
 
 Auto-detect the project toolchain (run once, reuse throughout):
 
