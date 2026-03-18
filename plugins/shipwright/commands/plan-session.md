@@ -66,6 +66,21 @@ Before starting the planning phases, auto-detect the project's toolchain. This i
    - **Package manager**: e.g., pnpm, cargo, go, poetry
    - **Commands**: validate, build, test, lint, typecheck (mapped from detected ecosystem)
    - **Monorepo**: yes/no + workspace tool
+   - **Has UI layer**: yes/no (detected from frontend directories, HTML files, or UI framework deps)
+
+5. **E2E Test Detection**: If the project has a UI/frontend layer (detected above or from Phase 3 layer analysis), plan for Playwright end-to-end tests. E2E tests are appropriate when:
+   - The project has user-facing UI (web app, browser extension, desktop app with webview)
+   - There are interactive elements (forms, toggles, panels, maps, modals)
+   - Multiple features interact visually (overlays, dashboards, multi-panel layouts)
+   
+   If E2E is appropriate, include a dedicated **E2E test feature** in the task breakdown with tasks covering:
+   - Playwright setup + smoke tests (page loads, core element renders)
+   - Feature interaction tests (toggles, forms, data display)
+   - Cross-viewport responsive tests (mobile 375px, tablet 768px, desktop 1440px)
+   - Use Playwright route interception for deterministic API mocking
+   - Configure screenshot-on-failure for debugging
+   
+   E2E tests are NOT appropriate for: CLIs, pure backend APIs (use integration tests), libraries, data pipelines without UI.
 
 Refer to `references/toolchain-patterns.md` for the full detection lookup table.
 
@@ -186,11 +201,12 @@ Before presenting the document, verify all of the following. Fix any issues foun
 6. **Design Skill Tags**: UI-layer tasks that create or significantly redesign user-facing components have a Design Skill tag if applicable; non-UI tasks do not
 7. **Appendix**: Complete task list matches the sum of all feature sections
 8. **Test Coverage**: Every feature has at least 1 unit test task; multi-module features have at least 1 integration test task. Every test task's AC includes a coverage criterion for the relevant package/flow (using the configured coverage threshold).
-9. **Status Initialization**: All tasks in appendix and summary tables start with `[ ]`
-10. **Branch Uniqueness**: All branch names across all tasks are unique
-11. **Context & Branch Fields**: Every task has both Context and Branch fields populated
-12. **Implementation Decisions**: Every task has all 5 Implementation Decisions fields filled in (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance) — no "TBD" or empty values. These are required for autonomous `/dev-loop` execution.
-13. **Architecture Approach**: Every task has an Architecture field set to `minimal`, `clean`, or `pragmatic`
+9. **E2E Test Coverage**: If the project has a UI/frontend layer, there MUST be a dedicated E2E test feature using Playwright. This feature must include: (a) Playwright setup + smoke tests, (b) feature interaction tests covering all user-facing features, (c) cross-viewport responsive tests at minimum 3 viewport sizes. If no UI layer exists, skip this check.
+10. **Status Initialization**: All tasks in appendix and summary tables start with `[ ]`
+11. **Branch Uniqueness**: All branch names across all tasks are unique
+12. **Context & Branch Fields**: Every task has both Context and Branch fields populated
+13. **Implementation Decisions**: Every task has all 5 Implementation Decisions fields filled in (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance) — no "TBD" or empty values. These are required for autonomous `/dev-loop` execution.
+14. **Architecture Approach**: Every task has an Architecture field set to `minimal`, `clean`, or `pragmatic`
 
 Report the quality check results to the user.
 
@@ -239,6 +255,7 @@ Build the list of Bash permission patterns the dev pipeline needs. Use broad pat
 | Package manager | `Bash({manager}:*)` | Install, build, test, lint |
 | Language tools | `Bash({tool}:*)` | Build, test, lint per ecosystem |
 | Shell utilities | `Bash(wc:*)`, `Bash(find:*)`, `Bash(grep:*)` | File analysis |
+| Playwright (if E2E) | `Bash(npx playwright:*)` | E2E test execution |
 
 Also include any project-specific commands found in config files.
 

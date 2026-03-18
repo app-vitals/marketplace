@@ -151,3 +151,19 @@ Map detected tools to Bash permission patterns for `.claude/settings.local.json`
 | npx | `Bash(npx:*)` |
 | node | `Bash(node:*)` |
 | Shell utilities | `Bash(wc:*)`, `Bash(find:*)`, `Bash(grep:*)` |
+| playwright | `Bash(npx playwright:*)` |
+
+## E2E Testing Detection
+
+When a project has a UI/frontend layer, Playwright E2E tests should be included in the plan. Detection signals:
+
+| Signal | Indicates UI |
+|--------|-------------|
+| `src/frontend/`, `src/app/`, `src/pages/`, `src/components/` | Frontend directories |
+| `index.html`, `*.html` in src | Web app entry point |
+| `leaflet`, `react`, `vue`, `svelte`, `angular`, `solid` in deps | UI framework |
+| `vite`, `webpack`, `parcel`, `esbuild` in devDeps | Frontend bundler |
+| Browser extension manifest (`manifest.json` with `manifest_version`) | Browser extension |
+| `tauri.conf.json`, `electron-builder.yml` | Desktop app with webview |
+
+When UI detected, add `@playwright/test` to the toolchain and include E2E test tasks in the breakdown.
