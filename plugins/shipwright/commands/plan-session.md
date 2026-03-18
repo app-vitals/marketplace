@@ -8,7 +8,7 @@ arguments:
 
 # Planning Session: $ARGUMENTS
 
-Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 8 phases in order. Do not skip phases or combine them without user confirmation.
+Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 9 phases in order. Do not skip phases or combine them without user confirmation.
 
 ## Phase 0: Setup
 
