@@ -41,6 +41,11 @@
       "name": "dependabot-review",
       "description": "AI-powered triage of Dependabot PRs. Posts patrol-style risk assessments on individual PRs and bulk-processes all open Dependabot PRs to get them merge-ready.",
       "source": "./plugins/dependabot-review"
+    },
+    {
+      "name": "shipwright",
+      "description": "Structured dev pipeline with plan sessions, task execution, autonomous dev loops, and multi-agent code review for any software project.",
+      "source": "./plugins/shipwright"
     }
   ]
 }

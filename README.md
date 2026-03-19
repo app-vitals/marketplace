@@ -20,6 +20,7 @@ Add this marketplace to Claude Code:
 | [pr-review](plugins/pr-review/README.md) | 0.2.0 | Interactive PR review with local drafts and batch processing |
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.0 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
+| [shipwright](plugins/shipwright/README.md) | 1.0.0 | Structured dev pipeline — plan, build, review, ship |
 
 ### ralph-orchestrator
 
@@ -68,3 +69,11 @@ No commands — hooks activate automatically on install.
 ```
 
 `/distill`
+
+### shipwright
+
+```
+/plugin install shipwright@app-vitals/marketplace
+```
+
+`/plan-session` · `/dev-task` · `/dev-loop` · `/refresh-plan` · `/review`
