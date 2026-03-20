@@ -8,7 +8,7 @@ arguments:
 
 # Planning Session: $ARGUMENTS
 
-Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 9 phases in order. Do not skip phases or combine them without user confirmation.
+Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 9 phases in order — proceed automatically between phases without asking for confirmation. Only pause to ask clarifying questions when information is genuinely ambiguous or missing.
 
 ## Phase 0: Setup
 
@@ -96,7 +96,7 @@ Refer to `references/toolchain-patterns.md` for the full detection lookup table.
    - Confirmation that context docs were loaded
    - Detected toolchain from Phase 0
    - Any missing context docs (warn but continue)
-5. Ask user to confirm before proceeding to Phase 2
+5. Proceed to Phase 2 (no confirmation needed)
 
 ## Phase 2: Input Analysis & Requirements Extraction
 
@@ -110,7 +110,7 @@ Refer to `references/toolchain-patterns.md` for the full detection lookup table.
 3. Categorize requirements into features/epics with clear names
 4. Flag any ambiguities, conflicts between docs, or missing information
 5. Present a structured requirements summary to the user organized by feature
-6. Ask user to confirm, clarify ambiguities, or add missing requirements before proceeding
+6. If there are ambiguities or conflicts between docs, ask the user to clarify before proceeding. Otherwise, proceed automatically to Phase 3.
 
 ## Phase 3: Codebase Impact Analysis
 
@@ -130,7 +130,7 @@ For each requirement identified in Phase 2:
    - If auto-detection finds fewer than 2 layers, ask the user to describe their project's architecture layers
 5. Map each requirement to its detected layer(s)
 6. Note dependencies between features (e.g., "database schema must exist before API can be built")
-7. Present the impact analysis to the user before proceeding
+7. Present the impact analysis and proceed to Phase 4
 
 ## Phase 4: Draft Task Breakdown
 
@@ -256,6 +256,8 @@ Build the list of Bash permission patterns the dev pipeline needs. Use broad pat
 | Language tools | `Bash({tool}:*)` | Build, test, lint per ecosystem |
 | Shell utilities | `Bash(wc:*)`, `Bash(find:*)`, `Bash(grep:*)` | File analysis |
 | Playwright (if E2E) | `Bash(npx playwright:*)` | E2E test execution |
+| Planning doc | `Edit(planning/**)` | Status updates during dev-task/dev-loop |
+| Planning doc | `Write(planning/**)` | Planning doc creation and updates |
 
 Also include any project-specific commands found in config files.
 
