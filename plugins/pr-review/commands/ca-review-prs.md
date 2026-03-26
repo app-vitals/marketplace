@@ -84,16 +84,20 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
    - Exclude your own PRs (author != you)
    - Exclude drafts with "not ready for review" (or similar) in the title
    - For other drafts: include if not yet reviewed, or if there are new commits since your last review
+   - **Skip if another reviewer has already left substantive feedback the author hasn't resolved yet AND we have nothing significant to add** — avoids piling on before the author addresses existing feedback
 
    **C. Updated Since Your Review**:
    - PRs where you reviewed, but there are new commits since your last review
    - To check: fetch the PR's commits and compare the latest commit date against your review `submittedAt`
    - Do NOT use the PR `updatedAt` field — it gets bumped by any activity including your own review comments
    - Routed the same as A and B — `review-pr` auto-detects the update case via GitHub review history
+   - **Skip if no new commits since your review AND the author hasn't responded** — no value in re-reviewing before they act
 
 ### Display Queue
 
-6. **Show the queue** — group by repo when multiple repos are in scope:
+6. **Order the queue**: Approved PRs first (unblocking is highest priority), then remaining PRs by diff size (lines changed) smallest to largest.
+
+7. **Show the queue** — group by repo when multiple repos are in scope:
 
    ```
    ## PR Review Queue
@@ -118,7 +122,7 @@ If no PR numbers provided (or repo specified), fetch PRs needing your review.
 
    For single-repo mode, omit the Repo column.
 
-7. **Ask user how to proceed**:
+8. **Ask user how to proceed**:
    - "Queue all for parallel review" → Continue to Queue Reviews
    - "Select specific PRs" → User picks numbers
    - "Review one at a time" → Use `/review-pr` instead
@@ -134,6 +138,8 @@ ca pr review <pr_number> --repo <org/name>
 ```
 
 **Important**: `ca pr review` takes PR numbers (not full GitHub URLs) with an optional `--repo` flag. If `--repo` is omitted, it uses the current git repo.
+
+**Run each `ca pr review` as a separate Bash tool call** — do NOT combine them in one shell script with `&` + `wait`. Combined output gets mangled and task IDs from background processes are unreliable and unattributable.
 
 Track each queued task:
 | PR | Task ID | Status |
@@ -198,7 +204,7 @@ For the next completed review:
    - Cloud agent reviews tend to be verbose (~400+ lines) — trim to essentials before presenting
    - Apply the same "keep it tight" standard from `/review-pr`: 2-5 actionable items, drop low-confidence nitpicks
    - Don't call out obvious CI failures (lint, formatting) in reviews — the author will see and fix them
-   - If another reviewer already flagged the same issue and the author hasn't addressed it, skip posting — adding the same comment adds no value
+   - If another reviewer has already left substantive feedback the author hasn't acted on yet, and we have nothing significant to add, skip posting the review entirely — avoids redundant noise before the author responds
    - Show the review summary
    - Let the user edit or adjust the review
    - Discuss any findings
