@@ -148,7 +148,7 @@ bun run db:migrate           # via package.json scripts
 
 ```bash
 # WRONG — times out as a background task
-run_in_background("bunx prisma migrate dev --name init")
+run_in_background("./node_modules/.bin/prisma migrate dev --name init")
 
 # CORRECT — run synchronously, wait for completion
 bun run db:migrate    # via package.json scripts
