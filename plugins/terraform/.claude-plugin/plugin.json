@@ -1,0 +1,13 @@
+{
+  "name": "terraform",
+  "version": "1.0.0",
+  "description": "Opinionated Terraform best practices for Claude Code. Automatically enforces exact version pinning, conservative tagging, pre-commit validation (fmt, validate, init, plan), Terratest generation, state isolation, module composition, variable validation, and naming conventions. Activates whenever working with .tf or .tfvars files.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["terraform", "infrastructure", "iac", "hcl", "terratest", "devops", "cloud"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}

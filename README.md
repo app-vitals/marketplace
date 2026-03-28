@@ -21,6 +21,7 @@ Add this marketplace to Claude Code:
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.0 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
 | [shipwright](plugins/shipwright/README.md) | 1.0.0 | Structured dev pipeline — plan, build, review, ship |
+| [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
 
 ### ralph-orchestrator
 
@@ -77,3 +78,11 @@ No commands — hooks activate automatically on install.
 ```
 
 `/plan-session` · `/dev-task` · `/dev-loop` · `/refresh-plan` · `/review`
+
+### terraform
+
+```
+/plugin install terraform@app-vitals/marketplace
+```
+
+No commands — skill activates automatically when working with `.tf` or `.tfvars` files.

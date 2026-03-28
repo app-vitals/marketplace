@@ -46,6 +46,11 @@
       "name": "shipwright",
       "description": "Structured dev pipeline with plan sessions, task execution, autonomous dev loops, and multi-agent code review for any software project.",
       "source": "./plugins/shipwright"
+    },
+    {
+      "name": "terraform",
+      "description": "Opinionated Terraform best practices for Claude Code. Enforces exact version pinning, conservative tagging, pre-commit validation, Terratest generation, state isolation, module composition, variable validation, and naming conventions.",
+      "source": "./plugins/terraform"
     }
   ]
 }
