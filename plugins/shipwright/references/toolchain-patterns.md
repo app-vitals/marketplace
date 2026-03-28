@@ -120,6 +120,47 @@ Scan for common targets: `build`, `test`, `lint`, `check`, `clean`, `install`
 | `make lint` | Lint |
 | `make check` | Full check |
 
+## Bun-Specific Gotchas
+
+### `bunx` vs local binary — always prefer local after `bun install`
+
+`bunx` checks `node_modules/.bin` first and uses the local binary when present. However, if the package is **not** installed locally (e.g., before `bun install`, in a fresh CI environment, or in a Docker build stage without `node_modules`), `bunx` silently fetches the **latest version** from the npm registry — ignoring whatever version `package.json` or `bun.lock` specifies. This silent fallback is the gotcha:
+
+```bash
+# RISKY — silently fetches latest if node_modules is missing or incomplete
+bunx prisma migrate dev
+
+# SAFE — fails loudly if not installed, uses pinned version if installed
+bun run db:migrate           # via package.json scripts
+# OR
+./node_modules/.bin/prisma migrate dev
+```
+
+**Practical impact**: A project with `"prisma": "^6.0.0"` in `package.json` will get Prisma v7.x from `bunx` if `node_modules` is missing and v7 is the latest — potentially breaking the schema syntax (Prisma v7 dropped `url` in `schema.prisma`, requiring `prisma.config.ts`).
+
+**Rule for Shipwright**: Always use `bun run <script>` or `./node_modules/.bin/<binary>` for tools that have strict version pinning. These approaches fail loudly when `node_modules` is missing rather than silently fetching a potentially incompatible version. Never use `bunx` for database tooling, schema generators, or any tool where a major version bump would break the project.
+
+> Note: `bunx` is fine for one-off tools not pinned in `package.json` (e.g., `bunx create-hono`).
+
+### Prisma migrations must run synchronously — never in background
+
+`prisma migrate dev` is interactive and long-running. Running it as a background task causes it to time out or receive SIGTERM (exit code 143):
+
+```bash
+# WRONG — times out as a background task
+run_in_background("./node_modules/.bin/prisma migrate dev --name init")
+
+# CORRECT — run synchronously, wait for completion
+bun run db:migrate    # via package.json scripts
+# OR
+./node_modules/.bin/prisma migrate dev --name init
+```
+
+**Rule for Shipwright**: Always run `prisma migrate dev` as a foreground synchronous command. For applying existing migrations (e.g., after pulling new migration files from a teammate), use `prisma migrate deploy` instead — it's non-interactive and faster.
+
+---
+
+
 ## Multi-Ecosystem Projects
 
 Some projects use multiple ecosystems. When this happens:
