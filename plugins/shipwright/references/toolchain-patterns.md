@@ -124,21 +124,21 @@ Scan for common targets: `build`, `test`, `lint`, `check`, `clean`, `install`
 
 ### `bunx` vs local binary — always prefer local after `bun install`
 
-`bunx <package>` fetches the **latest version** from the npm registry at the time of invocation, ignoring the project's lockfile. This means:
+`bunx` checks `node_modules/.bin` first and uses the local binary when present. However, if the package is **not** installed locally (e.g., before `bun install`, in a fresh CI environment, or in a Docker build stage without `node_modules`), `bunx` silently fetches the **latest version** from the npm registry — ignoring whatever version `package.json` or `bun.lock` specifies. This silent fallback is the gotcha:
 
 ```bash
-# WRONG — fetches latest (may be a major version bump with breaking changes)
+# RISKY — silently fetches latest if node_modules is missing or incomplete
 bunx prisma migrate dev
 
-# CORRECT — uses the version pinned in bun.lock
+# SAFE — fails loudly if not installed, uses pinned version if installed
 bun run db:migrate           # via package.json scripts
 # OR
 ./node_modules/.bin/prisma migrate dev
 ```
 
-**Practical impact**: A project with `"prisma": "^6.0.0"` in `package.json` will get Prisma v7.x from `bunx` if v7 is the latest — potentially breaking the schema syntax (Prisma v7 dropped `url` in `schema.prisma`, requiring `prisma.config.ts`).
+**Practical impact**: A project with `"prisma": "^6.0.0"` in `package.json` will get Prisma v7.x from `bunx` if `node_modules` is missing and v7 is the latest — potentially breaking the schema syntax (Prisma v7 dropped `url` in `schema.prisma`, requiring `prisma.config.ts`).
 
-**Rule for Shipwright**: After running `bun install`, always use `bun run <script>` or `./node_modules/.bin/<binary>` for tools that have strict version pinning. Never use `bunx` for database tooling, schema generators, or any tool where a major version bump would break the project.
+**Rule for Shipwright**: Always use `bun run <script>` or `./node_modules/.bin/<binary>` for tools that have strict version pinning. These approaches fail loudly when `node_modules` is missing rather than silently fetching a potentially incompatible version. Never use `bunx` for database tooling, schema generators, or any tool where a major version bump would break the project.
 
 > Note: `bunx` is fine for one-off tools not pinned in `package.json` (e.g., `bunx create-hono`).
 
