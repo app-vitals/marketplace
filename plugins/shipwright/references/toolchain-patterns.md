@@ -142,6 +142,24 @@ bun run db:migrate           # via package.json scripts
 
 > Note: `bunx` is fine for one-off tools not pinned in `package.json` (e.g., `bunx create-hono`).
 
+### Prisma migrations must run synchronously — never in background
+
+`prisma migrate dev` is interactive and long-running. Running it as a background task causes it to time out or receive SIGTERM (exit code 143):
+
+```bash
+# WRONG — times out as a background task
+run_in_background("bunx prisma migrate dev --name init")
+
+# CORRECT — run synchronously, wait for completion
+bun run db:migrate    # via package.json scripts
+# OR
+./node_modules/.bin/prisma migrate dev --name init
+```
+
+**Rule for Shipwright**: Always run `prisma migrate dev` as a foreground synchronous command. For applying existing migrations (e.g., after pulling new migration files from a teammate), use `prisma migrate deploy` instead — it's non-interactive and faster.
+
+---
+
 ## Multi-Ecosystem Projects
 
 Some projects use multiple ecosystems. When this happens:
