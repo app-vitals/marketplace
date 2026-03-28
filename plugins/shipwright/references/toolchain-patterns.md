@@ -120,6 +120,28 @@ Scan for common targets: `build`, `test`, `lint`, `check`, `clean`, `install`
 | `make lint` | Lint |
 | `make check` | Full check |
 
+## Bun-Specific Gotchas
+
+### `bunx` vs local binary — always prefer local after `bun install`
+
+`bunx <package>` fetches the **latest version** from the npm registry at the time of invocation, ignoring the project's lockfile. This means:
+
+```bash
+# WRONG — fetches latest (may be a major version bump with breaking changes)
+bunx prisma migrate dev
+
+# CORRECT — uses the version pinned in bun.lock
+bun run db:migrate           # via package.json scripts
+# OR
+./node_modules/.bin/prisma migrate dev
+```
+
+**Practical impact**: A project with `"prisma": "^6.0.0"` in `package.json` will get Prisma v7.x from `bunx` if v7 is the latest — potentially breaking the schema syntax (Prisma v7 dropped `url` in `schema.prisma`, requiring `prisma.config.ts`).
+
+**Rule for Shipwright**: After running `bun install`, always use `bun run <script>` or `./node_modules/.bin/<binary>` for tools that have strict version pinning. Never use `bunx` for database tooling, schema generators, or any tool where a major version bump would break the project.
+
+> Note: `bunx` is fine for one-off tools not pinned in `package.json` (e.g., `bunx create-hono`).
+
 ## Multi-Ecosystem Projects
 
 Some projects use multiple ecosystems. When this happens:
