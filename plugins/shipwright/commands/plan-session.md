@@ -423,7 +423,7 @@ After adding permissions, test ONE command per pattern category to verify auto-a
 2. For env-var prefixed patterns, test one prefixed command:
    - `{ENV_VAR}=test {manager} --version`
 
-3. For PR creation (the most common failure point): verify that `Bash(gh pr create:*)` is in the permissions. The dev-task uses `gh pr create --title ... --body-file ...` (no heredocs), so this pattern should match. If `gh pr create` with `--body-file` still prompts, add the exact prefix: `Bash(gh pr create --title:*)`
+3. For PR creation (the most common failure point): verify that `Bash(gh pr:*)` is in the permissions (added in 7c — this broad pattern covers `gh pr create`, `gh pr merge`, `gh pr list`, etc.). The dev-task uses `gh pr create --title ... --body-file ...` (no heredocs), so this pattern should match. If `gh pr create` with `--body-file` still prompts, add a more specific prefix: `Bash(gh pr create --title:*)`
 
 4. If any command still prompts for permission, warn the user:
    ```

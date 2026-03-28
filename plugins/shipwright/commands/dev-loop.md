@@ -26,12 +26,21 @@ Continuous autonomous development loop. Processes **every task** in the planning
 - If multiple docs have remaining tasks, list them and ask the user which one to use
 - If no docs have remaining tasks, print "All tasks complete!" and stop
 
+Extract the **Project Metadata** section from the planning doc header and store the toolchain info for use in Phase 2a context briefings:
+- **Toolchain**: ecosystem and package manager (e.g., "Node.js (pnpm)")
+- **Validate command**: the full validation command (e.g., `pnpm validate`)
+- **Test command**: the test command (e.g., `pnpm test`)
+- **Lint command**: the lint command (e.g., `pnpm lint`)
+
+If the planning doc's Project Metadata section doesn't include explicit commands, derive them from the toolchain and package manager using the same detection logic as `plan-session` Phase 0b (see `references/toolchain-patterns.md`).
+
 Print the initial status:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DEV LOOP — STARTING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Document: {filename}
+Toolchain: {ecosystem} ({package manager})
 Tasks:    {total} total, {done} done, {remaining} remaining
 Hours:    ~{remaining_hours}h estimated remaining
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

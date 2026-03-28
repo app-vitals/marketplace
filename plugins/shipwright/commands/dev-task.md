@@ -367,10 +367,11 @@ Generated with [Claude Code](https://claude.com/claude-code)
 
 3. **Write the PR body to a temp file** to avoid heredoc syntax in the command string (heredocs break permission glob matching and cause repeated approval prompts during `/dev-loop`):
    ```
-   Write the PR body content to /tmp/shipwright-pr-body.txt
-   gh pr create --title "{title}" --body-file /tmp/shipwright-pr-body.txt
-   rm /tmp/shipwright-pr-body.txt
+   Write the PR body content to /tmp/shipwright-pr-body-{task-id}.txt
+   gh pr create --title "{title}" --body-file /tmp/shipwright-pr-body-{task-id}.txt
+   rm /tmp/shipwright-pr-body-{task-id}.txt
    ```
+   The temp file path MUST include the task ID to avoid race conditions when `/dev-loop` runs multiple subagents in parallel — `/tmp` is shared across all worktrees.
    Do NOT use `--body "$(cat <<'EOF'..."` — this produces a different command string each time and cannot be matched by `Bash(gh pr create:*)`.
 4. Display the PR URL
 
