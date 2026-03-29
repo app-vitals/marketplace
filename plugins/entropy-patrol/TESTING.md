@@ -129,7 +129,93 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ## entropy-fix Tests
 
-_(Test plan will be added when EP-4.1 is complete.)_
+### Test 9: `--dry-run` shows plan without side effects
+
+**Setup:** Run `/entropy-scan` first so `entropy-report.md` exists with at least one `pr_worthy` finding.
+
+**Command:** `/entropy-fix --dry-run`
+
+**Expected output:**
+- Preview block prints: how many PRs would be opened, branch names, rule IDs, file lists
+- **No branches are created** — `git branch` output is unchanged
+- **No files are modified** — repo working tree is clean
+- **No PRs are opened** — `gh pr list` is unchanged
+- Message confirms: "No branches created. No files changed. No PRs opened."
+
+---
+
+### Test 10: `--rule` flag scopes to a single rule
+
+**Setup:** Ensure `entropy-report.md` has findings for at least two different rules (e.g., `todo_fixme_hack` and `dead_exports`).
+
+**Command:** `/entropy-fix --rule todo_fixme_hack`
+
+**Expected output:**
+- Only one PR is opened — for `todo_fixme_hack`
+- `dead_exports` findings are untouched
+- Branch name follows `fix/entropy-todo_fixme_hack-{description}` pattern
+- `entropy-report.md` updated: `todo_fixme_hack` findings checked off, `dead_exports` findings still unchecked
+
+---
+
+### Test 11: Full run on a repo with planted violations
+
+**Setup:**
+1. Plant violations for two distinct rules:
+   - Add `export function neverUsed() {}` (triggers `dead_exports`)
+   - Add `// TODO: remove this` (triggers `todo_fixme_hack`)
+2. Run `/entropy-scan` to produce `entropy-report.md`
+
+**Command:** `/entropy-fix`
+
+**Expected output:**
+- Two PRs opened (one per rule)
+- Each PR title matches the rule description
+- Each PR body includes: golden principle reference, file/line list, "Why this matters" section
+- Branch names: `fix/entropy-dead_exports-...` and `fix/entropy-todo_fixme_hack-...`
+- `entropy-report.md` updated: both finding sets checked off with PR numbers
+
+---
+
+### Test 12: Missing entropy-report.md triggers helpful error
+
+**Setup:** Delete or rename `entropy-report.md` so it doesn't exist in the project root.
+
+**Command:** `/entropy-fix`
+
+**Expected output:**
+- Error message: "No entropy-report.md found. Run /entropy-scan first to generate a report."
+- Skill exits immediately — no branches created, no PRs opened
+
+---
+
+### Test 13: Confirmation gate for high-severity destructive fix
+
+**Setup:**
+1. Add a source file that triggers a high-severity rule involving code deletion (e.g., a file full of dead exports)
+2. Run `/entropy-scan` so the high-severity finding is in `entropy-report.md`
+
+**Command:** `/entropy-fix`
+
+**Expected output:**
+- Before creating a branch, the skill prints a confirmation prompt listing the affected files and describing the destructive change
+- If you respond "no": the group is skipped and noted in the final summary as "no-confirm"
+- If you respond "yes": the branch is created, fix applied, PR opened
+- Non-destructive rule groups (adding tests, removing unused imports) do NOT trigger the gate
+
+---
+
+### Test 14: No pr_worthy findings
+
+**Setup:** Configure all rules in golden-principles.yaml with `pr_worthy: false`, then run `/entropy-scan` to produce a report with findings.
+
+**Command:** `/entropy-fix`
+
+**Expected output:**
+- Message clearly explains: no `pr_worthy` findings to act on
+- Lists the reason (all findings are `pr_worthy: false`)
+- Suggests running `/entropy-scan` to refresh if needed
+- No branches, no PRs
 
 ---
 
