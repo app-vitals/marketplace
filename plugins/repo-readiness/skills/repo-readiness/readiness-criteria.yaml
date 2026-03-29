@@ -1,0 +1,156 @@
+# Repo Readiness Criteria
+# Default ruleset for /repo-readiness audits.
+# Override per project: copy to .claude/repo-readiness/criteria.yaml
+
+version: "1.0"
+
+categories:
+  - id: agent_context
+    name: Agent Context Files
+    weight: 30
+    description: >
+      CLAUDE.md (or AGENTS.md) tells the agent who the codebase is, how it's structured,
+      and what conventions to follow. Without it, every session starts cold.
+    checks:
+      - id: AC-1
+        name: CLAUDE.md or AGENTS.md exists
+        severity: critical
+        detection_hint: >
+          Look for CLAUDE.md or AGENTS.md in the repo root. If neither exists, flag.
+      - id: AC-2
+        name: CLAUDE.md is layered (root + subdirectory files)
+        severity: high
+        detection_hint: >
+          Check if subdirectories (src/, lib/, api/) have their own CLAUDE.md files.
+          A single monolithic root CLAUDE.md is a smell — it becomes a wall of text agents skip.
+      - id: AC-3
+        name: CLAUDE.md is not bloated (under 500 lines)
+        severity: medium
+        detection_hint: >
+          Count lines in root CLAUDE.md. Over 500 lines means it's not being maintained
+          and agents will either miss the key parts or hit context limits.
+      - id: AC-4
+        name: Architecture is described in-repo (not linked to Notion/Confluence/Google Docs)
+        severity: high
+        detection_hint: >
+          Search CLAUDE.md and README for links to Notion, Confluence, Google Docs, or
+          Dropbox. If the architecture or onboarding lives outside the repo, the agent
+          can't see it. Flag each external link.
+
+  - id: documentation
+    name: In-Repo Documentation
+    weight: 20
+    description: >
+      Documentation that lives outside the repo doesn't exist to the agent.
+      Runbooks, ADRs, and onboarding guides must be in-repo to be useful.
+    checks:
+      - id: DO-1
+        name: README.md exists and covers what, how to run, and how to test
+        severity: high
+        detection_hint: >
+          Check README.md for presence of: what the project does, a "getting started"
+          or "running locally" section, and a "testing" section. Flag what's missing.
+      - id: DO-2
+        name: No critical docs linked externally
+        severity: medium
+        detection_hint: >
+          Search all .md files for links to Notion, Confluence, Jira, Google Docs,
+          Dropbox Paper, or internal wikis. Count unique external doc links.
+          Flag if > 3 critical links found.
+      - id: DO-3
+        name: Architecture decision records (ADRs) or equivalent exist
+        severity: low
+        detection_hint: >
+          Look for a docs/adr/, docs/decisions/, or .adr/ directory, or any files
+          named ARCHITECTURE.md, DESIGN.md, or ADR-*.md. If none found, flag as
+          low-severity gap.
+
+  - id: structure
+    name: Codebase Structure
+    weight: 20
+    description: >
+      Clear module separation means the agent can make targeted edits without
+      reading half the codebase. Shared utilities should be extracted, not duplicated.
+    checks:
+      - id: ST-1
+        name: Clear module or layer separation exists
+        severity: high
+        detection_hint: >
+          Look for separation patterns: src/lib/, src/services/, src/api/, src/models/,
+          or equivalent. If all code is flat in a single directory with no grouping, flag.
+      - id: ST-2
+        name: No file exceeds 500 lines (rough blast-radius indicator)
+        severity: medium
+        detection_hint: >
+          Find source files over 500 lines. Each is a potential blast-radius risk
+          (an agent editing one function may disturb unrelated code). List top offenders.
+      - id: ST-3
+        name: Entry points are clearly named
+        severity: low
+        detection_hint: >
+          Look for main.ts/js, server.ts/js, cli.ts/js, app.ts/js, or index.ts/js
+          at the root of the source tree. Ambiguous entry points slow the agent down.
+      - id: ST-4
+        name: Shared utilities extracted (not duplicated)
+        severity: medium
+        detection_hint: >
+          Search for near-duplicate helpers (parseArgs, formatDate, logger) defined
+          in more than two files. Flag rule if found — should live in lib/ or utils/.
+
+  - id: test_coverage
+    name: Test Coverage
+    weight: 15
+    description: >
+      Tests tell the agent what "correct" looks like. Without them, the agent
+      can't verify changes — and neither can you.
+    checks:
+      - id: TC-1
+        name: Test framework is configured
+        severity: critical
+        detection_hint: >
+          Look for: Jest config (jest.config.*), Vitest config (vitest.config.*),
+          Bun test script, pytest.ini, cargo test, go test files, etc.
+          If no test runner is configured at all, flag as critical.
+      - id: TC-2
+        name: Test files exist alongside source files
+        severity: high
+        detection_hint: >
+          Check if .test.ts/.test.js/.spec.ts/.spec.js (or test/ directory) files exist.
+          Count ratio of source files to test files. Flag if < 50% of source modules
+          have a corresponding test file.
+      - id: TC-3
+        name: Tests are runnable without external services
+        severity: medium
+        detection_hint: >
+          Look for test setup that requires live DB connections, external APIs, or
+          third-party credentials with no mock/fixture fallback. If tests need secrets
+          to run at all, flag — the agent can't run them in a clean environment.
+
+  - id: observability
+    name: Observability
+    weight: 15
+    description: >
+      If the agent can't tell whether the system is working, it can't verify changes.
+      Structured logging and health endpoints are the minimum.
+    checks:
+      - id: OB-1
+        name: Structured logging (not raw console.log)
+        severity: medium
+        detection_hint: >
+          Search source files for console.log, fmt.Println, print() as the primary
+          logging mechanism. If no structured logger (winston, pino, slog, tracing, etc.)
+          is present, flag as medium.
+      - id: OB-2
+        name: Health endpoint exists (for server applications)
+        severity: medium
+        detection_hint: >
+          If the project is a server/API (has Express, Hono, FastAPI, Gin, etc.),
+          search for a /health or /healthz route. If absent, flag. Skip for CLI tools
+          or libraries.
+      - id: OB-3
+        name: Error paths are distinguishable from success paths
+        severity: low
+        detection_hint: >
+          Look for error handling patterns: try/catch with re-throw or logging,
+          Result types, HTTP error status codes. If errors are swallowed silently
+          (empty catch blocks, errors logged to /dev/null), flag.

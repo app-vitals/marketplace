@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
@@ -51,6 +51,11 @@
       "name": "terraform",
       "description": "Opinionated Terraform best practices for Claude Code. Enforces exact version pinning, conservative tagging, pre-commit validation, Terratest generation, state isolation, module composition, variable validation, and naming conventions.",
       "source": "./plugins/terraform"
+    },
+    {
+      "name": "repo-readiness",
+      "description": "Agent-readiness audit and bootstrapping. Scores a repo across 5 categories (agent context, docs, structure, tests, observability) and generates missing assets with --fix. Run before /plan-session on a new codebase.",
+      "source": "./plugins/repo-readiness"
     }
   ]
 }
