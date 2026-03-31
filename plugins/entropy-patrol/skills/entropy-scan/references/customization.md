@@ -28,10 +28,12 @@ When a local config exists, it is used **in its entirety** — individual rules 
 rules:
   - id: commented_out_blocks
     disabled: true
-    # ... rest of fields required even when disabled
+    # ... rest of fields recommended so the rule is ready to re-enable
 ```
 
 Or omit it entirely — rules not present in your local config don't run.
+
+> **Note:** Local config replaces the default entirely — there is no merging. Any rule you omit from your local copy will not run, even if it exists in the plugin defaults.
 
 ### Change severity
 

@@ -12,8 +12,8 @@ Built to run as a daily cron or as an on-demand slash command.
 
 | Command | What it does |
 |---------|-------------|
-| `/entropy-scan` | Scan repo against golden principles, produce `entropy-report.md` |
-| `/entropy-fix` | Consume `entropy-report.md`, open targeted fix PRs |
+| `/entropy-scan` _(planned — EP-3.1)_ | Scan repo against golden principles, produce `entropy-report.md` |
+| `/entropy-fix` _(planned — EP-4.1)_ | Consume `entropy-report.md`, open targeted fix PRs |
 
 ## Default golden principles
 

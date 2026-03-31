@@ -6,6 +6,11 @@
 #   .claude/entropy-patrol/golden-principles.yaml
 # Local config takes priority over this default. See references/customization.md.
 #
+# Top-level fields:
+#   version:            Schema version (currently "1.0")
+#   rules:              List of rule definitions (see per-rule fields below)
+#   todo_max_age_days:  Age threshold for stale_todo rule (default 90)
+#
 # Each rule has these fields:
 #   id:             Unique identifier (snake_case, e.g. dead_exports)
 #   category:       One of: dead_code | missing_tests | inconsistent_patterns | todo_debt | documentation_gaps | security
