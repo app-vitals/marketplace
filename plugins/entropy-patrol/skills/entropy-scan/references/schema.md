@@ -143,7 +143,7 @@ Omit this field (or set to `false`) to enable the rule.
     type-only files that export only interfaces/types), check if a corresponding
     .test.ts file exists in the same directory or a __tests__/ subdirectory.
     Flag every source file with no test coverage file.
-    Report: file path, line count, whether it exports any functions.
+    Report: file path, file size (lines), approximate complexity (does it export functions?).
   pr_worthy: false
 ```
 

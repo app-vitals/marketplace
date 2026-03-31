@@ -25,6 +25,12 @@ Manual test scenarios for each command across different project types.
 | 8 | `/dev-loop` | Node.js | Multi-task loop | All tasks processed, planning doc updated |
 | 9 | `/review` | Node.js | Standalone review | Agents launched, findings reported, AC verified |
 | 10 | `/refresh-plan` | Any | Stale doc refresh | File paths updated, context regenerated |
+| 11 | `/plan-session` | Any | Planning retrospective | Phase 9 metrics, quality ratings, learnings staged |
+| 12 | `/dev-loop` | Any | Loop retrospective | Actual vs estimated, accuracy ratio, learnings staged |
+| 13 | `/dev-loop` | Any | Bug-fix task insertion | HF-N generated, picked up in next iteration |
+| 14 | `/dev-task` + `/dev-loop` | Any | PR/branch cleanup on failure | Orphan PRs closed, branches deleted, retry logic |
+| 15 | `/dev-loop` | Any | Parallel task execution | Batch selection, worktree isolation, post-sync |
+| 16 | `/plan-session` | Any | Task consolidation | Merge criteria applied, consolidation report |
 
 ---
 
@@ -228,3 +234,161 @@ Run these across ALL scenarios to verify genericization:
 - [ ] Coverage threshold defaults to 90% (configurable)
 - [ ] No `frontend-design` as required — optional Design Skill tag
 - [ ] No hardcoded layer names "Background/UI/Content Script/Shared" — uses auto-detected layers
+
+---
+
+## Scenario 11: Planning Retrospective (plan-session Phase 9)
+
+### Setup
+1. Complete a full plan-session (any of Scenarios 1-5)
+
+### Verify
+- [ ] Phase 9a evaluates all 6 dimensions with ratings (1-5)
+- [ ] Phase 9b prints metrics block with correct task counts, hours, and quality scores
+- [ ] Phase 9c stages learnings via `/learn` if `learning-loop` plugin is available
+- [ ] Phase 9c prints learnings as text if `learning-loop` is not available
+- [ ] Learnings use `Shipwright/planning:` prefix
+- [ ] Learnings are specific and actionable (not "planning went well")
+- [ ] Only dimensions rated 3 or below generate learnings
+
+### Without learning-loop
+- [ ] Findings are appended as `## Planning Retrospective` section in the planning doc
+- [ ] No errors or missing plugin warnings
+
+---
+
+## Scenario 12: Dev Loop Retrospective
+
+### Setup
+1. Complete a full dev-loop (Scenario 8) with 3+ tasks
+
+### Verify
+- [ ] Retrospective section appears after loop summary, before permission cleanup
+- [ ] Metrics table shows actual vs estimated hours for each completed task
+- [ ] Delta percentages are calculated correctly
+- [ ] Accuracy ratio (actual/estimated) is computed
+- [ ] Retry count and orphan PR count are tracked
+- [ ] Bug-fix task count (HF-*) is included
+- [ ] Learnings staged with `Shipwright/dev-loop:` prefix if plugin available
+- [ ] Retrospective summary block prints with all metric fields populated
+
+### Metrics accuracy
+- [ ] Actual hours derived from git commit timestamps (first commit on branch → merge)
+- [ ] Accuracy ratio = actual / estimated
+- [ ] Orphan PR count matches actual cleanup actions taken
+- [ ] Permission settings diff correctly counts runtime additions
+
+---
+
+## Scenario 13: Dynamic Bug-Fix Task Insertion
+
+### Setup
+1. Create a planning doc with 3+ tasks
+2. In the second task's source files, introduce a deliberate bug that a later task's tests will catch (e.g., wrong property name in a response object)
+3. Run `/dev-loop`
+
+### Verify
+- [ ] Phase 3b scans subagent output for bug-indicating phrases
+- [ ] `HF-1` task is generated with correct fields (ID, Hours, Layer, Dependencies, Branch)
+- [ ] HF task appended to planning doc (feature section + Appendix)
+- [ ] Warning printed: "⚠ BUG DETECTED after {task-id} — created HF-1: {description}"
+- [ ] HF task picked up in next loop iteration (its dependency is already `[x]`)
+- [ ] HF task fixes the bug and merges
+- [ ] Final summary includes HF tasks in the shipped list
+- [ ] HF task has `minimal` architecture approach
+- [ ] HF task branch follows `fix/hf-{n}-{description}` convention
+
+### Edge case checks
+- [ ] False positive: subagent mentions "bug" in a comment but no actual bug → no HF task created
+- [ ] Multiple bugs in one task → creates HF-1, HF-2, etc.
+- [ ] HF task numbering continues across the entire loop run (not per-task)
+
+---
+
+## Scenario 14: Failed PR/Branch Cleanup
+
+### Setup (dev-task)
+1. Create a planning doc with a task that will fail during PR creation
+2. Run `/dev-task {task-id} --merge`
+
+### Verify (dev-task)
+- [ ] PR creation or merge fails
+- [ ] Orphaned PR detected via `gh pr list --head {branch}`
+- [ ] Open PRs closed with cleanup comment
+- [ ] Remote branch deleted
+- [ ] Local branch deleted, returned to main
+- [ ] Task status reset from `[🔨]` to `[ ]` in planning doc
+- [ ] Cleanup summary printed with PR list and branch name
+- [ ] Commit created: `chore: reset {task-id} after PR failure`
+
+### Setup (dev-loop)
+1. Create a planning doc where one task is designed to fail (e.g., references nonexistent file)
+2. Run `/dev-loop`
+
+### Verify (dev-loop)
+- [ ] Failed subagent triggers Phase 3a-retry
+- [ ] Cleanup runs (close orphan PRs, delete branch)
+- [ ] First failure: task re-queued (status reset to `[ ]`)
+- [ ] Second failure: task marked `[⏸]` (blocked)
+- [ ] retryMap tracks per-task retry count correctly
+- [ ] Warning printed with failure/retry status
+- [ ] Other tasks continue processing after the failed task
+
+---
+
+## Scenario 15: Parallel Task Execution
+
+### Setup
+1. Create a planning doc with 6 tasks:
+   - T-1 (no deps), T-2 (no deps), T-3 (depends on T-1), T-4 (depends on T-2), T-5 (depends on T-3 + T-4), T-6 (no deps, same Layer/file as T-1)
+2. Run `/dev-loop`
+
+### Verify
+- [ ] Phase 1 identifies ALL ready tasks, not just the first
+- [ ] T-1 and T-2 launch as parallel subagents (different worktrees)
+- [ ] T-6 does NOT parallelize with T-1 (same primary file — file overlap check works)
+- [ ] Each parallel subagent uses `isolation: "worktree"`
+- [ ] Post-batch sync pulls main between parallel batches
+- [ ] T-3 starts only after T-1 completes
+- [ ] T-4 starts only after T-2 completes
+- [ ] T-3 and T-4 parallelize (independent, different files)
+- [ ] T-5 waits for both T-3 and T-4
+- [ ] All PRs merge cleanly (no conflicts from parallel work)
+- [ ] Batch plan printed with task IDs, branches, layers
+- [ ] Wall-clock time is measurably less than sequential (compare git timestamps)
+
+### Anti-pattern checks
+- [ ] Never launches > 3 parallel subagents (resource guard)
+- [ ] Falls back to sequential if worktree creation fails
+- [ ] Single-task fallback works correctly when only 1 task is ready
+
+---
+
+## Scenario 16: Task Consolidation (plan-session Phase 4b)
+
+### Setup
+1. Create a planning folder with requirements that will naturally produce:
+   - Two schema additions to the same file (e.g., two Prisma models)
+   - Two CLI commands in the same file
+   - Two independent API endpoints in different files (should NOT merge)
+2. Run `/plan-session`
+
+### Verify
+- [ ] Phase 4b runs after task generation, before Phase 5 quality checks
+- [ ] Schema tasks meeting ALL merge criteria are consolidated into 1 task
+- [ ] CLI tasks meeting ALL merge criteria are consolidated into 1 task
+- [ ] API tasks remain separate (different primary files)
+- [ ] Merged task uses the earlier task's ID and branch
+- [ ] Merged task hours = sum minus ~15% context-switch reduction
+- [ ] Merged task notes "Consolidated from {original-ids}"
+- [ ] Acceptance criteria are unioned and deduplicated
+- [ ] Implementation Decisions are merged (more detailed answer for each field)
+- [ ] Retired task ID removed from Appendix and Feature Summary
+- [ ] No task references a retired ID as a dependency
+- [ ] Consolidation report printed (pairs merged, before/after counts, hours saved)
+
+### Guard rails
+- [ ] Tasks > 4h combined are NOT merged
+- [ ] Tasks with conflicting dependencies are NOT merged
+- [ ] Tasks in different features are NOT merged
+- [ ] Non-additive changes (create vs refactor) are NOT merged

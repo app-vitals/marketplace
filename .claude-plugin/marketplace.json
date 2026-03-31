@@ -54,7 +54,7 @@
     },
     {
       "name": "entropy-patrol",
-      "description": "Continuous code health enforcement via golden principles. Scans for drift (dead code, missing tests, TODO debt, inconsistent patterns, documentation gaps, security) and opens focused PRs to fix it. Includes quality log for trend tracking.",
+      "description": "Continuous code health enforcement via golden principles. Scans for drift and opens focused PRs to fix it.",
       "source": "./plugins/entropy-patrol"
     }
   ]

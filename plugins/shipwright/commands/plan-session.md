@@ -8,7 +8,7 @@ arguments:
 
 # Planning Session: $ARGUMENTS
 
-Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 9 phases in order — proceed automatically between phases without asking for confirmation. Only pause to ask clarifying questions when information is genuinely ambiguous or missing.
+Run a structured planning session for the `planning/$ARGUMENTS/` folder. Follow all 10 phases in order — proceed automatically between phases without asking for confirmation. Only pause to ask clarifying questions when information is genuinely ambiguous or missing.
 
 ## Phase 0: Setup
 
@@ -148,6 +148,23 @@ Generate the combined planning document using the template from `references/plan
 - Every task must have: Description, Technical Details, Acceptance Criteria, Risk, Layer
 - Break tasks to 1-8 hour granularity; if a task exceeds 8 hours, split it
 
+### Test Task Generation Rules
+
+Implementation tasks must target the project's coverage threshold (default 90%) themselves — they ship their own unit tests as part of the implementation. Every impl task's Acceptance Criteria must include: "Coverage >= {threshold}% for new/modified files."
+
+Only generate a **dedicated test task** (`PREFIX-N.T1`) when:
+1. **Cross-module integration testing**: 3 or more implementation tasks interact across module boundaries and need integration tests that span their interfaces
+2. **External API contracts**: The feature consumes or exposes external APIs that need contract/integration tests with mocked endpoints
+3. **E2E user flows**: A UI feature needs end-to-end Playwright tests covering multi-step user interactions (already covered by E2E test feature detection in Phase 0)
+
+Do **NOT** generate a dedicated test task for:
+- Edge cases of a single module (those tests belong in the implementation task itself)
+- Unit tests for isolated components (covered by the impl task's coverage target)
+- Simple CRUD operations with straightforward test patterns
+- Features with 2 or fewer implementation tasks (each impl task handles its own tests)
+
+When generating test tasks, frame them as **"Feature X integration tests"** not "Module Y edge case tests". The test task should verify cross-module correctness, not pad coverage numbers.
+
 ### Branch Naming Convention
 Branch names are derived from the task ID and title:
 - Format: `feat/{task-id-lowered-dots-to-dashes}-{first-3-4-words-kebab}`
@@ -189,6 +206,61 @@ Use the full template from `references/planning-doc-template.md`, filling in:
 - **Layer field**: Use auto-detected layers from Phase 3
 - **Coverage Target**: Default 90% (ask user if they want a different threshold)
 
+### Phase 4b: Consolidation Pass
+
+After generating all tasks, run a consolidation pass to merge redundant tasks. This reduces PR count and review overhead for projects with additive schema/config changes.
+
+#### Merge Criteria
+
+Two tasks SHOULD be merged if **ALL** of the following are true:
+1. **Same primary files**: Their Technical Details → Location fields overlap significantly (>50% of files in common)
+2. **Combined hours <= 4h**: The sum of both tasks' hour estimates does not exceed 4 hours
+3. **Compatible dependencies**: Same dependencies, or one has no dependencies
+4. **No blocking conflicts**: Neither blocks a task the other doesn't
+5. **Same feature group**: Both tasks belong to the same feature section
+6. **Additive changes**: Both tasks add to the same module rather than one creating and another refactoring
+
+#### Merge Procedure
+
+For each pair that meets all criteria:
+1. Combine **Descriptions** (use the more specific as primary, note the other's scope)
+2. Union **Acceptance Criteria** (deduplicate identical items)
+3. Sum **Hours**, then reduce by ~15% for eliminated context-switch overhead
+4. Union **Dependencies**
+5. Keep the first task's **ID** and **Branch**; retire the second task's ID
+6. Add a note: `(Consolidated from {TASK-ID-A} + {TASK-ID-B})`
+7. Merge **Implementation Decisions**: take the more detailed answer for each field; combine unique edge cases
+8. Update the Feature Summary table and Appendix to remove the retired task
+
+#### Common Merge Patterns
+- Multiple schema additions to the same file (e.g., two Prisma models)
+- Multiple CLI commands in the same file
+- Multiple API endpoints in the same route file
+- Multiple config entries in the same config file
+
+#### Consolidation Report
+
+After the pass, print:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONSOLIDATION PASS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{If merges found:}
+Merged: {count} pairs
+  {TASK-ID-A} + {TASK-ID-B} → {TASK-ID-A} ({combined_hours}h)
+  ...
+
+Tasks before: {before_count}
+Tasks after:  {after_count}
+Hours saved:  ~{saved}h (context-switch reduction)
+
+{If no merges:}
+No merge candidates found ({task_count} tasks reviewed)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
 ## Phase 5: Quality Checks
 
 Before presenting the document, verify all of the following. Fix any issues found:
@@ -200,7 +272,7 @@ Before presenting the document, verify all of the following. Fix any issues foun
 5. **Granularity**: No single task exceeds 8 hours
 6. **Design Skill Tags**: UI-layer tasks that create or significantly redesign user-facing components have a Design Skill tag if applicable; non-UI tasks do not
 7. **Appendix**: Complete task list matches the sum of all feature sections
-8. **Test Coverage**: Every feature has at least 1 unit test task; multi-module features have at least 1 integration test task. Every test task's AC includes a coverage criterion for the relevant package/flow (using the configured coverage threshold).
+8. **Test Coverage**: Every implementation task's AC includes a coverage criterion (target: configured threshold, default 90%). Dedicated test tasks exist ONLY when justified by cross-module integration (3+ interacting impl tasks), external API contracts, or E2E user flows. Single-module edge-case testing is NOT a valid reason for a dedicated test task. Every test task's AC includes a coverage criterion for the relevant integration flow.
 9. **E2E Test Coverage**: If the project has a UI/frontend layer, there MUST be a dedicated E2E test feature using Playwright. This feature must include: (a) Playwright setup + smoke tests, (b) feature interaction tests covering all user-facing features, (c) cross-viewport responsive tests at minimum 3 viewport sizes. If no UI layer exists, skip this check.
 10. **Status Initialization**: All tasks in appendix and summary tables start with `[ ]`
 11. **Branch Uniqueness**: All branch names across all tasks are unique
@@ -237,6 +309,7 @@ Use the toolchain detected in Phase 0. From the codebase analysis in Phase 3 and
 3. **Language toolchains**: `cargo` (Rust), `go`, `python3`, etc. — from config files or source directories
 4. **CI/pipeline commands**: `gh` (GitHub CLI), `git` — always needed
 5. **Framework-specific CLIs**: `npx vitest`, `npx eslint`, `npx tsc`, `pytest`, `rspec`, etc.
+6. **Env-var prefixed commands**: Read `.env`, `.env.local`, `.env.example` (if they exist) to identify environment variable names used as command prefixes (e.g., `DATABASE_URL`, `REDIS_URL`, `API_KEY`). These are used in 7c to generate prefixed permission patterns that match the full command string.
 
 Refer to `references/toolchain-patterns.md` for the full mapping.
 
@@ -251,15 +324,37 @@ Build the list of Bash permission patterns the dev pipeline needs. Use broad pat
 | Tool | Pattern | Why |
 |------|---------|-----|
 | Git | `Bash(git:*)` | All git operations (commit, push, checkout, etc.) |
-| GitHub CLI | `Bash(gh:*)` | PR creation, merge, API calls |
+| GitHub CLI (pr) | `Bash(gh pr:*)` | PR create, merge, view, list, close |
+| GitHub CLI (api) | `Bash(gh api:*)` | API calls for repo metadata |
+| GitHub CLI (run) | `Bash(gh run:*)` | CI run monitoring |
+| GitHub CLI (issue) | `Bash(gh issue:*)` | Issue operations |
+| GitHub CLI (auth) | `Bash(gh auth:*)` | Auth status checks |
 | Package manager | `Bash({manager}:*)` | Install, build, test, lint |
 | Language tools | `Bash({tool}:*)` | Build, test, lint per ecosystem |
+| Env-prefixed cmds | `Bash({ENV_VAR}=* {tool}:*)` | Commands run with env-var prefixes from .env |
 | Shell utilities | `Bash(wc:*)`, `Bash(find:*)`, `Bash(grep:*)` | File analysis |
 | Playwright (if E2E) | `Bash(npx playwright:*)` | E2E test execution |
 | Planning doc | `Edit(planning/**)` | Status updates during dev-task/dev-loop |
 | Planning doc | `Write(planning/**)` | Planning doc creation and updates |
+| Source dirs (Write) | `Write({layer_dir}/**)` | Write to auto-detected source directories |
+| Source dirs (Edit) | `Edit({layer_dir}/**)` | Edit files in auto-detected source directories |
 
 Also include any project-specific commands found in config files.
+
+**Env-var prefix handling:** For each package-manager or language-tool pattern (e.g., `Bash(bun:*)`), also generate env-var prefixed variants for every env variable found in `.env` / `.env.local` / `.env.example` files. Example: if `DATABASE_URL` is found in `.env`, generate both `Bash(bun:*)` and `Bash(DATABASE_URL=* bun:*)`. This is critical — Claude Code matches against the **full command string**, so `Bash(bun:*)` does NOT match `DATABASE_URL="..." bun test`.
+
+If wildcard-prefix patterns don't work, fall back to exact prefixed patterns:
+```
+Bash(DATABASE_URL="file:./test.db" bun test:*)
+Bash(DATABASE_URL="file:./test.db" bunx prisma:*)
+```
+
+**Source directory permissions:** For each source directory detected in Phase 3 layers, add both `Write({dir}/**)` and `Edit({dir}/**)` patterns. Example: if layers detected `src/api/`, `src/components/`, `prisma/`, add:
+```
+Write(src/api/**), Edit(src/api/**)
+Write(src/components/**), Edit(src/components/**)
+Write(prisma/**), Edit(prisma/**)
+```
 
 Compare against existing permissions. Identify what's **missing**.
 
@@ -314,6 +409,30 @@ Also add skill permissions if optional integrations are detected:
 - If `learning-loop` plugin is installed: `Skill(learn)`, `Skill(learning-loop:learn-promote)`
 - If `frontend-design` plugin is installed: `Skill(frontend-design)`
 
+### 7e. Verify Permissions
+
+After adding permissions, test ONE command per pattern category to verify auto-approval works:
+
+1. For each unique tool category, run a harmless read-only command:
+   - git: `git status`
+   - gh: `gh auth status`
+   - gh pr: `gh pr list --limit 1` (verifies `Bash(gh pr:*)` pattern)
+   - Package manager: `{manager} --version`
+   - Language tools: `{tool} --version`
+
+2. For env-var prefixed patterns, test one prefixed command:
+   - `{ENV_VAR}=test {manager} --version`
+
+3. For PR creation (the most common failure point): verify that `Bash(gh pr:*)` is in the permissions (added in 7c — this broad pattern covers `gh pr create`, `gh pr merge`, `gh pr list`, etc.). The dev-task uses `gh pr create --title ... --body-file ...` (no heredocs), so this pattern should match. If `gh pr create` with `--body-file` still prompts, add a more specific prefix: `Bash(gh pr create --title:*)`
+
+4. If any command still prompts for permission, warn the user:
+   ```
+   ⚠ Permission pattern for {tool} didn't auto-approve.
+   Check the pattern in settings.local.json.
+   ```
+
+This verification catches glob-matching edge cases before the dev-loop starts. The goal is **zero permission prompts during the entire loop** — every command the subagents will run must match a pre-configured pattern.
+
 ---
 
 ## Phase 8: Session Summary & Next Steps
@@ -339,6 +458,67 @@ READY TO START
 NEXT: /dev-task {first-available-task-id}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+## Phase 9: Planning Retrospective
+
+After the session summary, evaluate the planning process itself and capture learnings for future sessions. This is about how well Shipwright planned — not about the project.
+
+### 9a. Evaluate Planning Quality
+
+Rate each dimension 1-5 and note observations:
+
+| Dimension | Rating (1-5) | Notes |
+|-----------|-------------|-------|
+| **Task Granularity** | | Were tasks right-sized (1-8h)? Too many tiny tasks (< 1h)? Too few large ones (> 6h)? |
+| **Dependency Accuracy** | | Were dependency chains logical? Any circular or missing deps discovered during Phase 5? |
+| **Layer Detection** | | Did Phase 3 auto-detection match the actual project structure? Any manual overrides needed? |
+| **Template Fit** | | Did the planning doc template cover all needed fields? Any gaps or always-N/A fields? |
+| **Hour Estimates** | | Do estimates feel realistic based on complexity analysis? Any systematic bias? |
+| **Implementation Decisions** | | Were edge cases, error handling, scope boundaries thorough for each task? |
+
+### 9b. Record Metrics
+
+Print a metrics block for future comparison against dev-loop actuals:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PLANNING METRICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Session:            {folder-name}
+Total tasks:        {count} ({impl_count} impl + {test_count} test)
+Total hours:        {hours}h
+Avg task size:      {avg_hours}h
+Features:           {feature_count}
+Layers detected:    {layer_count} ({layer names})
+Parallel branches:  {count} (max concurrent tasks from dependency graph)
+Quality scores:     Gran={N} Deps={N} Layers={N} Template={N} Hours={N} Decisions={N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 9c. Stage Learnings
+
+If the `learning-loop` plugin is available (detected in Phase 0a):
+
+1. For each dimension rated **3 or below**, formulate an actionable learning prefixed with `Shipwright/planning:`:
+   - Example: `Shipwright/planning: Schema-only tasks under 1h should be merged — DB-1.1 and DB-1.2 were separate but touched the same file with no conflicts`
+   - Example: `Shipwright/planning: Layer auto-detection missed 'Frontend' because the project uses inline HTML, not a framework with a detectable config file`
+   - Example: `Shipwright/planning: CLI-only projects don't need E2E test tasks — skip E2E check when no UI layer detected`
+2. Stage each learning via `/learn`
+3. Run `/learn-promote` to route learnings to their destination
+
+If `learning-loop` is not available, append findings as a `## Planning Retrospective` section at the end of the planning doc.
+
+### Learning Prefix Convention
+
+All Shipwright-generated learnings use the `Shipwright/` prefix namespace:
+- `Shipwright/planning:` — learnings from planning retrospective (Phase 9)
+- `Shipwright/dev-loop:` — learnings from loop retrospective
+- `Shipwright/dev-task:` — learnings from task execution
+
+This makes them filterable in `/learn-review` and routable by `/learn-promote`.
+
+---
 
 ## Important Notes
 
