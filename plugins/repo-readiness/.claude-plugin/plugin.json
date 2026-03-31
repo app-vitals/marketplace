@@ -1,0 +1,13 @@
+{
+  "name": "repo-readiness",
+  "version": "0.1.0",
+  "description": "Agent-readiness audit and bootstrapping for codebases. Scans for legibility gaps (missing CLAUDE.md, docs outside the repo, untested paths, no observability) and scores each category. Use --fix to generate the missing pieces so Claude can work effectively from day one.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["readiness", "onboarding", "agent", "claude", "audit", "documentation", "observability"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}
