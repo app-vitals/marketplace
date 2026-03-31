@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"
@@ -51,6 +51,11 @@
       "name": "terraform",
       "description": "Opinionated Terraform best practices for Claude Code. Enforces exact version pinning, conservative tagging, pre-commit validation, Terratest generation, state isolation, module composition, variable validation, and naming conventions.",
       "source": "./plugins/terraform"
+    },
+    {
+      "name": "entropy-patrol",
+      "description": "Continuous code health enforcement via golden principles. Scans for drift and opens focused PRs to fix it.",
+      "source": "./plugins/entropy-patrol"
     }
   ]
 }
