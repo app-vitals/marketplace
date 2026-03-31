@@ -27,7 +27,7 @@ Manual test plan for entropy-patrol commands. All tests are run against a real c
 // TODO: fix this before release
 export function unusedHelper() {}
 ```
-Also add a file with no corresponding `.test.ts`.
+Also add a `.ts` file **under `src/`** with no corresponding `.test.ts`.
 
 **Command:** `/entropy-scan`
 
@@ -75,7 +75,7 @@ Also add a file with no corresponding `.test.ts`.
 **Command:** `/entropy-scan --summary`
 
 **Expected output:**
-- Summary table prints to stdout (category counts)
+- Summary block prints to stdout (severity counts and top issues)
 - **No `entropy-report.md` is written**
 - Message at bottom confirms report was skipped
 
@@ -124,6 +124,22 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 - File path and approximate line number are reported
 - Summary block shows at least 1 high-severity finding
 - The `⚠️ Run /entropy-fix` message appears in the summary
+
+---
+
+### Test 9: No golden principles found (broken installation)
+
+**Setup:** Temporarily rename or remove both:
+- `.claude/entropy-patrol/golden-principles.yaml` (project config)
+- The plugin's default `skills/entropy-scan/golden-principles.yaml`
+
+**Command:** `/entropy-scan`
+
+**Expected output:**
+- Message: "No golden principles found. Run `/entropy-scan --init` to get started."
+- **No scan is run**
+- No `entropy-report.md` is written
+- No error or crash
 
 ---
 

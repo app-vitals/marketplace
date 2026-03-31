@@ -25,7 +25,7 @@ If the `--init` flag was passed:
 1. Check if `.claude/entropy-patrol/golden-principles.yaml` already exists in the project root.
    - If it exists, print: "Config already exists at `.claude/entropy-patrol/golden-principles.yaml`. Edit it to customize rules for this project." and stop.
 2. If it does not exist, create the directory and copy the default config:
-   - Source: locate the plugin's default `skills/entropy-scan/golden-principles.yaml` (search in `~/.claude/plugins/entropy-patrol/` or the installed plugin path)
+   - Source: `skills/entropy-scan/golden-principles.yaml` (relative to this skill file — the plugin's own default config)
    - Destination: `.claude/entropy-patrol/golden-principles.yaml` in the project root
 3. Print: "Created `.claude/entropy-patrol/golden-principles.yaml`. Edit it to customize rules for this project. Re-run `/entropy-scan` to start scanning."
 4. Stop — do not run the scan.
@@ -52,7 +52,7 @@ For each active rule (in order: security first, then high → medium → low sev
 - For each finding, record: `file_path`, `line_number` (if applicable), `rule_id`, `severity`, `description` (one line describing the specific issue), `estimated_fix_effort` (trivial / small / medium)
 - Stick to the `detection_hint` — do not expand scope or make judgment calls beyond what the hint describes
 - If a rule scan turns up nothing, that is a valid result ("no violations")
-- Cap the scan: if any single category scan exceeds 10 minutes of tool calls, record a note: "Scan timed out — partial results for this category" and move on
+- Cap the scan: if any single category scan takes more than 20 sequential tool calls, record a note: "Scan capped — partial results for this category" and move on
 
 **Order of categories:**
 1. `security` (highest stakes — always first)
@@ -122,8 +122,9 @@ _Run `/entropy-scan --init` to create a project-level config for rule customizat
 Rules:
 - Findings are sorted high → medium → low within each category section
 - Each finding is a checkbox (`- [ ]`) so `/entropy-fix` can track which ones have been addressed
-- Include line numbers when available; omit if the finding is file-level
-- The "No Violations" section at the bottom lists all rules where nothing was found — this confirms the rule ran and passed, not that it was skipped
+- Include line numbers when available: `- [ ] \`{file_path}:{line_number}\` — {description} _{effort}_`
+- For file-level findings (no line number): `- [ ] \`{file_path}\` — {description} _{effort}_`
+- The "No Violations" section at the bottom lists all active rules where nothing was found — this confirms the rule ran and passed. Disabled rules do not appear anywhere in the report.
 
 ---
 
