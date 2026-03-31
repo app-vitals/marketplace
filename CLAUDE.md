@@ -14,6 +14,10 @@ This is a **Claude Code plugin marketplace** - a collection of plugins that exte
 - **pr-review** - Interactive PR review workflow with local drafts and parallel batch processing
 - **meeting-transcripts** - Browse and read meeting transcripts captured by the mt CLI tool
 - **distill** - Distill conversations into persistent context files for continuity across /clear cycles
+- **dependabot-review** - AI-powered triage of Dependabot PRs with patrol-style risk assessments
+- **shipwright** - Structured dev pipeline with plan sessions, task execution, and autonomous dev loops
+- **terraform** - Opinionated Terraform best practices for Claude Code
+- **entropy-patrol** - Continuous code health enforcement via golden principles
 
 ## Architecture
 

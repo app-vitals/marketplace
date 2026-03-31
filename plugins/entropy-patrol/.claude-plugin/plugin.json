@@ -1,0 +1,13 @@
+{
+  "name": "entropy-patrol",
+  "version": "0.2.0",
+  "description": "Continuous code health enforcement via golden principles. Scans for drift (dead code, missing tests, TODO debt, inconsistent patterns, documentation gaps) and opens focused PRs to fix it. Designed to run as a daily cron or on-demand slash command.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["quality", "refactoring", "code-health", "entropy", "golden-principles", "automation"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}

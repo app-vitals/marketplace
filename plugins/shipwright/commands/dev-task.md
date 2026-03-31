@@ -365,8 +365,48 @@ If creating a PR:
 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-3. Create the PR using `gh pr create`
+3. **Write the PR body to a temp file** to avoid heredoc syntax in the command string (heredocs break permission glob matching and cause repeated approval prompts during `/dev-loop`):
+   ```
+   Write the PR body content to /tmp/shipwright-pr-body-{task-id}.txt
+   gh pr create --title "{title}" --body-file /tmp/shipwright-pr-body-{task-id}.txt
+   rm /tmp/shipwright-pr-body-{task-id}.txt
+   ```
+   The temp file path MUST include the task ID to avoid race conditions when `/dev-loop` runs multiple subagents in parallel — `/tmp` is shared across all worktrees.
+   Do NOT use `--body "$(cat <<'EOF'..."` — this produces a different command string each time and cannot be matched by `Bash(gh pr create:*)`.
 4. Display the PR URL
+
+### PR Failure Cleanup
+
+If PR creation fails OR if `gh pr merge` fails later (in merge-mode Step 12g), after 2 retries:
+
+1. Check for orphaned PRs on this branch:
+   `gh pr list --head {branch} --state open --json number,title`
+
+2. If orphaned PRs found, close each:
+   `gh pr close {pr-number} --comment "Shipwright cleanup — PR creation/merge failed"`
+
+3. Delete the remote branch (if it exists):
+   `git push origin --delete {branch}`
+
+4. Return to main and clean up local branch:
+   `git checkout main && git branch -D {branch}`
+
+5. Reset the task status in the planning doc from `[🔨]` back to `[ ]`
+
+6. Commit: `chore: reset {task-id} after PR failure`
+
+7. Print cleanup summary:
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CLEANUP: {task-id}
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Closed PR(s): {list or "none"}
+   Deleted branch: {branch}
+   Task status: reset to [ ]
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ```
+
+This cleanup ensures no orphaned PRs or branches are left behind. In merge-mode, the dev-loop's Phase 3 failure recovery will handle re-queuing the task.
 
 ## Step 12: Handoff / Review & Merge
 
