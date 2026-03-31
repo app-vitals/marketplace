@@ -1,3 +1,8 @@
+---
+name: repo-readiness
+description: Audit the current codebase for agent-readiness gaps. Score each category. Optionally bootstrap missing pieces with --fix.
+---
+
 # /repo-readiness
 
 Audit the current codebase for agent-readiness gaps. Score each category. Optionally bootstrap missing pieces.

@@ -32,13 +32,17 @@ Default weights:
 
 ## Critical Gaps
 
-If any `critical` check fails, the overall band is capped at **Not Ready**, regardless of weighted score.
+If any `critical` severity check fails, the overall band is capped at **Not Ready**, regardless of weighted score.
 
-Critical checks:
+Currently the critical checks are:
 - AC-1: CLAUDE.md or AGENTS.md exists
 - TC-1: Test framework is configured
 
-These two gaps cause the most agent failure. Even a perfect score on everything else doesn't compensate.
+Custom critical checks added via project-level criteria also trigger this cap.
+
+### Worked example
+
+Agent Context: AC-1 passes (+40), AC-2 fails, AC-3 passes (+15), AC-4 fails. Earned = 55, max = 95. Category score = round(55/95 × 100) = **58**.
 
 ## Report Format
 

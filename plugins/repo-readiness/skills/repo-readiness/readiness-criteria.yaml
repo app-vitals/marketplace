@@ -1,4 +1,4 @@
-# Repo Readiness Criteria
+# Repo Readiness Criteria — 17 checks across 5 categories
 # Default ruleset for /repo-readiness audits.
 # Override per project: copy to .claude/repo-readiness/criteria.yaml
 

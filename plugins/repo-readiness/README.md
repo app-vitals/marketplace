@@ -42,13 +42,13 @@ Teams run `/dev-loop` on a repo that isn't agent-ready and get mediocre results 
 
 ## Categories
 
-| Category | Weight | What It Checks |
-|----------|--------|----------------|
-| Agent Context Files | 30% | CLAUDE.md exists, layered, not bloated, no external doc links |
-| In-Repo Documentation | 20% | README covers what/run/test, docs live in-repo, ADRs present |
-| Codebase Structure | 20% | Module separation, no giant files, shared utilities extracted |
-| Test Coverage | 15% | Test framework configured, test files exist, tests runnable without secrets |
-| Observability | 15% | Structured logging, health endpoint, error paths distinguishable |
+| Category | ID | Weight | What It Checks |
+|----------|----|--------|----------------|
+| Agent Context Files | `agent_context` | 30% | CLAUDE.md exists, layered, not bloated, no external doc links |
+| In-Repo Documentation | `documentation` | 20% | README covers what/run/test, docs live in-repo, ADRs present |
+| Codebase Structure | `structure` | 20% | Module separation, no giant files, shared utilities extracted |
+| Test Coverage | `test_coverage` | 15% | Test framework configured, test files exist, tests runnable without secrets |
+| Observability | `observability` | 15% | Structured logging, health endpoint, error paths distinguishable |
 
 ---
 
@@ -57,12 +57,12 @@ Teams run `/dev-loop` on a repo that isn't agent-ready and get mediocre results 
 | Score | Band | What It Means |
 |-------|------|---------------|
 | 90–100 | Agent-Ready | Ready for `/dev-loop`. Minimal coaching needed. |
-| 75–89 | Mostly Ready | Light gaps. Shipwright tasks will work well. |
+| 75–89 | Mostly Ready | Ready for shipwright tasks with light scaffolding. A few gaps to fill. |
 | 50–74 | Needs Investment | `/dev-loop` will underperform. Fix critical + high gaps first. |
-| 25–49 | Not Ready | Agent sessions will be slow and error-prone. Bootstrap required. |
+| 25–49 | Not Ready | Agent sessions will be slow and prone to mistakes. Bootstrap required. |
 | 0–24 | Unprepared | Starting from scratch. Run `--fix` to generate baseline assets. |
 
-**Critical gap rule:** If no CLAUDE.md exists, or no test framework is configured, the overall band is capped at "Not Ready" — regardless of everything else.
+**Critical gap rule:** If any `critical` severity check fails, the overall band is capped at "Not Ready" — regardless of everything else. Currently AC-1 (CLAUDE.md) and TC-1 (test framework) are the critical checks.
 
 ---
 
@@ -120,8 +120,4 @@ The project-level criteria file takes precedence. You can:
 
 ## Installation
 
-```bash
-claude mcp add repo-readiness <plugin-path>
-```
-
-Or load the plugin directly in your Claude Code session by pointing to the plugin directory.
+Add the plugin directory to your Claude Code plugins path, or install via the marketplace. See the marketplace README for current install instructions.

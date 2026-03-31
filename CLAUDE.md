@@ -18,6 +18,7 @@ This is a **Claude Code plugin marketplace** - a collection of plugins that exte
 - **shipwright** - Structured dev pipeline with plan sessions, task execution, and autonomous dev loops
 - **terraform** - Opinionated Terraform best practices for Claude Code
 - **entropy-patrol** - Continuous code health enforcement via golden principles
+- **repo-readiness** - Agent-readiness audit and bootstrapping for codebases
 
 ## Architecture
 

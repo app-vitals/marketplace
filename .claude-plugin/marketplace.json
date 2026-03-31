@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "owner": {
     "name": "app-vitals",
     "email": "dave@app-vitals.com"

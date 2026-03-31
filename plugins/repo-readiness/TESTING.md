@@ -14,7 +14,7 @@ Manual test scenarios for `/repo-readiness`. Run against a local repo for each s
 - Overall band: "Unprepared" or "Not Ready"
 - AC-1 (no CLAUDE.md) flagged as critical
 - TC-1 (no test framework) flagged as critical
-- Overall cap applied: band = "Not Ready" regardless of other scores
+- Overall cap applied: any critical check failure → band capped at "Not Ready" regardless of other scores
 - `readiness-report.md` written with gap list
 
 ---
@@ -118,6 +118,20 @@ Manual test scenarios for `/repo-readiness`. Run against a local repo for each s
 
 ---
 
+## Test 9: Flat codebase structure (ST-1, ST-2)
+
+**Setup:** Create a repo with 10+ source files all in one flat directory (no src/, lib/, etc.), including one file over 500 lines.
+
+**Run:** `/repo-readiness`
+
+**Expected:**
+- ST-1 flagged: no module or layer separation found
+- ST-2 flagged: file(s) over 500 lines listed with line counts
+- Structure category score is low
+- `readiness-report.md` includes both gaps with actionable suggestions
+
+---
+
 ## Regression Checklist
 
 Before shipping an update to this plugin:
@@ -125,6 +139,6 @@ Before shipping an update to this plugin:
 - [ ] Test 1 runs without crashing on an empty directory
 - [ ] Test 3 does not write files if `--fix` is not passed
 - [ ] Report format matches `references/scoring.md` spec
-- [ ] Critical cap is applied correctly (AC-1 or TC-1 failure → band capped at "Not Ready")
+- [ ] Critical cap is applied correctly (any critical check failure → band capped at "Not Ready")
 - [ ] `--category` limits output to only the named category
 - [ ] `--no-report` produces no file writes

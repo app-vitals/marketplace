@@ -24,7 +24,7 @@ Before starting, check flags:
 ## Step 1: Load Criteria
 
 1. Check if `.claude/repo-readiness/criteria.yaml` exists in the project root.
-   - If yes, use it as the criteria config (project override).
+   - If yes, use it as the criteria config (project override). Verify category weights sum to 100 — if not, print a warning and normalize them.
    - If no, use the plugin's default: `skills/repo-readiness/readiness-criteria.yaml`.
 
 2. If `--category` was passed, filter to only that category. Otherwise audit all.
@@ -55,7 +55,7 @@ For each category, compute the score using the methodology in `references/scorin
 
 Determine the band for each category and for the overall weighted score.
 
-**Critical gap check:** If AC-1 or TC-1 failed, cap overall band at "Not Ready" regardless of weighted score.
+**Critical gap check:** If any `critical` severity check failed, cap overall band at "Not Ready" regardless of weighted score.
 
 ---
 
@@ -238,6 +238,15 @@ Detect the framework and add a minimal health route:
 - FastAPI: `@app.get('/health') async def health(): return {"ok": True}`
 
 Write the change to the server file. Announce.
+
+### Audit-only checks (no --fix action)
+
+These checks are flagged in the report but require manual remediation:
+- **DO-2**: External doc links — requires human judgment on what to move in-repo
+- **ST-3**: Entry point naming — rename is project-specific
+- **ST-4**: Duplicate utilities — extraction requires understanding the domain
+- **TC-3**: Tests require external services — mock setup is project-specific
+- **OB-3**: Error path handling — requires understanding error semantics
 
 ---
 
