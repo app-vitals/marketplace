@@ -88,11 +88,6 @@ todo_max_age_days: 60   # flag TODOs older than 60 days instead of the default 9
 
 ## Initializing local config
 
-When the `/entropy-scan --init` flag is implemented (EP-3.1), it will copy the default ruleset to `.claude/entropy-patrol/golden-principles.yaml` for you. Until then, copy it manually:
+Run `/entropy-scan --init` to copy the default ruleset to `.claude/entropy-patrol/golden-principles.yaml`.
 
-```bash
-mkdir -p .claude/entropy-patrol
-cp <plugin-dir>/skills/entropy-scan/golden-principles.yaml .claude/entropy-patrol/
-```
-
-Then edit `.claude/entropy-patrol/golden-principles.yaml` to match your project's norms.
+Then edit the file to match your project's norms.
