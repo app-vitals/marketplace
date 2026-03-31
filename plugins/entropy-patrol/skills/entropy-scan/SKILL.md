@@ -14,7 +14,54 @@ Scan the codebase for golden principle violations and write a structured report.
 Before starting, check if any flags were passed:
 
 - `--init` — copy the default golden principles config to the project and exit (no scan)
-- `--summary` — print category counts to stdout; skip writing `entropy-report.md`
+- `--summary` — print category counts to stdout; skip writing `entropy-report.md` or `quality-log.jsonl`
+- `--trend` — read `.entropy-patrol/quality-log.jsonl` and print a trend summary; skip the scan entirely
+
+---
+
+## Step 0: Handle `--trend` Flag
+
+If the `--trend` flag was passed:
+
+1. Look for `.entropy-patrol/quality-log.jsonl` in the project root.
+2. If it does not exist, print:
+   ```
+   No scan history found. Run /entropy-scan a few times to build trend data.
+   ```
+   Then stop.
+3. Read the file. Parse each line as JSON; skip malformed lines silently.
+4. If fewer than 2 valid entries, print:
+   ```
+   Not enough scan history for trends (need at least 2 runs).
+   Current entry count: {N}. Run /entropy-scan again to build history.
+   ```
+   Then stop.
+5. Load the most recent `--window N` entries (default: 30). If `--window` is not specified, use 30.
+6. Print a trend summary:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENTROPY TREND ({first_date} → {last_date}, {N} scans)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OVERALL
+  {first_scan_total} violations → {last_scan_total} violations  ({delta, e.g. "▼ 10" or "▲ 3" or "— no change"})
+
+BY SEVERITY
+  High    {first} → {last}  ({direction})
+  Medium  {first} → {last}  ({direction})
+  Low     {first} → {last}  ({direction})
+
+BY RULE (most changed first)
+  {rule_id}       {first} → {last}  ({direction})  {most improved label if applicable}
+  ...
+
+MOST IMPROVED:   {rule_id} (▼ {N} violations)
+MOST WORSENING:  {rule_id} (▲ {N} violations)   {or "none — all rules stable or improving"}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+7. Stop — do not run a scan.
 
 ---
 
@@ -163,11 +210,44 @@ TOP ISSUES
 
 ---
 
+## Step 6: Append to Quality Log
+
+If `--summary` flag was NOT passed (i.e., a full scan with report write):
+
+1. Build the log entry:
+   ```json
+   {
+     "timestamp": "<current UTC ISO-8601>",
+     "commitSha": "<short git sha from `git rev-parse --short HEAD`; omit field if git unavailable>",
+     "totalViolations": <total findings count>,
+     "bySeverity": {
+       "high": <count>,
+       "medium": <count>,
+       "low": <count>
+     },
+     "byRule": {
+       "<rule_id>": <count>
+       // Only include rules with at least 1 finding
+     },
+     "reportPath": "entropy-report.md"
+   }
+   ```
+2. Create `.entropy-patrol/` directory in the project root if it doesn't exist.
+3. Append the JSON entry (as a single line) to `.entropy-patrol/quality-log.jsonl`.
+   - Append only — never overwrite or truncate existing entries.
+4. Print: `Quality log updated: .entropy-patrol/quality-log.jsonl`
+
+Schema reference: `skills/entropy-scan/references/quality-log-schema.md`
+
+---
+
 ## Constraints (Do Not Violate)
 
-- **No code changes.** This skill reads and reports only. The only file written is `entropy-report.md`.
+- **No code changes.** This skill reads and reports only. The only files written are `entropy-report.md` and `.entropy-patrol/quality-log.jsonl`.
 - **No git operations.** Do not commit, branch, or stage anything.
 - **No PR creation.** That belongs to `/entropy-fix`.
 - **No network calls.** All detection is local file inspection.
 - **Respect `disabled: true`.** Never scan a disabled rule — not even "just to check."
 - **One scan, one report.** Each run fully overwrites `entropy-report.md`. Previous results are not preserved.
+- **Quality log is append-only.** Never overwrite or truncate `.entropy-patrol/quality-log.jsonl`. Appends only.
+- **`--summary` skips log.** When `--summary` is passed, no log entry is written (no report = no log entry).
