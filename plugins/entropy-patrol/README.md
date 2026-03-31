@@ -8,7 +8,7 @@ Continuous code health enforcement for Claude Code projects.
 
 Code quality isn't a one-time decision — it's a practice. Teams agree on standards, then drift happens. TODOs accumulate. Untested files multiply. Dead exports linger. Nobody's fault; everyone's problem.
 
-OpenAI's research on developer AI tools found that teams that used AI for "Friday cleanup" saw the largest sustained quality gains — not the teams that used it for feature work. The bottleneck isn't knowledge of what to fix; it's the activation energy to do it consistently.
+Research on developer AI tools suggests that teams using AI for regular "cleanup sweeps" see the largest sustained quality gains — not the teams that used it for feature work. The bottleneck isn't knowledge of what to fix; it's the activation energy to do it consistently.
 
 entropy-patrol removes that friction. Scan. Get a report. Open focused PRs. Merge. Repeat.
 
@@ -129,9 +129,9 @@ entropy-patrol fits naturally with two other plugins:
 
 | Plugin | Role |
 |--------|------|
-| **damage-control** | Prevents new drift from being introduced (PreToolUse hooks block dangerous patterns) |
+| **damage-control** | Blocks dangerous commands and protects sensitive files (PreToolUse hooks enforce safety gates) |
 | **entropy-patrol** | Fixes existing drift (scan → report → PRs) |
-| **learning-loop** | Promotes patterns that work well into CLAUDE.md, which can then be promoted to golden principles |
+| **learning-loop** | Captures corrections and promotes effective patterns to CLAUDE.md and global scope |
 
 Recommended workflow:
 1. `damage-control` runs on every tool call — prevents regression

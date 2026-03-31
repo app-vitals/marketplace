@@ -71,7 +71,7 @@ The log is designed for lightweight querying:
 - **Total violations over time:** `jq .totalViolations .entropy-patrol/quality-log.jsonl`
 - **High-severity trend:** `jq '.bySeverity.high' .entropy-patrol/quality-log.jsonl`
 
-Or use `/entropy-scan --trend` to get a formatted summary (see SKILL.md Step 2a).
+Or use `/entropy-scan --trend` to get a formatted summary (see SKILL.md Step 0).
 
 ---
 

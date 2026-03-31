@@ -27,7 +27,7 @@ Manual test plan for entropy-patrol commands. All tests are run against a real c
 // TODO: fix this before release
 export function unusedHelper() {}
 ```
-Also add a file with no corresponding `.test.ts`.
+Also add a `.ts` file **under `src/`** with no corresponding `.test.ts`.
 
 **Command:** `/entropy-scan`
 
@@ -75,8 +75,9 @@ Also add a file with no corresponding `.test.ts`.
 **Command:** `/entropy-scan --summary`
 
 **Expected output:**
-- Summary table prints to stdout (category counts)
+- Summary block prints to stdout (severity counts and top issues)
 - **No `entropy-report.md` is written**
+- No entry appended to `.entropy-patrol/quality-log.jsonl`
 - Message at bottom confirms report was skipped
 
 ---
@@ -127,9 +128,34 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ---
 
+### Test 9: `--trend` with no quality log
+
+**Setup:** Ensure `.entropy-patrol/quality-log.jsonl` does not exist.
+
+**Command:** `/entropy-scan --trend`
+
+**Expected output:**
+- Message: "No scan history found. Run /entropy-scan a few times to build trend data."
+- **No scan is run**
+
+---
+
+### Test 10: `--trend` with sufficient history
+
+**Setup:** Run `/entropy-scan` at least 3 times to populate `.entropy-patrol/quality-log.jsonl`.
+
+**Command:** `/entropy-scan --trend`
+
+**Expected output:**
+- Trend summary prints with overall direction, severity breakdown, and per-rule changes
+- **No scan is run**
+- **No report or log entry written**
+
+---
+
 ## entropy-fix Tests
 
-### Test 9: `--dry-run` shows plan without side effects
+### Test 11: `--dry-run` shows plan without side effects
 
 **Setup:** Run `/entropy-scan` first so `entropy-report.md` exists with at least one `pr_worthy` finding.
 
@@ -144,7 +170,7 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ---
 
-### Test 10: `--rule` flag scopes to a single rule
+### Test 12: `--rule` flag scopes to a single rule
 
 **Setup:** Ensure `entropy-report.md` has findings for at least two different rules (e.g., `todo_fixme_hack` and `dead_exports`).
 
@@ -158,7 +184,7 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ---
 
-### Test 11: Full run on a repo with planted violations
+### Test 13: Full run on a repo with planted violations
 
 **Setup:**
 1. Plant violations for two distinct rules:
@@ -177,7 +203,7 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ---
 
-### Test 12: Missing entropy-report.md triggers helpful error
+### Test 14: Missing entropy-report.md triggers helpful error
 
 **Setup:** Delete or rename `entropy-report.md` so it doesn't exist in the project root.
 
@@ -189,7 +215,7 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ---
 
-### Test 13: Confirmation gate for high-severity destructive fix
+### Test 15: Confirmation gate for high-severity destructive fix
 
 **Setup:**
 1. Add a source file that triggers a high-severity rule involving code deletion (e.g., a file full of dead exports)
@@ -205,7 +231,7 @@ const apiKey = "sk-abc123def456ghi789jkl012";
 
 ---
 
-### Test 14: No pr_worthy findings
+### Test 16: No pr_worthy findings
 
 **Setup:** Configure all rules in golden-principles.yaml with `pr_worthy: false`, then run `/entropy-scan` to produce a report with findings.
 
@@ -227,3 +253,6 @@ After any change to `golden-principles.yaml` or `SKILL.md`:
 - [ ] Re-run Test 5 (`--summary`) — no report file should be written
 - [ ] Verify `entropy-report.md` format: all findings are `- [ ]` checkboxes
 - [ ] Verify security rules run **first** in report output
+- [ ] Verify quality log entry appended after a full scan
+- [ ] Verify `--summary` does not append to quality log
+- [ ] Verify `--trend` produces output with 2+ log entries

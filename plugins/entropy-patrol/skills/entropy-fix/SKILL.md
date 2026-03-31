@@ -128,7 +128,7 @@ Check if branch `fix/entropy-{rule-id}-{short-description}` already exists (loca
 
 ### 6c. Create Branch and Make Fixes
 
-1. Create branch: `git checkout -b fix/entropy-{rule-id}-{short-description}`
+1. Create branch from base: `git checkout main && git checkout -b fix/entropy-{rule-id}-{short-description}`
 2. For each finding in this group:
    - Apply the fix described by the rule's `detection_hint` remediation guidance
    - Keep changes focused: only fix what the finding describes. Do not refactor surrounding code.
