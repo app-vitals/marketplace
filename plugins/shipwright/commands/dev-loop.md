@@ -4,6 +4,7 @@ arguments:
   - name: folder-name
     description: Planning session folder under planning/ (e.g., february-2026-workspace-switcher). Optional — auto-detected if only one planning doc exists with [ ] tasks remaining.
     required: false
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(bun:*), Bash(npm:*), Bash(pnpm:*), Bash(yarn:*), Bash(cargo:*), Bash(go:*), Bash(python:*), Bash(python3:*), Bash(npx:*), Bash(node:*), Bash(make:*), Bash(wc:*), Bash(find:*), Bash(grep:*), Edit(planning/**), Write(planning/**)
 ---
 
 # Dev Loop
@@ -407,36 +408,6 @@ If `learning-loop` plugin is available:
 5. Run `/learn-promote`
 
 If not available, print the findings as part of the retrospective summary block.
-
----
-
-### Permission Cleanup
-
-Check if `.claude/pipeline-permissions-added.json` exists. If it does:
-
-1. Read the `added` array — these are permissions that `/plan-session` added for this pipeline run
-2. Present them to the user:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PERMISSION CLEANUP
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/plan-session added these permissions for
-the dev pipeline. Roll back?
-
-  - {permission 1}
-  - {permission 2}
-  - ...
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-3. Ask: "Remove these pipeline permissions from `.claude/settings.local.json`? (Yes / Keep all / Pick which to keep)"
-4. If removing: delete matching entries from `settings.local.json`, then delete `.claude/pipeline-permissions-added.json`
-5. If keeping: just delete `.claude/pipeline-permissions-added.json`
-
-If the file doesn't exist, skip this step silently.
 
 ---
 
