@@ -350,13 +350,20 @@ After the loop summary, collect and present pipeline metrics before permission c
 
 #### Collect Metrics
 
-For each completed task, gather from the git log and planning doc:
+If `planning/{folder-name}/metrics.jsonl` exists (written by dev-task Step 12e.2 during this run), read it to get per-task actuals. For any tasks not in metrics.jsonl, fall back to git log timestamps.
 
-1. **Actual vs estimated hours**: Use git commit timestamps — first commit on branch to merge commit — compared against the task's planned hours
-2. **Retry count**: Number of times a task's subagent was re-launched (0 for first-time success, tracked via retryMap)
+For each completed task, gather from metrics.jsonl or git log and planning doc:
+
+1. **Actual vs estimated hours**: From `metrics.jsonl` if available (field: `actual_h`); otherwise use git commit timestamps — first commit on branch to merge commit — compared against the task's planned hours
+2. **Retry count**: From `metrics.jsonl` (field: `retries`), or from retryMap if not in file
 3. **Orphan PRs cleaned**: Count of PRs closed during cleanup (0 if none)
 4. **Bug-fix tasks generated**: Count of `HF-*` tasks created during the run
 5. **Permission settings diff**: Compare `.claude/settings.local.json` before vs after the run — count new entries added at runtime (not by plan-session)
+
+**Aggregate from metrics.jsonl** (if file exists):
+- Mean estimation error: `mean(actual_h / estimated_h - 1)` across all tasks, as a percentage
+- Model distribution: count of tasks per complexity tier (1-2, 3, 4-5)
+- Files changed: total across all tasks
 
 #### Present Summary
 
