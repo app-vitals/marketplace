@@ -321,140 +321,55 @@ Report the quality check results to the user.
 
 ## Phase 7: Permission Pre-flight
 
-Before `/dev-loop` can run fully autonomously, the project's `.claude/settings.local.json` must allow all Bash commands the pipeline will use. Analyze the project and pre-populate permissions so the user isn't prompted mid-loop.
+`/dev-loop` and `/dev-task` declare `allowed-tools` in their skill frontmatter, so common tools are pre-approved automatically — no settings file changes needed.
 
-### 7a. Detect Project Toolchain
+### What's already covered
 
-Use the toolchain detected in Phase 0. From the codebase analysis in Phase 3 and the project's config files, identify:
+| Category | Pre-approved tools |
+|----------|--------------------|
+| Version control | `git`, `gh` (all subcommands: pr, api, run, issue, auth) |
+| Node.js | `bun`, `npm`, `pnpm`, `yarn`, `npx`, `node` |
+| Other ecosystems | `cargo`, `go`, `python`, `python3`, `make` |
+| Shell utilities | `wc`, `find`, `grep` |
+| Planning docs | `Edit(planning/**)`, `Write(planning/**)` |
 
-1. **Package manager**: from lockfiles or config files
-2. **Build/test/lint commands**: from project config (e.g., `package.json` scripts, `Cargo.toml`, `Makefile`)
-3. **Language toolchains**: `cargo` (Rust), `go`, `python3`, etc. — from config files or source directories
-4. **CI/pipeline commands**: `gh` (GitHub CLI), `git` — always needed
-5. **Framework-specific CLIs**: `npx vitest`, `npx eslint`, `npx tsc`, `pytest`, `rspec`, etc.
-6. **Env-var prefixed commands**: Read `.env`, `.env.local`, `.env.example` (if they exist) to identify environment variable names used as command prefixes (e.g., `DATABASE_URL`, `REDIS_URL`, `API_KEY`). These are used in 7c to generate prefixed permission patterns that match the full command string.
+### What may still prompt
 
-Refer to `references/toolchain-patterns.md` for the full mapping.
+**Env-var prefixed commands** are not covered. Claude Code matches against the full command string, so `Bash(bun:*)` does NOT match `DATABASE_URL="..." bun test`. If your project prefixes commands with env vars, you'll get permission prompts for those.
 
-### 7b. Read Existing Permissions
+To pre-approve them, scan `.env` / `.env.local` / `.env.example` for env var names and add explicit patterns to `.claude/settings.local.json`:
 
-Read `.claude/settings.local.json` (create if missing). Parse the current `permissions.allow` array.
-
-### 7c. Compute Missing Permissions
-
-Build the list of Bash permission patterns the dev pipeline needs. Use broad patterns for trusted dev tools:
-
-| Tool | Pattern | Why |
-|------|---------|-----|
-| Git | `Bash(git:*)` | All git operations (commit, push, checkout, etc.) |
-| GitHub CLI (pr) | `Bash(gh pr:*)` | PR create, merge, view, list, close |
-| GitHub CLI (api) | `Bash(gh api:*)` | API calls for repo metadata |
-| GitHub CLI (run) | `Bash(gh run:*)` | CI run monitoring |
-| GitHub CLI (issue) | `Bash(gh issue:*)` | Issue operations |
-| GitHub CLI (auth) | `Bash(gh auth:*)` | Auth status checks |
-| Package manager | `Bash({manager}:*)` | Install, build, test, lint |
-| Language tools | `Bash({tool}:*)` | Build, test, lint per ecosystem |
-| Env-prefixed cmds | `Bash({ENV_VAR}=* {tool}:*)` | Commands run with env-var prefixes from .env |
-| Shell utilities | `Bash(wc:*)`, `Bash(find:*)`, `Bash(grep:*)` | File analysis |
-| Playwright (if E2E) | `Bash(npx playwright:*)` | E2E test execution |
-| Planning doc | `Edit(planning/**)` | Status updates during dev-task/dev-loop |
-| Planning doc | `Write(planning/**)` | Planning doc creation and updates |
-| Source dirs (Write) | `Write({layer_dir}/**)` | Write to auto-detected source directories |
-| Source dirs (Edit) | `Edit({layer_dir}/**)` | Edit files in auto-detected source directories |
-
-Also include any project-specific commands found in config files.
-
-**Env-var prefix handling:** For each package-manager or language-tool pattern (e.g., `Bash(bun:*)`), also generate env-var prefixed variants for every env variable found in `.env` / `.env.local` / `.env.example` files. Example: if `DATABASE_URL` is found in `.env`, generate both `Bash(bun:*)` and `Bash(DATABASE_URL=* bun:*)`. This is critical — Claude Code matches against the **full command string**, so `Bash(bun:*)` does NOT match `DATABASE_URL="..." bun test`.
-
-If wildcard-prefix patterns don't work, fall back to exact prefixed patterns:
-```
-Bash(DATABASE_URL="file:./test.db" bun test:*)
-Bash(DATABASE_URL="file:./test.db" bunx prisma:*)
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(DATABASE_URL=* bun:*)",
+      "Bash(REDIS_URL=* bun:*)"
+    ]
+  }
+}
 ```
 
-**Source directory permissions:** For each source directory detected in Phase 3 layers, add both `Write({dir}/**)` and `Edit({dir}/**)` patterns. Example: if layers detected `src/api/`, `src/components/`, `prisma/`, add:
-```
-Write(src/api/**), Edit(src/api/**)
-Write(src/components/**), Edit(src/components/**)
-Write(prisma/**), Edit(prisma/**)
-```
-
-Compare against existing permissions. Identify what's **missing**.
-
-### 7d. Present & Apply
-
-If there are missing permissions, present them to the user:
+If env-var prefixed commands are detected in this project, present them:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PERMISSION PRE-FLIGHT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-The dev pipeline needs these Bash permissions
-to run without prompting during /dev-loop:
+Common tools are pre-approved via skill allowed-tools.
 
-ALREADY ALLOWED:
-  ✓ {existing permissions}
+ENV-VAR PREFIXED COMMANDS DETECTED:
+These won't auto-approve — add to .claude/settings.local.json
+if you want a fully prompt-free run:
 
-MISSING — will be added:
-  + {missing permissions}
+  Bash({ENV_VAR}=* {tool}:*)
+  ...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Ask the user: "Add these permissions to `.claude/settings.local.json`? (Yes / Edit list / Skip)"
-
-If approved, update the file and **save a tracking file** so `/dev-loop` can offer to roll back later:
-
-Write `.claude/pipeline-permissions-added.json`:
-```json
-{
-  "added": ["Bash(gh:*)", "Bash(cargo:*)", "..."],
-  "addedAt": "{YYYY-MM-DD}",
-  "planningDoc": "planning/$ARGUMENTS/{filename}"
-}
-```
-
-If the settings file doesn't exist, create it with the standard structure:
-```json
-{
-  "permissions": {
-    "allow": [
-      ...new entries
-    ]
-  }
-}
-```
-
-If the settings file exists, merge the new entries into the existing `permissions.allow` array.
-
-Also add skill permissions if optional integrations are detected:
-- If `learning-loop` plugin is installed: `Skill(learn)`, `Skill(learning-loop:learn-promote)`
-- If `frontend-design` plugin is installed: `Skill(frontend-design)`
-
-### 7e. Verify Permissions
-
-After adding permissions, test ONE command per pattern category to verify auto-approval works:
-
-1. For each unique tool category, run a harmless read-only command:
-   - git: `git status`
-   - gh: `gh auth status`
-   - gh pr: `gh pr list --limit 1` (verifies `Bash(gh pr:*)` pattern)
-   - Package manager: `{manager} --version`
-   - Language tools: `{tool} --version`
-
-2. For env-var prefixed patterns, test one prefixed command:
-   - `{ENV_VAR}=test {manager} --version`
-
-3. For PR creation (the most common failure point): verify that `Bash(gh pr:*)` is in the permissions (added in 7c — this broad pattern covers `gh pr create`, `gh pr merge`, `gh pr list`, etc.). The dev-task uses `gh pr create --title ... --body-file ...` (no heredocs), so this pattern should match. If `gh pr create` with `--body-file` still prompts, add a more specific prefix: `Bash(gh pr create --title:*)`
-
-4. If any command still prompts for permission, warn the user:
-   ```
-   ⚠ Permission pattern for {tool} didn't auto-approve.
-   Check the pattern in settings.local.json.
-   ```
-
-This verification catches glob-matching edge cases before the dev-loop starts. The goal is **zero permission prompts during the entire loop** — every command the subagents will run must match a pre-configured pattern.
+Do NOT write to `.claude/settings.local.json` automatically — present the patterns and let the user decide.
 
 ---
 
