@@ -503,6 +503,22 @@ Collect findings, verify against source files, categorize.
 1. Change task status from `[🔨]` to `[x] PR #{number}` in both Appendix and Feature Summary
 2. Commit: `chore: mark {task-id} done (PR #{number})`
 
+#### 12e.2. Append Metrics (merge-mode only)
+
+After marking done, append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist):
+
+```json
+{"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"ts":"{ISO timestamp}"}
+```
+
+Field derivation:
+- `actual_h`: elapsed time from Step 6 branch creation to now (approximate from wall clock or git timestamps)
+- `complexity`: from the task's Complexity field in the planning doc (0 if not set — pre-B1.2 planning docs)
+- `retries`: 0 in standalone dev-task; passed from dev-loop retryMap when called via dev-loop
+- `files_changed`: count from `git diff --stat main...{branch}` (before merge)
+
+This step is silent — no output. JSONL format means one JSON object per line; append-only.
+
 #### 12f. Learning Capture (Optional)
 Check if the `learning-loop` plugin is available by checking if `/learn` skill exists.
 - If available: review findings for patterns, auto-stage genuine learnings via `/learn`, then run `/learn-promote`

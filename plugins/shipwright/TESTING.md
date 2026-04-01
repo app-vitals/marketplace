@@ -16,6 +16,9 @@ Manual test scenarios for each command across different project types.
 | # | Command | Project Type | Scenario | Key Verification |
 |---|---------|-------------|----------|-----------------|
 | 1 | `/plan-session` | Node.js (pnpm) | New feature planning | Toolchain detected, layers auto-detected, template correct |
+| 17 | `/plan-session` | Any | Complexity scoring | Complexity column (1-5) in task table, scores correlate with task characteristics |
+| 18 | `/dev-loop` | Any | Cross-session handoff | Handoff section written after each batch, restored on restart |
+| 19 | `/dev-task --merge` | Any | Persistent metrics | metrics.jsonl appended after each merge, plan-session reads historical data |
 | 2 | `/plan-session` | Python (poetry) | API feature planning | Python toolchain, pytest commands, coverage threshold |
 | 3 | `/plan-session` | Rust (cargo) | CLI feature planning | Cargo commands, clippy in permissions |
 | 4 | `/plan-session` | Go | Service planning | Go commands, golangci-lint detection |
@@ -392,3 +395,107 @@ Run these across ALL scenarios to verify genericization:
 - [ ] Tasks with conflicting dependencies are NOT merged
 - [ ] Tasks in different features are NOT merged
 - [ ] Non-additive changes (create vs refactor) are NOT merged
+
+---
+
+## Scenario 17: Complexity Scoring (plan-session)
+
+### Setup
+1. Create a test repo with a Node.js project
+2. Create `planning/test-feature/` with a requirements doc covering:
+   - A simple config field addition (expect Complexity 1-2)
+   - A 5+ file cross-layer feature (expect Complexity 4-5)
+
+### Run
+```
+/plan-session test-feature
+```
+
+### Verify
+- [ ] Every task in output has a `Complexity` column with a value 1-5
+- [ ] Config-only task scores 1-2
+- [ ] Cross-layer task scores 4-5
+- [ ] Phase 5 quality check reports Complexity as a required field
+- [ ] Phase 5 fails if any task is missing a Complexity score
+
+### With historical metrics
+- [ ] Place a `planning/test-feature/metrics.jsonl` file with 5 sample entries
+- [ ] Re-run `/plan-session test-feature` — verify historical estimation accuracy is printed before hour assignment
+- [ ] Delete `metrics.jsonl` — verify no errors on next run (graceful degradation)
+
+---
+
+## Scenario 18: Cross-Session Handoff (dev-loop)
+
+### Setup
+1. Have a planning doc with 4+ tasks, first 2 with no dependencies
+
+### Interrupt test
+1. Start `/dev-loop`
+2. After the first task completes (watch for `✓ {task-id}` line), manually interrupt the session (`/clear` or kill)
+3. Open the planning doc — verify `## Handoff` section was written with:
+   - [ ] `Last completed: {task-id}`
+   - [ ] `Timestamp:` (valid ISO timestamp)
+   - [ ] `Batch:` field
+   - [ ] `Recent changes:` list (at least 1 entry)
+
+### Resume test
+1. Restart `/dev-loop` on the same planning doc
+2. Verify:
+   - [ ] Loop prints `↩ Resuming from handoff (last: {task-id}, batch N)`
+   - [ ] Loop does NOT re-run already-completed tasks
+   - [ ] `recentChanges[]` is populated from the Handoff section (visible in Phase 2a context briefings)
+
+### Completion cleanup
+1. Let the loop run to completion
+2. Verify:
+   - [ ] `## Handoff` section is removed from the planning doc
+   - [ ] Final commit message: `chore: remove handoff state — loop complete`
+
+### Orphan recovery (dev-task)
+1. Create a planning doc with a task marked `[🔨]` and a matching branch on the remote
+2. Run `/dev-task {task-id}`
+3. Verify:
+   - [ ] Orphan check runs before marking in-progress
+   - [ ] If a PR exists, it is closed with cleanup comment
+   - [ ] Branch is deleted before fresh start
+
+---
+
+## Scenario 19: Persistent Metrics (dev-task + dev-loop + plan-session)
+
+### Artifact check — metrics.jsonl written
+1. Complete any `/dev-task {task-id} --merge` on a task that has a Complexity score
+2. Verify:
+   - [ ] `planning/{folder}/metrics.jsonl` exists after merge
+   - [ ] Contains exactly one new JSON line with fields: `task`, `title`, `estimated_h`, `actual_h`, `complexity`, `retries`, `pr`, `hotfixes`, `files_changed`, `ts`
+   - [ ] `complexity` matches the task's Complexity field in the planning doc
+   - [ ] `pr` matches the merged PR number
+
+### Artifact check — dev-loop reads metrics
+1. Complete a `/dev-loop` run with 3+ tasks (metrics.jsonl will be populated)
+2. In the Loop Retrospective, verify:
+   - [ ] "Historical data" block appears with mean estimation error
+   - [ ] Model distribution shows counts per complexity tier
+   - [ ] Per-task table uses actuals from metrics.jsonl (not just git timestamps)
+
+### Artifact check — plan-session reads historical data
+1. After a dev-loop run that produced `metrics.jsonl`, run `/plan-session` on the same folder
+2. Verify:
+   - [ ] Historical estimation accuracy is reported before hour assignment
+   - [ ] Message format: "Historical data ({N} tasks): avg estimation error {+/-N}%..."
+
+### Graceful degradation
+1. Run `/plan-session` on a folder with NO `metrics.jsonl` — no errors, no warnings
+2. Run `/dev-loop` on a folder with NO `metrics.jsonl` — retrospective still runs using git timestamps
+
+---
+
+## Versioning Checklist (for every PR to this repo)
+
+- [ ] Does this PR change any file under `commands/`, `skills/`, `agents/`, or `hooks/`?
+  - **Yes** → bump `plugins/shipwright/.claude-plugin/plugin.json` version (patch for fixes, minor for features)
+  - **No** (docs-only, like ADOPTION-ROADMAP.md) → no version bump needed
+- [ ] Bump `.claude-plugin/marketplace.json` version whenever any plugin version changes
+- [ ] Version bump is in the **same PR** as command changes — never separate
+- [ ] After merging: verify `/plugin marketplace update` + `/plugin update shipwright` picks up the new version
