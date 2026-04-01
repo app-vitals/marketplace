@@ -34,6 +34,20 @@ Extract the **Project Metadata** section from the planning doc header and store 
 
 If the planning doc's Project Metadata section doesn't include explicit commands, derive them from the toolchain and package manager using the same detection logic as `plan-session` Phase 0b (see `references/toolchain-patterns.md`).
 
+### Handoff Restoration
+
+Check the planning doc for a `## Handoff` section. If present, restore prior session state:
+
+1. Read the `## Handoff` section fields: `Last completed`, `Timestamp`, `Batch`, `Recent changes`, `Retry map`, `Notes`
+2. Restore `recentChanges[]` from the `Recent changes` list
+3. Restore `retryMap` from the `Retry map` entries (parse `{taskId}: {count}` lines)
+4. Print:
+   ```
+   ↩ Resuming from handoff (last: {Last completed}, batch {Batch})
+   ```
+
+If no `## Handoff` section is present, start with empty `recentChanges[]` and `retryMap` as normal.
+
 Print the initial status:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -307,7 +321,32 @@ The hotfix task will naturally be picked up in Phase 1 of the next iteration —
    ```
    Keep only the last 3 entries.
 
-2. Print a brief completion line:
+2. **Write Handoff section**: Update (or create) the `## Handoff` section in the planning doc with current state, then commit:
+
+   ```markdown
+   ## Handoff
+   <!-- Auto-updated by dev-loop. Do not edit manually. -->
+
+   Last completed: {task-id}
+   Timestamp: {ISO timestamp}
+   Batch: {current_batch} of {estimated_remaining}
+
+   Recent changes:
+   {For each entry in recentChanges[]:}
+   - {taskId}: {title} — changed {count} files ({summary})
+
+   Retry map:
+   {For each entry in retryMap with count > 0:}
+   - {taskId}: {count}
+   {If retryMap is empty: (none)}
+
+   Notes:
+   {Any notable issues, warnings, or context from this iteration}
+   ```
+
+   Commit: `chore: update handoff state after {task-id}`
+
+3. Print a brief completion line:
    ```
    ✓ {task-id}: {task title} — merged ({done_count}/{total_count})
    ```
@@ -318,7 +357,11 @@ The hotfix task will naturally be picked up in Phase 1 of the next iteration —
 
 ## LOOP END
 
-When the loop exits, print the final summary:
+When the loop exits:
+
+1. **Remove Handoff section**: Delete the `## Handoff` section from the planning doc (loop is complete, no resumption needed). Commit: `chore: remove handoff state — loop complete`
+
+2. Print the final summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

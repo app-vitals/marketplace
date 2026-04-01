@@ -145,10 +145,29 @@ If all dependencies are `[x]` or there are no dependencies, continue without pau
 
 ## Step 4: Mark In-Progress
 
+### Orphan Check (prior session recovery)
+
+If the task's current status is already `[🔨]` (in-progress from a prior interrupted session):
+
+1. Check for an orphaned branch: `git branch --list {branch}` and `git ls-remote --heads origin {branch}`
+2. Check for an orphaned PR: `gh pr list --head {branch} --state open --json number,title`
+3. If an orphaned PR exists, close it: `gh pr close {number} --comment "Shipwright cleanup — resuming task from prior session"`
+4. If a remote branch exists, delete it: `git push origin --delete {branch}`
+5. If a local branch exists, delete it: `git branch -D {branch}`
+6. Print:
+   ```
+   ↩ Recovered orphaned session for {task-id}
+   {If PR closed: "Closed PR #{number}"}
+   {If branch deleted: "Deleted branch {branch}"}
+   Starting fresh.
+   ```
+
+### Mark In-Progress
+
 Update the planning doc:
 
-1. In the **Appendix: Complete Task List** table, change the Status column for the task from `[ ]` to `[🔨]`
-2. In the **{Feature Name} Summary** table, change the same task's status from `[ ]` to `[🔨]`
+1. In the **Appendix: Complete Task List** table, change the Status column for the task from `[ ]` (or `[🔨]`) to `[🔨]`
+2. In the **{Feature Name} Summary** table, change the same task's status to `[🔨]`
 3. Commit: `chore: mark {task-id} in-progress`
 
 ## Step 5: Build Feature-Dev Prompt
