@@ -148,6 +148,29 @@ Generate the combined planning document using the template from `references/plan
 - Every task must have: Description, Technical Details, Acceptance Criteria, Risk, Layer
 - Break tasks to 1-8 hour granularity; if a task exceeds 8 hours, split it
 
+### Complexity Scoring
+
+Each task gets a **Complexity** score (1–5). Add a `Complexity` column to the task table (before the Status column). This score drives timeout allocation and model routing.
+
+**Scoring criteria:**
+
+| Score | Criteria | Typical Timeout |
+|-------|----------|-----------------|
+| 1 | Single file, config change, no tests needed | 15 min |
+| 2 | 1-2 files, straightforward logic, unit tests | 30 min |
+| 3 | 3-5 files, standard feature, integration tests | 60 min |
+| 4 | 5+ files, cross-layer, new patterns, E2E tests | 90 min |
+| 5 | Architectural, multiple layers, migration, perf-sensitive | 120 min |
+
+**Scoring inputs:** files touched (from Location field), layers crossed, new code vs. modification, test requirements, dependency count.
+
+If `planning/$ARGUMENTS/metrics.jsonl` exists from prior runs, read it and report estimation accuracy before assigning hours:
+```
+Historical data ({N} tasks): avg estimation error {+/-N}%, {layer} tasks are the primary driver.
+Consider adjusting estimates accordingly.
+```
+If no `metrics.jsonl` exists, skip this step silently.
+
 ### Test Task Generation Rules
 
 Implementation tasks must target the project's coverage threshold (default 90%) themselves — they ship their own unit tests as part of the implementation. Every impl task's Acceptance Criteria must include: "Coverage >= {threshold}% for new/modified files."
@@ -268,7 +291,7 @@ Before presenting the document, verify all of the following. Fix any issues foun
 1. **Coverage**: Every input requirement maps to at least one task
 2. **Math**: Feature subtotals equal the sum of their individual tasks; grand total equals the sum of all subtotals; executive summary percentages add to 100%
 3. **Dependencies**: No circular dependencies; all referenced task IDs exist in the document
-4. **Completeness**: Every task has Description, Technical Details, Acceptance Criteria, Risk, Layer, Branch, Context, Architecture, and Implementation Decisions (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance)
+4. **Completeness**: Every task has Description, Technical Details, Acceptance Criteria, Risk, Layer, Branch, Context, Architecture, Complexity, and Implementation Decisions (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance)
 5. **Granularity**: No single task exceeds 8 hours
 6. **Design Skill Tags**: UI-layer tasks that create or significantly redesign user-facing components have a Design Skill tag if applicable; non-UI tasks do not
 7. **Appendix**: Complete task list matches the sum of all feature sections
