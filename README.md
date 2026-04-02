@@ -20,8 +20,11 @@ Add this marketplace to Claude Code:
 | [pr-review](plugins/pr-review/README.md) | 0.2.0 | Interactive PR review with local drafts and batch processing |
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.0 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
-| [shipwright](plugins/shipwright/README.md) | 1.3.0 | Structured dev pipeline — plan, build, review, ship |
+| [dependabot-review](plugins/dependabot-review/README.md) | 0.1.0 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
+| [shipwright](plugins/shipwright/README.md) | 1.4.0 | Structured dev pipeline — plan, build, review, ship |
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
+| [entropy-patrol](plugins/entropy-patrol/README.md) | 0.2.0 | Continuous code health enforcement via golden principles |
+| [repo-readiness](plugins/repo-readiness/README.md) | 0.1.0 | Agent-readiness audit and bootstrapping for codebases |
 
 ### ralph-orchestrator
 
@@ -71,13 +74,21 @@ No commands — hooks activate automatically on install.
 
 `/distill`
 
+### dependabot-review
+
+```
+/plugin install dependabot-review@app-vitals/marketplace
+```
+
+`/triage-dependabot-prs`
+
 ### shipwright
 
 ```
 /plugin install shipwright@app-vitals/marketplace
 ```
 
-`/plan-session` · `/dev-task` · `/dev-loop` · `/refresh-plan` · `/review`
+`/plan-session` · `/dev-task` · `/dev-loop` · `/metrics` · `/refresh-plan` · `/review` · `/audit`
 
 ### terraform
 
@@ -86,3 +97,19 @@ No commands — hooks activate automatically on install.
 ```
 
 No commands — skill activates automatically when working with `.tf` or `.tfvars` files.
+
+### entropy-patrol
+
+```
+/plugin install entropy-patrol@app-vitals/marketplace
+```
+
+`/entropy-scan` · `/entropy-fix`
+
+### repo-readiness
+
+```
+/plugin install repo-readiness@app-vitals/marketplace
+```
+
+`/repo-readiness`
