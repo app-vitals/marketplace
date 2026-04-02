@@ -409,6 +409,15 @@ For each completed task, gather from metrics.jsonl or git log and planning doc:
 - Model distribution: count of tasks per complexity tier (1-2, 3, 4-5)
 - Files changed: total across all tasks
 
+**Fix cascade aggregates** (from enriched metrics.jsonl fields — v1.4.0+; skip if records lack these fields):
+- **First-time quality rate**: percentage of tasks where `simplify.total == 0` AND `review.verdict == "SHIP IT"` AND `ci_fix_attempts == 0`
+- **Simplify fix rate**: mean `simplify.total` across tasks; breakdown by category (dry, dead_code, naming, complexity, consistency)
+- **Review verdict distribution**: count of SHIP IT / NEEDS FIXES / NEEDS WORK
+- **CI first-pass rate**: percentage of tasks where `ci_fix_attempts == 0`
+- **Coverage trend**: mean `coverage.delta` across tasks where coverage data exists
+
+If any task record lacks the fix cascade fields (old format), exclude it from fix cascade aggregates but include it in the basic aggregates above.
+
 #### Present Summary
 
 ```
@@ -433,6 +442,14 @@ Quality:
 Efficiency:
   Parallel batches: {batch_count}
 
+{If fix cascade data exists (any task has simplify/review/ci fields):}
+Fix Cascade:
+  First-time quality:  {ftq_rate}% ({ftq_count}/{enriched_count} tasks needed zero post-impl fixes)
+  Simplify fixes:      {mean_simplify} avg/task (DRY {dry_avg} | Dead code {dc_avg} | Naming {name_avg} | Complexity {cx_avg} | Consistency {con_avg})
+  Review verdicts:     {ship_it_count} SHIP IT / {needs_fixes_count} NEEDS FIXES / {needs_work_count} NEEDS WORK
+  CI first-pass rate:  {ci_first_pass_rate}%
+  Coverage delta:      {mean_delta}% avg
+
 Permissions:
   Pre-configured: {plan_session_count}
   Added at runtime: {runtime_count}
@@ -455,7 +472,11 @@ If `learning-loop` plugin is available:
    `Shipwright/dev-loop: Missing permission pattern for {command} — add to plan-session Phase 7 detection`
 4. If bug-fix tasks were generated, stage a learning:
    `Shipwright/dev-loop: {count} bugs discovered during execution — {pattern} tasks are most likely to surface bugs`
-5. Run `/learn-promote`
+5. If first-time quality rate < 70% (fix cascade data required), stage a learning:
+   `Shipwright/dev-loop: First-time quality rate is {rate}% — most common simplify category is {category}. Consider adding {category} enforcement to implementation prompts.`
+6. If simplify fix rate > 3 per task on average (fix cascade data required), stage a learning:
+   `Shipwright/dev-loop: Simplify phase is catching an average of {N} fixes per task (top category: {category}). Add a pre-simplify checklist to the implementation brief.`
+7. Run `/learn-promote`
 
 If not available, print the findings as part of the retrospective summary block.
 

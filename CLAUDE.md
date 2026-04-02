@@ -59,6 +59,7 @@ When modifying plugins:
 
 When bumping a plugin version:
 1. Update `plugins/<plugin-name>/.claude-plugin/plugin.json` (version field)
-2. Update `.claude-plugin/marketplace.json` (both root version and plugin entry version)
+2. Update `plugins/<plugin-name>/README.md` (version in heading, if present)
+3. Update `.claude-plugin/marketplace.json` (both root version and plugin entry version)
 
-Keep all version numbers in sync.
+Keep all version numbers in sync across all three locations.
