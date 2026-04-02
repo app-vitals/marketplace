@@ -47,20 +47,21 @@ Picks up a task from the planning doc and runs end-to-end:
 6. Verify acceptance criteria against the diff
 7. Run pre-ship checks (lint, types, tests, coverage)
 8. Push and create PR
+9. Update from main, wait for CI checks to pass (auto-fix failures up to 3 times)
 
 With `--merge` flag, continues automatically:
-9. Launch parallel review agents (code review, silent failure hunting, test analysis, etc.)
-10. Auto-fix review findings
-11. Update planning doc status
-12. Squash-merge PR and delete branch
-13. Capture learnings (if learning-loop plugin installed)
+10. Launch parallel review agents (code review, silent failure hunting, test analysis, etc.)
+11. Auto-fix review findings
+12. Update planning doc status
+13. Squash-merge PR and delete branch
+14. Capture learnings (if learning-loop plugin installed)
 
 ### 3. Dev Loop
 
 Runs `/dev-task --merge` in a continuous loop until all tasks are done or blocked:
 
 1. Pick next task with satisfied dependencies
-2. Launch subagent running `/dev-task --merge` (steps 1–13 above)
+2. Launch subagent running `/dev-task --merge` (steps 1–14 above)
 3. Confirm task merged, loop to next task
 
 Pauses only when human judgment is genuinely needed (NOT MET criteria, build failures, AC gaps). Offers to roll back pipeline permissions when complete.

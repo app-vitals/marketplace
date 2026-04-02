@@ -477,6 +477,8 @@ The loop runs continuously and pauses ONLY when human judgment is genuinely need
 | Coverage below threshold | No | Logged, auto-proceed in merge-mode |
 | Review verdict NEEDS WORK | **Yes** | AC gaps routed through dev-task merge-mode |
 | PR creation + merge | No | Handled by dev-task --merge |
+| CI check failure (fix loop) | No | Subagent auto-fixes, up to 3 retries |
+| CI check failure (exhausted) | No | Triggers PR Failure Cleanup, dev-loop re-queues |
 | Between tasks | No | **Loops automatically** |
 | Parallel batch completion | No | All subagents complete before proceeding |
 | Post-batch main sync | No | Automatic pull after parallel batch |
