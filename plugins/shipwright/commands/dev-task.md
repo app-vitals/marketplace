@@ -442,6 +442,14 @@ git merge origin/main
 ```
 
 If the merge **succeeds** (no conflicts):
+
+Check whether the merge actually brought in new commits:
+```
+git diff HEAD @{1} --quiet
+```
+If no changes (exit code 0 = already up to date), skip the push — CI is already running against the current code. Proceed directly to 11b.2.
+
+If there are changes:
 ```
 git push
 ```
@@ -477,10 +485,10 @@ Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If t
 2. List the failed workflow runs for this branch:
    `gh run list --branch {branch} --status failure --json databaseId,name,conclusion --limit 5`
 
-3. For each failed run, get the logs:
-   `gh run view {run-id} --log`
+3. For each failed run, get the logs (truncated to last 200 lines per run to avoid context blowup):
+   `gh run view {run-id} --log --failed 2>&1 | tail -200`
 
-Collect all failure output into a single context block for the fix subagent.
+Collect all failure output into a single context block for the fix subagent. If `--failed` is not supported by the installed `gh` version, fall back to `gh run view {run-id} --log 2>&1 | tail -200`.
 
 ### 11b.4. Fix Loop
 
@@ -555,6 +563,10 @@ Failing checks:
 If the user chooses (2), run PR Failure Cleanup (Step 11).
 
 **When merge-mode is ON:**
+Print:
+```
+⚠️ CI gate exhausted — task {task-id} reset for retry
+```
 Trigger PR Failure Cleanup (Step 11) and stop — do NOT proceed to Step 12. The dev-loop's Phase 3a-retry failure recovery will handle re-queuing the task.
 
 ## Step 12: Handoff / Review & Merge
