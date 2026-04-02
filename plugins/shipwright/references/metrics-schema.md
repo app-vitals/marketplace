@@ -8,8 +8,31 @@ Single source of truth for `planning/{folder-name}/metrics.jsonl`. Referenced by
 
 - **Location:** `planning/{folder-name}/metrics.jsonl`
 - **Format:** JSONL — one JSON object per line, newline-terminated
-- **Mode:** Append-only. New tasks are appended; existing lines are never modified.
-- **Created by:** `dev-task.md` Step 12e.2 (merge-mode only). File is created if it doesn't exist.
+- **Mode:** Append-only for new tasks. Existing lines may be updated in-place by `/review` to add review data (see Write Lifecycle below).
+- **Created by:** `dev-task.md` Step 12a-standalone or Step 12e.2. File is created if it doesn't exist.
+
+---
+
+## Write Lifecycle
+
+Metrics are written in two phases to support the standalone `/dev-task` → `/review` workflow:
+
+### Phase 1: dev-task (always runs)
+
+`dev-task.md` writes a metrics line at the end of every run, in both standalone and merge-mode:
+
+- **Standalone (Step 12a-standalone):** Writes all fields EXCEPT `review` (which hasn't run yet). Fields populated: core fields, `simplify`, `requirements`, `ci`, `coverage`, `model`.
+- **Merge-mode (Step 12e.2):** Writes all fields INCLUDING `review` (inline review ran in Steps 12b-d).
+
+### Phase 2: /review (optional enrichment)
+
+`review.md` Step 10b updates the existing metrics line for the task with `review` data after the verdict is determined. This is a targeted in-place update (find-and-replace the JSON line), not a new append.
+
+### Implications for consumers
+
+- A record **without** a `review` field means `/review` hasn't run yet — NOT that the review passed clean. Exclude from review aggregates and FTQ calculation.
+- A record **with** a `review` field is fully enriched and can be used for all aggregates including FTQ.
+- The `/metrics` command categorizes records as "enriched" (has `simplify`/`ci`/`coverage`) and "review-enriched" (also has `review`).
 
 ---
 
@@ -117,11 +140,19 @@ Best-effort measurement. Use `null` for any field the toolchain can't provide.
 ## Backward Compatibility Rules
 
 1. **New fields are always optional.** Consumers must never error on records missing fix cascade fields.
-2. **Absent objects = zero/null defaults.** If `simplify` is absent, treat as zero fixes. If `review` is absent, exclude from review aggregates.
+2. **Absent objects = zero/null defaults.** If `simplify` is absent, treat as zero fixes. If `review` is absent, the task hasn't been reviewed yet — exclude from review aggregates and FTQ calculation (do not treat as "passed").
 3. **Top-level `ci_fix_attempts` is kept.** The `ci.fix_attempts` field mirrors it for consistency. Consumers should read `ci.fix_attempts` first, fall back to `ci_fix_attempts`.
 4. **Old records are included in basic aggregates** (hours, retries, files changed) but excluded from fix cascade aggregates that require the new fields.
 
 ---
+
+## Writers
+
+| Writer | File | What It Writes | When |
+|--------|------|----------------|------|
+| **Dev-task (standalone)** | `dev-task.md` Step 12a-standalone | All fields except `review` | After PR creation |
+| **Dev-task (merge-mode)** | `dev-task.md` Step 12e.2 | All fields including `review` | After inline review + merge |
+| **Review** | `review.md` Step 10b | `review.*` fields (updates existing line) | After review verdict |
 
 ## Consumers
 

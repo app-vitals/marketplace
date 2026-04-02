@@ -597,7 +597,17 @@ Trigger PR Failure Cleanup (Step 11) and stop — do NOT proceed to Step 12. The
 
 ### When merge-mode is OFF (standalone)
 
-Print the handoff block:
+#### 12a-standalone. Append Metrics
+
+Append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist). See Step 12e.2 for the full field specification and `references/metrics-schema.md` for the schema.
+
+In standalone mode, **omit the `review` field** — Steps 12b-d don't run. The `/review` command will enrich this line with review data later (see review.md Step 10b).
+
+All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b).
+
+#### 12b-standalone. Print Handoff
+
+Print the handoff block with a quality summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -607,6 +617,13 @@ SHIP COMPLETE
 Branch: {branch-name}
 Commit: {short-sha} {commit-message}
 {PR: #{pr-number} {pr-url}  OR  PR: skipped}
+
+QUALITY
+-------
+Simplify:     {simplify_total} fixes {if > 0: ({category}: {count}, ...)}
+CI:           {Pass | {ci_fix_attempts} fix attempt(s)}
+Coverage:     {coverage_before}% → {coverage_after}% ({+/-}{coverage_delta}%)
+Requirements: {req_met}/{req_total} met{if req_partial > 0: , {req_partial} partial}
 
 NEXT STEPS
 ----------
@@ -676,9 +693,11 @@ Store these for use in Step 12e.2 metrics.
 1. Change task status from `[🔨]` to `[x] PR #{number}` in both Appendix and Feature Summary
 2. Commit: `chore: mark {task-id} done (PR #{number})`
 
-#### 12e.2. Append Metrics (merge-mode only)
+#### 12e.2. Append Metrics
 
 After marking done, append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist). See `references/metrics-schema.md` for the full field specification.
+
+> **Note:** In standalone mode, metrics are written earlier in Step 12a-standalone (without `review` data). This step only runs in merge-mode where the review has already completed inline.
 
 ```json
 {"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"ci_fix_attempts":{ci_attempt},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"ts":"{ISO timestamp}","simplify":{"total":{simplify_total},"dry":{simplify_dry},"dead_code":{simplify_dead_code},"naming":{simplify_naming},"complexity":{simplify_complexity},"consistency":{simplify_consistency}},"requirements":{"met":{req_met},"partial":{req_partial},"not_met":{req_not_met},"unverifiable":{req_unverifiable},"total":{req_total}},"review":{"verdict":"{review_verdict}","findings":{review_findings},"fixes_applied":{review_fixes_applied},"agents":{review_agents_json_array}},"ci":{"fix_attempts":{ci_attempt},"failures":{ci_failures_json_array}},"model":"{model_tier}","coverage":{"before":{coverage_before},"after":{coverage_after},"delta":{coverage_delta}}}
@@ -692,7 +711,7 @@ Field derivation:
 - `files_changed`: count from `git diff --stat main...{branch}` (before merge)
 - `simplify.*`: tallied in Step 8. All 0 if no simplify fixes were needed.
 - `requirements.*`: tallied in Step 9. If Step 9 was not reached, omit the `requirements` field entirely.
-- `review.*`: captured in Step 12c. Only present in merge-mode (Steps 12b-d). In standalone mode, omit the `review` field entirely.
+- `review.*`: captured in Step 12c (merge-mode only). In standalone mode, the `review` field is omitted — `/review` will enrich the metrics line later (see review.md Step 10b).
 - `ci.fix_attempts`: mirrors top-level `ci_fix_attempts`. `ci.failures`: from Step 11b.3 collection. Empty array `[]` if CI passed on first try.
 - `model`: from the task's Model field in the planning doc, or the current session model if not specified. Use `null` if unknown.
 - `coverage.*`: from Step 10 coverage gate. Use `null` for any field that couldn't be measured.

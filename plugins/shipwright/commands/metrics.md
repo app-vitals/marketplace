@@ -31,19 +31,20 @@ If no arguments provided, analyze all `planning/*/metrics.jsonl` files.
 1. Glob `planning/*/metrics.jsonl` (or `planning/{project}/metrics.jsonl` if project filter specified)
 2. If no files found:
    ```
-   No metrics data found. Run /dev-task --merge or /dev-loop to generate metrics.
+   No metrics data found. Run /dev-task to generate metrics.
    ```
    Stop.
 
 3. Read each file line by line, parse each line as JSON
 4. Filter by date range if `--from` and/or `--to` specified (compare against `ts` field)
 5. Categorize records:
-   - **Enriched**: has at least one of `simplify`, `review`, `ci` (nested object), or `coverage` fields
+   - **Enriched**: has at least one of `simplify`, `ci` (nested object), or `coverage` fields. Note: the `review` field may be absent on enriched records if `/review` hasn't run yet — this does NOT make them legacy.
+   - **Review-enriched**: enriched records that also have the `review` field (added by `/review` Step 10b)
    - **Legacy**: core fields only (v1.2.0 format)
 
 6. Print:
    ```
-   Loaded {N} records from {M} projects ({K} enriched, {N-K} legacy)
+   Loaded {N} records from {M} projects ({K} enriched, {R} with review data, {N-K} legacy)
    ```
 
 ---
@@ -59,9 +60,17 @@ A task has "first-time quality" if ALL of these are true:
 - `review.verdict == "SHIP IT"` (review passed clean)
 - `ci_fix_attempts == 0` (CI passed on first try)
 
+FTQ can only be computed for review-enriched records (records that have the `review` field). Tasks where `/review` hasn't run yet are excluded from FTQ calculation — they lack the review verdict needed for a complete quality assessment.
+
 ```
-ftq_rate = (count of first-time-quality tasks / count of enriched tasks) * 100
+ftq_rate = (count of first-time-quality tasks / count of review-enriched tasks) * 100
 ```
+
+If no review-enriched records exist, report a partial FTQ based on simplify + CI only:
+```
+partial_ftq_rate = (count where simplify.total == 0 AND ci_fix_attempts == 0 / count of enriched tasks) * 100
+```
+Label it: "Partial FTQ (review data pending): {rate}%"
 
 ### 3b. Simplify Phase
 
@@ -72,7 +81,7 @@ For enriched records with `simplify` data:
 
 ### 3c. Review Phase
 
-For enriched records with `review` data:
+For review-enriched records (records that have the `review` field — added by `/review` Step 10b):
 - Verdict distribution: count and percentage of SHIP IT / NEEDS FIXES / NEEDS WORK
 - Mean `review.findings` per task (finding density)
 - Mean `review.fixes_applied` per task
