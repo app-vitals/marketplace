@@ -19,6 +19,7 @@ Manual test scenarios for each command across different project types.
 | 17 | `/plan-session` | Any | Complexity scoring | Complexity column (1-5) in task table, scores correlate with task characteristics |
 | 18 | `/dev-loop` | Any | Cross-session handoff | Handoff section written after each batch, restored on restart |
 | 19 | `/dev-task --merge` | Any | Persistent metrics | metrics.jsonl appended after each merge, plan-session reads historical data |
+| 20 | `/dev-task` + `/dev-task --merge` | Any (with CI) | CI gate | Checks monitored, failures auto-fixed, merge conflicts resolved, max retries enforced |
 | 2 | `/plan-session` | Python (poetry) | API feature planning | Python toolchain, pytest commands, coverage threshold |
 | 3 | `/plan-session` | Rust (cargo) | CLI feature planning | Cargo commands, clippy in permissions |
 | 4 | `/plan-session` | Go | Service planning | Go commands, golangci-lint detection |
@@ -468,7 +469,7 @@ Run these across ALL scenarios to verify genericization:
 1. Complete any `/dev-task {task-id} --merge` on a task that has a Complexity score
 2. Verify:
    - [ ] `planning/{folder}/metrics.jsonl` exists after merge
-   - [ ] Contains exactly one new JSON line with fields: `task`, `title`, `estimated_h`, `actual_h`, `complexity`, `retries`, `pr`, `hotfixes`, `files_changed`, `ts`
+   - [ ] Contains exactly one new JSON line with fields: `task`, `title`, `estimated_h`, `actual_h`, `complexity`, `retries`, `ci_fix_attempts`, `pr`, `hotfixes`, `files_changed`, `ts`
    - [ ] `complexity` matches the task's Complexity field in the planning doc
    - [ ] `pr` matches the merged PR number
 
@@ -488,6 +489,102 @@ Run these across ALL scenarios to verify genericization:
 ### Graceful degradation
 1. Run `/plan-session` on a folder with NO `metrics.jsonl` — no errors, no warnings
 2. Run `/dev-loop` on a folder with NO `metrics.jsonl` — retrospective still runs using git timestamps
+
+---
+
+## Scenario 20: CI Gate (dev-task Step 11b)
+
+### Prerequisites
+1. A test repository with GitHub Actions CI configured (at least one workflow that runs on push/PR)
+2. A planning doc with an available task
+
+### Happy path — CI passes
+
+#### Setup
+1. Run `/dev-task {task-id}` on a task that will produce passing code
+
+#### Verify
+- [ ] Step 11b.1 runs `git fetch origin main && git merge origin/main` after PR creation
+- [ ] Step 11b.1 pushes updated branch with `git push`
+- [ ] Step 11b.2 runs `gh pr checks {pr-number} --watch` (blocks until checks finish)
+- [ ] On all checks passing, prints `✓ CI checks passed`
+- [ ] Proceeds to Step 12 (handoff in standalone, review+merge in merge-mode)
+
+### Happy path — no CI configured
+
+#### Setup
+1. Use a repo with no GitHub Actions workflows
+
+#### Verify
+- [ ] Step 11b.2 detects no checks (empty output)
+- [ ] Prints `⏭ No CI checks configured — skipping CI gate`
+- [ ] Proceeds to Step 12 without waiting
+
+### CI failure — auto-fix loop
+
+#### Setup
+1. Introduce a deliberate test failure that CI will catch (e.g., a failing assertion)
+2. Run `/dev-task {task-id} --merge`
+
+#### Verify
+- [ ] Step 11b.2 detects check failure after `--watch` completes
+- [ ] Step 11b.3 collects failure logs via `gh run list` and `gh run view --log`
+- [ ] Step 11b.4 prints `CI FIX: attempt 1/3` banner
+- [ ] Fix subagent is launched as `general-purpose` Agent type
+- [ ] Subagent receives: task context, failure logs, PR diff
+- [ ] Subagent fixes the issue, commits with `fix:` prefix, pushes
+- [ ] Loop returns to 11b.1 (updates from main again)
+- [ ] Step 11b.2 re-waits for CI
+- [ ] On success, prints `✓ CI checks passed (after 1 fix attempt(s))`
+- [ ] `ci_fix_attempts` recorded correctly in metrics.jsonl
+
+### Merge conflict handling
+
+#### Setup
+1. Start a dev-task on a branch
+2. While the task is in progress, merge a conflicting change to main from another branch
+3. Let dev-task reach Step 11b
+
+#### Verify
+- [ ] Step 11b.1 `git merge origin/main` detects conflicts
+- [ ] Merge is aborted (`git merge --abort`)
+- [ ] Jumps directly to 11b.4 fix loop with conflict context
+- [ ] Fix subagent prompt includes "Merging origin/main produced conflicts"
+- [ ] Subagent runs `git merge origin/main`, resolves conflicts, commits, pushes
+- [ ] Loop returns to 11b.1 for a clean merge (should succeed now)
+- [ ] CI gate proceeds normally after conflict resolution
+
+### Max retries exhausted — standalone mode
+
+#### Setup
+1. Create a scenario where CI will keep failing (e.g., environment-specific failure the agent can't fix)
+2. Run `/dev-task {task-id}` (standalone mode, no --merge)
+
+#### Verify
+- [ ] Fix loop runs 3 times (prints CI FIX banners for attempts 1/3, 2/3, 3/3)
+- [ ] After 3rd failure, prints `CI GATE FAILED` banner with failing check names
+- [ ] Pause point presents two options: (1) fix manually, (2) close PR and clean up
+- [ ] Choosing (2) triggers PR Failure Cleanup (orphan close, branch delete, status reset)
+- [ ] Does NOT proceed to Step 12
+
+### Max retries exhausted — merge-mode
+
+#### Setup
+1. Same failing scenario as above
+2. Run `/dev-task {task-id} --merge`
+
+#### Verify
+- [ ] Fix loop runs 3 times (no user pauses)
+- [ ] After 3rd failure, triggers PR Failure Cleanup automatically
+- [ ] Orphaned PR closed, branch deleted, task status reset to `[ ]`
+- [ ] Does NOT proceed to Step 12
+- [ ] When called from dev-loop, Phase 3a-retry picks up the reset task
+
+### Timeout handling
+
+#### Verify
+- [ ] `gh pr checks --watch` uses 10-minute Bash timeout (600000ms)
+- [ ] If timeout fires (stuck check), treated as a failure — enters fix loop
 
 ---
 
