@@ -285,7 +285,15 @@ After implementation completes, run a simplification pass:
    - **Complexity**: Over-engineered solutions that can be simplified
    - **Consistency**: Patterns that don't match the rest of the codebase
 3. Apply fixes using the Edit tool
-4. Run the detected typecheck command (if applicable) to verify types still pass after cleanup
+4. **Tally simplify fixes**: After applying fixes, count how many were applied in each category:
+   - `simplify_dry`: count of DRY violation fixes
+   - `simplify_dead_code`: count of dead code removals
+   - `simplify_naming`: count of naming improvements
+   - `simplify_complexity`: count of complexity reductions
+   - `simplify_consistency`: count of consistency fixes
+   - `simplify_total`: sum of above
+   Store these counts for use in Step 12e.2 metrics. If no fixes were needed, all counts are 0.
+5. Run the detected typecheck command (if applicable) to verify types still pass after cleanup
 
 ---
 
@@ -315,6 +323,14 @@ REQUIREMENTS VERIFICATION
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**Tally requirement statuses**: Count the verdicts from the table above:
+- `req_met`: count of MET criteria
+- `req_partial`: count of PARTIAL criteria
+- `req_not_met`: count of NOT_MET criteria
+- `req_unverifiable`: count of UNVERIFIABLE criteria
+- `req_total`: total criteria evaluated
+Store these counts for use in Step 12e.2 metrics.
 
 **Pause point:** If any criterion is PARTIAL or NOT MET, ask the user: "Some criteria have gaps. Continue shipping, or go back and address them?" **{In merge-mode, only pause if NOT MET criteria exist. PARTIAL is acceptable — auto-proceed.}**
 
@@ -350,6 +366,12 @@ COVERAGE REPORT
 ```
 
 **Coverage threshold**: Use the threshold from the planning doc's Project Metadata (default: 90%).
+
+**Capture coverage delta**: Record coverage measurements for metrics:
+- `coverage_before`: If the test framework reports a baseline (e.g., from a prior run on main, or a coverage badge), use it. Otherwise, set to `null`.
+- `coverage_after`: The line coverage percentage reported for changed packages (use the lowest package coverage if multiple).
+- `coverage_delta`: `coverage_after - coverage_before` if both are available, otherwise `null`.
+Store these values for use in Step 12e.2 metrics. Coverage measurement is best-effort — if the toolchain doesn't support baseline comparison, only `coverage_after` is populated.
 
 **Pause point:** If any coverage is below the threshold, warn the user:
 "Coverage for {package} is at {X}% (target: >{threshold}%). Add tests to bring it up, or continue anyway?" **{In merge-mode, skip this pause — log the warning and auto-proceed.}**
@@ -490,6 +512,8 @@ Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If t
 
 Collect all failure output into a single context block for the fix subagent. If `--failed` is not supported by the installed `gh` version, fall back to `gh run view {run-id} --log 2>&1 | tail -200`.
 
+4. **Record failure summary**: Append a one-line description of the CI failure to the `ci_failures[]` array (e.g., `"jest: 2 test suites failed"`, `"eslint: 4 lint errors in src/api/routes.ts"`, `"merge conflict with origin/main"`). Keep each entry under 100 characters. This array is written to metrics in Step 12e.2.
+
 ### 11b.4. Fix Loop
 
 Initialize: `ci_attempt = 0`, `ci_max_retries = 3`.
@@ -573,7 +597,17 @@ Trigger PR Failure Cleanup (Step 11) and stop — do NOT proceed to Step 12. The
 
 ### When merge-mode is OFF (standalone)
 
-Print the handoff block:
+#### 12a-standalone. Append Metrics
+
+Append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist). See Step 12e.2 for the full field specification and `references/metrics-schema.md` for the schema.
+
+In standalone mode, **omit the `review` field** — Steps 12b-d don't run. The `/review` command will enrich this line with review data later (see review.md Step 10b).
+
+All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b).
+
+#### 12b-standalone. Print Handoff
+
+Print the handoff block with a quality summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -583,6 +617,13 @@ SHIP COMPLETE
 Branch: {branch-name}
 Commit: {short-sha} {commit-message}
 {PR: #{pr-number} {pr-url}  OR  PR: skipped}
+
+QUALITY
+-------
+Simplify:     {simplify_total} fixes {if > 0: ({category}: {count}, ...)}
+CI:           {Pass | {ci_fix_attempts} fix attempt(s)}
+Coverage:     {coverage_before}% → {coverage_after}% ({+/-}{coverage_delta}%)
+Requirements: {req_met}/{req_total} met{if req_partial > 0: , {req_partial} partial}
 
 NEXT STEPS
 ----------
@@ -635,6 +676,13 @@ Collect findings, verify against source files, categorize.
 - **NEEDS FIXES** (only code quality issues, no AC gaps) → auto-fix all, no pause
 - **NEEDS WORK** (AC gaps) → **PAUSE** — requires human decision
 
+**Capture review metrics**: After the verdict is determined, record:
+- `review_verdict`: the verdict string (`"SHIP IT"`, `"NEEDS FIXES"`, or `"NEEDS WORK"`)
+- `review_findings`: total count of validated findings across all review agents
+- `review_fixes_applied`: count of findings that will be auto-fixed (`0` for SHIP IT, count for NEEDS FIXES)
+- `review_agents`: list of agent type names that were launched (e.g., `["code-reviewer", "silent-failure-hunter", "test-analyzer"]`)
+Store these for use in Step 12e.2 metrics.
+
 #### 12d. Fix Issues (if NEEDS FIXES)
 1. Apply fixes using Edit tool
 2. Run detected validation commands
@@ -645,12 +693,14 @@ Collect findings, verify against source files, categorize.
 1. Change task status from `[🔨]` to `[x] PR #{number}` in both Appendix and Feature Summary
 2. Commit: `chore: mark {task-id} done (PR #{number})`
 
-#### 12e.2. Append Metrics (merge-mode only)
+#### 12e.2. Append Metrics
 
-After marking done, append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist):
+After marking done, append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist). See `references/metrics-schema.md` for the full field specification.
+
+> **Note:** In standalone mode, metrics are written earlier in Step 12a-standalone (without `review` data). This step only runs in merge-mode where the review has already completed inline.
 
 ```json
-{"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"ci_fix_attempts":{ci_attempt},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"ts":"{ISO timestamp}"}
+{"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"ci_fix_attempts":{ci_attempt},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"ts":"{ISO timestamp}","simplify":{"total":{simplify_total},"dry":{simplify_dry},"dead_code":{simplify_dead_code},"naming":{simplify_naming},"complexity":{simplify_complexity},"consistency":{simplify_consistency}},"requirements":{"met":{req_met},"partial":{req_partial},"not_met":{req_not_met},"unverifiable":{req_unverifiable},"total":{req_total}},"review":{"verdict":"{review_verdict}","findings":{review_findings},"fixes_applied":{review_fixes_applied},"agents":{review_agents_json_array}},"ci":{"fix_attempts":{ci_attempt},"failures":{ci_failures_json_array}},"model":"{model_tier}","coverage":{"before":{coverage_before},"after":{coverage_after},"delta":{coverage_delta}}}
 ```
 
 Field derivation:
@@ -659,8 +709,14 @@ Field derivation:
 - `retries`: 0 in standalone dev-task; passed from dev-loop retryMap when called via dev-loop
 - `ci_fix_attempts`: number of CI fix subagent attempts in Step 11b (0 if CI passed on first try or no CI configured)
 - `files_changed`: count from `git diff --stat main...{branch}` (before merge)
+- `simplify.*`: tallied in Step 8. All 0 if no simplify fixes were needed.
+- `requirements.*`: tallied in Step 9. If Step 9 was not reached, omit the `requirements` field entirely.
+- `review.*`: captured in Step 12c (merge-mode only). In standalone mode, the `review` field is omitted — `/review` will enrich the metrics line later (see review.md Step 10b).
+- `ci.fix_attempts`: mirrors top-level `ci_fix_attempts`. `ci.failures`: from Step 11b.3 collection. Empty array `[]` if CI passed on first try.
+- `model`: from the task's Model field in the planning doc, or the current session model if not specified. Use `null` if unknown.
+- `coverage.*`: from Step 10 coverage gate. Use `null` for any field that couldn't be measured.
 
-This step is silent — no output. JSONL format means one JSON object per line; append-only.
+This step is silent — no output. JSONL format means one JSON object per line; append-only. Old metrics.jsonl files without the new fields remain valid — see `references/metrics-schema.md` for backward compatibility rules.
 
 #### 12f. Learning Capture (Optional)
 Check if the `learning-loop` plugin is available by checking if `/learn` skill exists.

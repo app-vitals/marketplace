@@ -1,4 +1,4 @@
-# Shipwright
+# Shipwright v1.4.0
 
 A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, and perform multi-agent code reviews — for any software project.
 
@@ -18,6 +18,7 @@ A shipwright builds ships. This one ships software.
 | `/dev-task {task-id}` | Single task execution — branch, implement, test, simplify, review, PR |
 | `/dev-task {task-id} --merge` | Same as above, but auto-merges after review (used by dev-loop) |
 | `/dev-loop {folder?}` | Autonomous continuous dev — picks next task, runs dev-task --merge in a loop |
+| `/metrics {project?}` | Analyze pipeline metrics — fix cascade trends, quality rates, and recommendations |
 | `/refresh-plan {folder}` | Syncs planning doc against current codebase state |
 | `/review` | Auto-detecting multi-agent code review for the current branch |
 
@@ -85,6 +86,31 @@ Updates stale tasks in a planning doc:
 - Regenerates context fields
 - Marks already-met acceptance criteria
 
+### 6. Metrics
+
+Analyzes pipeline metrics across planning sessions to measure code quality and identify improvements:
+
+```
+/metrics                              # all projects, all time
+/metrics my-project                   # single project
+/metrics --from 2026-03-01            # date filter
+/metrics --compare projectA projectB  # side-by-side
+/metrics --export posthog             # push to PostHog
+```
+
+**The fix cascade** — Shipwright's dev-task pipeline has three phases after initial implementation that catch and fix issues: Simplify (Step 8), PR Review (Steps 12b-d), and CI Gate (Step 11b). Each fix applied in these phases is a signal that upstream code generation could be better. `/metrics` measures this rework and tracks it over time.
+
+Key metrics:
+- **First-time quality rate** — % of tasks that ship with zero simplify fixes, a clean review verdict, and CI passing on first try
+- **Simplify fix breakdown** — DRY violations, dead code, naming, complexity, consistency
+- **Review verdict distribution** — SHIP IT / NEEDS FIXES / NEEDS WORK
+- **CI first-pass rate** — % of PRs where CI passes without fix attempts
+- **Coverage trend** — whether test coverage is improving or declining
+
+The command also generates actionable recommendations (e.g., "Simplify is catching 4.2 DRY violations per task — consider adding DRY enforcement to implementation prompts").
+
+**PostHog export:** Use `--export posthog` to push metrics to PostHog for historical dashboards. Requires `POSTHOG_PROJECT_API_KEY` environment variable. See the command for setup instructions.
+
 ## Toolchain Support
 
 Shipwright auto-detects your project's toolchain and adapts all commands accordingly:
@@ -110,6 +136,7 @@ Shipwright works standalone using Claude Code's built-in agent types (`feature-d
 |--------|--------|---------|-----------------|
 | `learning-loop` | [app-vitals marketplace](https://github.com/app-vitals/marketplace) | `/review`, `/dev-task --merge` | After code review, captures patterns and recurring issues as learnings, then promotes them to CLAUDE.md so the project gets smarter over time |
 | `frontend-design` | [Claude Code plugins](https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design) | `/dev-task` | When a task is tagged with `Design Skill: frontend-design` in the planning doc, produces distinctive, high-quality UI instead of generic AI-generated interfaces |
+| `posthog` (optional) | [PostHog plugin](https://github.com/PostHog/posthog-mcp) | `/metrics --export posthog` | Enables pushing pipeline metrics to PostHog for historical dashboards and trend visualization. Only needs `POSTHOG_PROJECT_API_KEY` env var — the MCP server is optional for querying |
 
 ### How Plugin Checks Work
 
@@ -158,9 +185,11 @@ shipwright/
 │   ├── plan-session.md          # Planning session workflow
 │   ├── dev-task.md              # Single task execution
 │   ├── dev-loop.md              # Autonomous continuous loop
+│   ├── metrics.md               # Pipeline metrics analysis
 │   ├── refresh-plan.md          # Planning doc refresh
 │   └── review.md                # Multi-agent code review
 ├── references/
+│   ├── metrics-schema.md        # Metrics JSONL schema reference
 │   ├── planning-doc-template.md # Task breakdown document template
 │   └── toolchain-patterns.md    # Config file → command mapping
 ├── README.md

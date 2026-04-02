@@ -588,11 +588,63 @@ Run these across ALL scenarios to verify genericization:
 
 ---
 
+## Enriched Metrics (v1.4.0+)
+
+### dev-task measurement points
+
+#### Verify
+- [ ] Step 8 (Simplify): tallies fix counts by category (dry, dead_code, naming, complexity, consistency)
+- [ ] Step 9 (Requirements): counts MET/PARTIAL/NOT_MET/UNVERIFIABLE verdicts
+- [ ] Step 10 (Coverage): captures coverage_before, coverage_after, coverage_delta (best-effort)
+- [ ] Step 11b.3: records one-line CI failure descriptions in ci_failures array
+- [ ] Step 12c: captures review_verdict, review_findings, review_fixes_applied, review_agents
+- [ ] Step 12e.2: JSONL line includes all new fields (simplify, requirements, review, ci, model, coverage)
+
+### Backward compatibility
+
+#### Verify
+- [ ] Old metrics.jsonl files (without fix cascade fields) are still valid JSONL
+- [ ] dev-loop retrospective handles mixed old + enriched records (excludes old from fix cascade aggregates)
+- [ ] plan-session Phase 4 shows only estimation accuracy line if no enriched fields exist
+- [ ] `/metrics` command loads and analyzes old-format records alongside enriched ones
+
+### /metrics command
+
+#### Verify: No data
+- [ ] With no metrics.jsonl files: prints "No metrics data found" message and stops
+
+#### Verify: Basic analysis
+- [ ] Loads records from all planning/*/metrics.jsonl files
+- [ ] Reports record count, project count, enriched vs legacy count
+- [ ] Computes fix cascade aggregates (first-time quality rate, simplify breakdown, review distribution, CI pass rate)
+- [ ] Computes estimation accuracy by complexity tier
+
+#### Verify: Filtering
+- [ ] Project name filter: only reads planning/{name}/metrics.jsonl
+- [ ] Date range: --from and --to filter records by ts field
+- [ ] Compare mode: side-by-side table for two projects
+
+#### Verify: Trends
+- [ ] With 10+ enriched records: splits into halves and computes improving/declining/stable
+- [ ] With <10 enriched records: prints "Not enough data" message
+
+#### Verify: Recommendations
+- [ ] Generates 1-3 actionable recommendations based on threshold rules
+- [ ] When all metrics are healthy: prints "All metrics are within healthy ranges"
+
+#### Verify: PostHog export
+- [ ] With POSTHOG_PROJECT_API_KEY set: sends batch events via curl
+- [ ] Without API key: prints setup instructions and skips export gracefully
+- [ ] Reports event counts per event type after export
+
+---
+
 ## Versioning Checklist (for every PR to this repo)
 
 - [ ] Does this PR change any file under `commands/`, `skills/`, `agents/`, or `hooks/`?
   - **Yes** → bump `plugins/shipwright/.claude-plugin/plugin.json` version (patch for fixes, minor for features)
   - **No** (docs-only, like ADOPTION-ROADMAP.md) → no version bump needed
+- [ ] Bump `plugins/shipwright/README.md` version in heading (if present)
 - [ ] Bump `.claude-plugin/marketplace.json` version whenever any plugin version changes
 - [ ] Version bump is in the **same PR** as command changes — never separate
 - [ ] After merging: verify `/plugin marketplace update` + `/plugin update shipwright` picks up the new version

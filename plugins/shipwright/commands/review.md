@@ -257,6 +257,29 @@ If the verdict is **SHIP IT**:
 
 If the verdict is not SHIP IT, skip this step.
 
+## Step 10b: Enrich Metrics with Review Data
+
+After the review verdict is determined, update the task's metrics record with review data. This enriches the record that `/dev-task` wrote (which omitted `review` in standalone mode).
+
+1. Find the planning doc folder for this task (already known from Step 2)
+2. Read `planning/{folder-name}/metrics.jsonl`
+3. Find the JSON line where the `task` field matches the current task ID
+4. Parse the JSON object and add the `review` fields:
+   ```json
+   "review": {
+     "verdict": "{verdict from Step 7}",
+     "findings": {count of validated findings from Step 5},
+     "fixes_applied": {count of fixes applied in Step 8},
+     "agents": ["code-reviewer", "silent-failure-hunter", ...]
+   }
+   ```
+5. Write the updated JSON line back to `metrics.jsonl`, replacing the original line for this task
+6. **Edge case:** If no metrics line exists for this task (dev-task ran before v1.4.0 or metrics were not written), append a new line with `task`, `title`, `ts` (current timestamp), and `review` fields only. This partial record will be excluded from non-review aggregates by `/metrics` but included in review aggregates.
+
+This step runs regardless of the verdict (SHIP IT, NEEDS FIXES, or NEEDS WORK) — all verdicts are valuable data.
+
+This step is silent — no output to the user.
+
 ## Step 11: Learning Capture (Optional)
 
 Check if the `learning-loop` plugin is available (look for `/learn` in available skills).

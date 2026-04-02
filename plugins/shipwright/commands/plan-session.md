@@ -164,11 +164,19 @@ Each task gets a **Complexity** score (1–5). Add a `Complexity` column to the 
 
 **Scoring inputs:** files touched (from Location field), layers crossed, new code vs. modification, test requirements, dependency count.
 
-If `planning/$ARGUMENTS/metrics.jsonl` exists from prior runs, read it and report estimation accuracy before assigning hours:
+If `planning/$ARGUMENTS/metrics.jsonl` exists from prior runs, read it and report estimation accuracy and fix cascade trends before assigning hours:
+
 ```
-Historical data ({N} tasks): avg estimation error {+/-N}%, {layer} tasks are the primary driver.
-Consider adjusting estimates accordingly.
+Historical data ({N} tasks):
+  Estimation:          avg error {+/-N}%, {layer} tasks are the primary driver
+  First-time quality:  {ftq_rate}% of tasks needed zero post-implementation fixes
+  Top simplify issue:  {category} ({avg} avg/task)
+  Review:              {ship_it_pct}% SHIP IT on first pass
+  CI:                  {ci_first_pass_pct}% pass on first try
+Consider adjusting estimates and implementation briefs accordingly.
 ```
+
+If the metrics.jsonl has no enriched fix cascade fields (v1.2.0 format), show only the estimation accuracy line.
 If no `metrics.jsonl` exists, skip this step silently.
 
 ### Test Task Generation Rules
