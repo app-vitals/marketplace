@@ -444,7 +444,7 @@ Efficiency:
 
 {If fix cascade data exists (any task has simplify/review/ci fields):}
 Fix Cascade:
-  First-time quality:  {ftq_rate}% ({ftq_count}/{enriched_count} tasks needed zero post-impl fixes)
+  First-time quality:  {ftq_rate}% ({ftq_count}/{review_enriched_count} tasks needed zero post-impl fixes)
   Simplify fixes:      {mean_simplify} avg/task (DRY {dry_avg} | Dead code {dc_avg} | Naming {name_avg} | Complexity {cx_avg} | Consistency {con_avg})
   Review verdicts:     {ship_it_count} SHIP IT / {needs_fixes_count} NEEDS FIXES / {needs_work_count} NEEDS WORK
   CI first-pass rate:  {ci_first_pass_rate}%

@@ -157,7 +157,7 @@ Enriched: {K}/{N} records have fix cascade data
 
 FIX CASCADE
 ───────────
-First-time quality:  {ftq_rate}% ({ftq_count}/{enriched_count} tasks)
+First-time quality:  {ftq_rate}% ({ftq_count}/{review_enriched_count} tasks)
   ↳ Zero simplify fixes AND SHIP IT verdict AND CI pass on first try
 
 Simplify:
@@ -267,7 +267,7 @@ Build a batch of events from the metrics.jsonl records and send them via the Pos
 | `shipwright_ci_gate` | Records with `ci` data or `ci_fix_attempts > 0` | `task_id`, `project`, `fix_attempts`, `passed_first_try` (boolean), `failure_descriptions` (comma-joined string) |
 | `shipwright_coverage` | Records with `coverage` data | `task_id`, `project`, `before`, `after`, `delta` |
 
-Use `shipwright/{project}/{task_id}` as the `distinct_id` for each event. Set `timestamp` to the record's `ts` field so PostHog orders events correctly.
+Use `shipwright/{project}/{task_id}` as the `distinct_id` for each event. Set `timestamp` to the record's `ts` field so PostHog orders events correctly. Include a `$insert_id` property in every event, set to `{event_name}/{project}/{task_id}` — this enables PostHog deduplication so re-exports are safe.
 
 **Send via batch API:**
 
@@ -283,7 +283,10 @@ curl -s -X POST "{POSTHOG_HOST}/batch/" \
         "event": "shipwright_task_completed",
         "distinct_id": "shipwright/{project}/{task_id}",
         "timestamp": "{ts}",
-        "properties": { ... }
+        "properties": {
+          "$insert_id": "shipwright_task_completed/{project}/{task_id}",
+          ...
+        }
       }
     ]
   }'
@@ -308,7 +311,7 @@ PostHog export complete:
     {coverage_events} shipwright_coverage
 ```
 
-**Note:** This is a batch export, not a real-time hook. Run `/metrics --export posthog` after a dev-loop completes to push all accumulated data. PostHog deduplicates on `distinct_id` + `timestamp`, so re-running the export is safe.
+**Note:** This is a batch export, not a real-time hook. Run `/metrics --export posthog` after a dev-loop completes to push all accumulated data. Each event includes a deterministic `$insert_id` so PostHog deduplicates on re-export — running this multiple times is safe.
 
 ---
 
