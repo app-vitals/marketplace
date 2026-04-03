@@ -72,6 +72,10 @@ validate_file() {
       fi
       ;;
     skill)
+      if ! echo "$frontmatter" | grep -q '^name:'; then
+        echo "ERROR: $file (skill): missing required \"name\" field"
+        file_errors=$((file_errors + 1))
+      fi
       if ! echo "$frontmatter" | grep -qE '^(description:|when_to_use:)'; then
         echo "ERROR: $file (skill): missing required \"description\" field"
         file_errors=$((file_errors + 1))
