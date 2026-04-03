@@ -200,6 +200,7 @@ For the next completed review:
 
 3. **Verify and trim** the review content:
    - **Always verify claims against the actual PR diff** using `gh pr diff <number>` (NOT `git diff main...HEAD` which may include unrelated commits from the checked-out branch)
+   - Cloud agent reviews can be stale — if the branch was updated after the review was queued, check `git log --oneline origin/<branch> -5` to see if fix commits already address the findings
    - Cloud agent reviews often have false positives on "critical" findings — check the code before trusting severity ratings
    - Cloud agent reviews tend to be verbose (~400+ lines) — trim to essentials before presenting
    - Apply the same "keep it tight" standard from `/review-pr`: 2-5 actionable items, drop low-confidence nitpicks
