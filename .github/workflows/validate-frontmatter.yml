@@ -1,0 +1,35 @@
+name: Validate Frontmatter
+
+on:
+  pull_request:
+    paths:
+      - '**/agents/*.md'
+      - '**/skills/*/SKILL.md'
+      - '**/commands/*.md'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed frontmatter files
+        id: changed
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILES=$(gh pr diff "$PR_NUMBER" --name-only --diff-filter=AMRC | grep -E '(agents/.*\.md|skills/.*/SKILL\.md|commands/.*\.md)$' || true)
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Validate frontmatter
+        if: steps.changed.outputs.files != ''
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          echo "$CHANGED_FILES" | while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            bash .github/scripts/validate-frontmatter.sh "$file"
+          done

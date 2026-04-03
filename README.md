@@ -88,7 +88,7 @@ No commands — hooks activate automatically on install.
 /plugin install shipwright@app-vitals/marketplace
 ```
 
-`/plan-session` · `/dev-task` · `/dev-loop` · `/metrics` · `/refresh-plan` · `/review` · `/audit`
+`/plan-session` · `/dev-task` · `/dev-loop` · `/metrics` · `/refresh-plan` · `/review`
 
 ### terraform
 

@@ -57,9 +57,12 @@ When modifying plugins:
 
 ### Versioning
 
-When bumping a plugin version:
-1. Update `plugins/<plugin-name>/.claude-plugin/plugin.json` (version field)
-2. Update `plugins/<plugin-name>/README.md` (version in heading, if present)
-3. Update `.claude-plugin/marketplace.json` (both root version and plugin entry version)
+When bumping a plugin version, update all of these:
+1. `plugins/<plugin-name>/.claude-plugin/plugin.json` — the `version` field
+2. `README.md` (repo root) — version column in the plugin table
+3. `.claude-plugin/marketplace.json` — the root `version` field (bump patch)
+4. `plugins/<plugin-name>/README.md` — version in heading, if present (currently only shipwright)
 
-Keep all version numbers in sync across all three locations.
+Note: Plugin entries in marketplace.json do NOT have version fields — only `name`, `description`, and `source`.
+
+See `skills/marketplace-dev/SKILL.md` for the full development guide with checklists.

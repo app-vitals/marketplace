@@ -9,29 +9,14 @@
   },
   "plugins": [
     {
-      "name": "ralph-orchestrator",
-      "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches",
-      "source": "./plugins/ralph-orchestrator"
-    },
-    {
       "name": "damage-control",
       "description": "Defense-in-depth protection for Claude Code. Blocks dangerous commands and protects sensitive files via PreToolUse hooks. Features pattern-based blocking, ask confirmations, and three-tier path protection.",
       "source": "./plugins/damage-control"
     },
     {
-      "name": "learning-loop",
-      "description": "Captures corrections, discoveries, and preferences as you work with Claude. Stores learnings in CLAUDE.md, promotes to global scope, and helps contribute improvements back to marketplace plugins.",
-      "source": "./plugins/learning-loop"
-    },
-    {
-      "name": "pr-review",
-      "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, auto-detected follow-ups, and parallel batch processing via cloud-agent.",
-      "source": "./plugins/pr-review"
-    },
-    {
-      "name": "meeting-transcripts",
-      "description": "Browse and read meeting transcripts captured by the mt CLI tool. Provides a /transcripts command to list, search, and read recordings by time reference.",
-      "source": "./plugins/meeting-transcripts"
+      "name": "dependabot-review",
+      "description": "AI-powered triage of Dependabot PRs. Posts patrol-style risk assessments on individual PRs and bulk-processes all open Dependabot PRs to get them merge-ready.",
+      "source": "./plugins/dependabot-review"
     },
     {
       "name": "distill",
@@ -39,9 +24,34 @@
       "source": "./plugins/distill"
     },
     {
-      "name": "dependabot-review",
-      "description": "AI-powered triage of Dependabot PRs. Posts patrol-style risk assessments on individual PRs and bulk-processes all open Dependabot PRs to get them merge-ready.",
-      "source": "./plugins/dependabot-review"
+      "name": "entropy-patrol",
+      "description": "Continuous code health enforcement via golden principles. Scans for drift and opens focused PRs to fix it.",
+      "source": "./plugins/entropy-patrol"
+    },
+    {
+      "name": "learning-loop",
+      "description": "Captures corrections, discoveries, and preferences as you work with Claude. Stores learnings in CLAUDE.md, promotes to global scope, and helps contribute improvements back to marketplace plugins.",
+      "source": "./plugins/learning-loop"
+    },
+    {
+      "name": "meeting-transcripts",
+      "description": "Browse and read meeting transcripts captured by the mt CLI tool. Provides a /transcripts command to list, search, and read recordings by time reference.",
+      "source": "./plugins/meeting-transcripts"
+    },
+    {
+      "name": "pr-review",
+      "description": "Interactive PR review workflow with local drafts, CLAUDE.md compliance checking, auto-detected follow-ups, and parallel batch processing via cloud-agent.",
+      "source": "./plugins/pr-review"
+    },
+    {
+      "name": "ralph-orchestrator",
+      "description": "Structured orchestration for Ralph loops with PRD support, progress tracking, TDD guidance, and escape hatches",
+      "source": "./plugins/ralph-orchestrator"
+    },
+    {
+      "name": "repo-readiness",
+      "description": "Agent-readiness audit and bootstrapping. Scores a repo across 5 categories (agent context, docs, structure, tests, observability) and generates missing assets with --fix. Run before /plan-session on a new codebase.",
+      "source": "./plugins/repo-readiness"
     },
     {
       "name": "shipwright",
@@ -52,16 +62,6 @@
       "name": "terraform",
       "description": "Opinionated Terraform best practices for Claude Code. Enforces exact version pinning, conservative tagging, pre-commit validation, Terratest generation, state isolation, module composition, variable validation, and naming conventions.",
       "source": "./plugins/terraform"
-    },
-    {
-      "name": "entropy-patrol",
-      "description": "Continuous code health enforcement via golden principles. Scans for drift and opens focused PRs to fix it.",
-      "source": "./plugins/entropy-patrol"
-    },
-    {
-      "name": "repo-readiness",
-      "description": "Agent-readiness audit and bootstrapping. Scores a repo across 5 categories (agent context, docs, structure, tests, observability) and generates missing assets with --fix. Run before /plan-session on a new codebase.",
-      "source": "./plugins/repo-readiness"
     }
   ]
 }
