@@ -1,6 +1,6 @@
 {
   "name": "research",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lazy-loads project docs and runs web research in an isolated sub-agent. Scans docs/, selects task-relevant files, optionally web searches, and returns distilled context — never raw dumps.",
   "author": {
     "name": "app-vitals",

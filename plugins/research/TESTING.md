@@ -74,6 +74,65 @@ Manual test plan for the research plugin.
 
 ---
 
+## /research-docs Command Tests
+
+### Test 6: Full Audit With Existing Docs
+
+**Setup:** Open a project with a `docs/` directory that has some but not all modules documented (e.g., vitals-os).
+
+**Command:** `/research-docs`
+
+**Verify:**
+- [ ] Detects project structure (modules, services)
+- [ ] Lists existing docs as CURRENT
+- [ ] Identifies missing docs (e.g., api-accounts.md)
+- [ ] Identifies stale docs (if any references are outdated)
+- [ ] Presents audit summary before writing anything
+- [ ] Waits for user confirmation
+
+---
+
+### Test 7: Single Module Focus
+
+**Setup:** Open a project with a `docs/` directory.
+
+**Command:** `/research-docs accounts`
+
+**Verify:**
+- [ ] Focuses only on the accounts module
+- [ ] Reads accounts source code (routes, models, handlers)
+- [ ] Generates doc following existing naming convention
+- [ ] Does not touch other docs
+
+---
+
+### Test 8: No Docs Directory
+
+**Setup:** Open a project with no `docs/` directory.
+
+**Command:** `/research-docs`
+
+**Verify:**
+- [ ] Creates `docs/` directory
+- [ ] Identifies all modules as missing docs
+- [ ] Generates docs following sensible defaults
+- [ ] Updates CLAUDE.md references if applicable
+
+---
+
+### Test 9: Style Detection
+
+**Setup:** Open a project with existing docs that use a specific style (tables, ASCII diagrams, etc.).
+
+**Command:** `/research-docs`
+
+**Verify:**
+- [ ] Generated docs match the naming convention of existing docs
+- [ ] Generated docs use the same heading structure and content patterns
+- [ ] Does not overwrite or reformat existing current docs
+
+---
+
 ## Regression Checklist
 
 Before shipping:

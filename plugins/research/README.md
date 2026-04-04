@@ -26,6 +26,23 @@ Load relevant docs and research for a given task.
 /research what's the data model for time entries
 ```
 
+### /research-docs
+
+Analyze the codebase and generate or update project documentation. Like `/init` but for your `docs/` directory.
+
+**Usage:**
+```
+/research-docs                  # audit entire project
+/research-docs billing          # focus on one module
+```
+
+**What it does:**
+1. Scans your project structure to identify modules, services, and APIs
+2. Audits existing `docs/` for gaps (missing docs) and staleness (outdated references)
+3. Presents an audit summary and asks what to generate/update
+4. Writes new docs and updates stale ones, matching your project's existing doc style
+5. Updates `CLAUDE.md` references if applicable
+
 ## How It Works
 
 1. Detects your project's docs directory (`docs/`, `documentation/`, or `doc/`)
