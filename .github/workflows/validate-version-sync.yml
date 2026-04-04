@@ -1,0 +1,18 @@
+name: Validate Version Sync
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - '.claude-plugin/marketplace.json'
+      - 'README.md'
+      - 'CLAUDE.md'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version sync
+        run: bash .github/scripts/validate-version-sync.sh

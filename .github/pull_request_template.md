@@ -8,11 +8,13 @@
 
 ## Checklist
 
-- [ ] **Version bumped** — `plugin.json` version incremented (skip for docs-only changes that don't touch `commands/`, `skills/`, `agents/`, or `hooks/`)
-- [ ] **Marketplace version bumped** — `.claude-plugin/marketplace.json` version incremented (if any plugin version changed)
-- [ ] **README updated** — Plugin README version badge matches `plugin.json`
+- [ ] **plugin.json version bumped** — `plugins/<name>/.claude-plugin/plugin.json` version incremented (skip for docs-only changes)
+- [ ] **README table updated** — Version in root `README.md` plugin table matches `plugin.json`
+- [ ] **Marketplace version bumped** — Root `version` in `.claude-plugin/marketplace.json` incremented
+- [ ] **Plugin README updated** — Version in heading updated, if present (currently only shipwright)
+- [ ] **Descriptions in sync** — If description changed, updated in plugin.json, marketplace.json entry, README table, and CLAUDE.md
 - [ ] **TESTING.md scenarios run** — List which scenarios were tested below
-- [ ] **Smoke tests added** — For new features, added lightweight artifact checks to TESTING.md
+- [ ] **CI checks pass** — `validate-marketplace`, `validate-frontmatter`, `validate-version-sync`
 
 ## Testing
 
