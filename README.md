@@ -21,9 +21,10 @@ Add this marketplace to Claude Code:
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.0 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
 | [dependabot-review](plugins/dependabot-review/README.md) | 0.1.0 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
-| [shipwright](plugins/shipwright/README.md) | 1.4.0 | Structured dev pipeline — plan, build, review, ship |
+| [shipwright](plugins/shipwright/README.md) | 1.5.0 | Structured dev pipeline — plan, build, review, ship |
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
 | [entropy-patrol](plugins/entropy-patrol/README.md) | 0.2.0 | Continuous code health enforcement via golden principles |
+| [research](plugins/research/README.md) | 0.2.0 | Lazy-load project docs and web research in an isolated sub-agent |
 | [repo-readiness](plugins/repo-readiness/README.md) | 0.1.0 | Agent-readiness audit and bootstrapping for codebases |
 
 ### ralph-orchestrator
@@ -105,6 +106,14 @@ No commands — skill activates automatically when working with `.tf` or `.tfvar
 ```
 
 `/entropy-scan` · `/entropy-fix`
+
+### research
+
+```
+/plugin install research@app-vitals/marketplace
+```
+
+`/research` · `/research-docs`
 
 ### repo-readiness
 

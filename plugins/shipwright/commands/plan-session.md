@@ -20,6 +20,7 @@ Check if the following plugins are installed by looking for their skills in the 
 |--------|-----------|---------|
 | `learning-loop` | `/learn` skill | Phase 7 (Permission pre-flight — adds skill permissions) |
 | `frontend-design` | `frontend-design` skill | Phase 4 (Design Skill tagging for UI tasks) |
+| `research` | `research` skill | Phase 2 (loads relevant project docs to enrich context) |
 
 If any are missing, present:
 
@@ -35,6 +36,8 @@ MISSING:
     Install: /plugin install learning-loop@app-vitals/marketplace
   ✗ frontend-design — high-quality UI for design-tagged tasks
     Install: /plugin install frontend-design
+  ✗ research — loads task-relevant project docs automatically
+    Install: /plugin install research@app-vitals/marketplace
 
 INSTALLED:
   ✓ {installed plugins}
@@ -101,6 +104,7 @@ Refer to `references/toolchain-patterns.md` for the full detection lookup table.
 ## Phase 2: Input Analysis & Requirements Extraction
 
 1. Read each document (PDF, markdown, images) in the planning folder using the Read tool
+1b. **Enrich with project docs** (if `research` plugin is available): Spawn the research agent via the Agent tool to load task-relevant project documentation. Pass the list of features/epics identified so far as the task description. Use the agent's output to inform the requirements analysis in step 2 — it surfaces existing architectural decisions, data models, API contracts, and constraints. If the research plugin is not available, skip this step silently.
 2. For each document, extract:
    - Features or epics described
    - Specific requirements and acceptance criteria
