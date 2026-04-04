@@ -109,6 +109,18 @@ Falls back to top-level `ci_fix_attempts` if the `ci` object is absent.
 
 Read from the planning doc's Model column. `null` if not specified (pre-model-routing planning docs).
 
+#### `research` — Step 7a research context loading
+
+| Field | Type | Default if Absent | Description |
+|-------|------|-------------------|-------------|
+| `research.docs_scanned` | integer | `0` | Total docs found in the project's docs/ directory |
+| `research.docs_selected` | integer | `0` | Docs deemed relevant to the task and loaded |
+| `research.docs_loaded` | string[] | `[]` | Filenames of the selected docs (e.g., `["architecture.md", "api-billing.md"]`) |
+| `research.web_search` | boolean | `false` | Whether web search was triggered (local docs had gaps) |
+| `research.web_queries` | integer | `0` | Number of web search queries run |
+
+Omit the `research` object entirely if the research plugin was not available or not invoked for this task.
+
 #### `coverage` — Step 10 coverage delta
 
 | Field | Type | Default if Absent | Description |
@@ -177,3 +189,5 @@ These are computed by consumers, not stored in the JSONL:
 | **CI first-pass rate** | % tasks with `ci_fix_attempts == 0` | Higher = fewer CI surprises |
 | **Estimation accuracy** | `mean((actual_h / estimated_h) - 1) * 100` | Closer to 0% = better estimates |
 | **Coverage trend** | Mean `coverage.delta` over time | Positive = coverage improving |
+| **Research hit rate** | Mean `research.docs_selected / research.docs_scanned` | Higher = docs are well-organized and relevant |
+| **Web search frequency** | % tasks with `research.web_search == true` | Higher = local docs have more gaps |

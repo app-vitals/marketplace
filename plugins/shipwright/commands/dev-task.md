@@ -244,7 +244,7 @@ Execute the implementation using the prompt from Step 5. This is a self-containe
 ### 7a. Discovery
 1. Read `CLAUDE.md` to understand project conventions
 2. Read all files listed in the Technical Details section
-3. **Load project docs** (if `research` plugin is available): Spawn the research agent via the Agent tool with the task ID, title, description, and layer. Use the agent's output to inform architecture decisions and implementation patterns in steps 7b and 7c. If the research plugin is not available, skip this step silently.
+3. **Load project docs** (if `research` plugin is available): Spawn the research agent via the Agent tool with the task ID, title, description, and layer. Use the agent's output to inform architecture decisions and implementation patterns in steps 7b and 7c. If the research plugin is not available, skip this step silently. **Metrics:** Extract the `### Metrics` block from the agent's output and store for Step 12e.2: `docs_scanned`, `docs_selected`, `docs_loaded` (as JSON array), `web_search` (boolean), `web_queries` (integer).
 4. If Design Skill is specified, check if that skill is available and invoke it if so
 5. Understand the existing patterns, naming conventions, and architecture
 
@@ -719,6 +719,7 @@ Field derivation:
 - `ci.fix_attempts`: mirrors top-level `ci_fix_attempts`. `ci.failures`: from Step 11b.3 collection. Empty array `[]` if CI passed on first try.
 - `model`: from the task's Model field in the planning doc, or the current session model if not specified. Use `null` if unknown.
 - `coverage.*`: from Step 10 coverage gate. Use `null` for any field that couldn't be measured.
+- `research.*`: from Step 7a research agent output. Omit the `research` field entirely if the research plugin was not available or not invoked.
 
 This step is silent — no output. JSONL format means one JSON object per line; append-only. Old metrics.jsonl files without the new fields remain valid — see `references/metrics-schema.md` for backward compatibility rules.
 

@@ -99,7 +99,14 @@ For enriched records with `coverage` data:
 - Mean `coverage.delta`
 - Mean `coverage.after`
 
-### 3f. Estimation Accuracy
+### 3f. Research Context Loading
+
+For enriched records with `research` data:
+- Mean `research.docs_selected / research.docs_scanned` (research hit rate — what fraction of docs are relevant per task)
+- Web search frequency: % of tasks where `research.web_search == true`
+- Most loaded docs: rank `research.docs_loaded` entries by frequency across all tasks
+
+### 3g. Estimation Accuracy
 
 For all records:
 - Mean estimation error: `mean((actual_h / estimated_h) - 1) * 100` as percentage
@@ -140,6 +147,7 @@ Based on the aggregates, generate 1-3 actionable recommendations. Apply rules in
 | 8 | `coverage.delta` < 0 avg | "Coverage is declining (avg delta: {N}%). Tasks are adding code without proportional test coverage." |
 | 9 | Estimation error > 30% | "Tasks are taking {N}% longer than estimated. Complexity tier {tier} is the biggest driver. Consider padding estimates for that tier." |
 | 10 | Estimation error < -30% | "Tasks are completing {N}% faster than estimated. Consider tightening estimates to improve planning accuracy." |
+| 11 | `research.web_search` true > 50% of tasks | "Web search is triggered on more than half of tasks. Your local docs have gaps — run `/research-docs` to generate missing documentation." |
 
 If no conditions are met: "All metrics are within healthy ranges. Keep it up."
 

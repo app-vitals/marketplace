@@ -90,6 +90,13 @@ Produce output in this exact format:
 
 ### Key Constraints
 {Any constraints, conventions, or gotchas found in the docs that affect implementation. Include relevant project rules from CLAUDE.md if applicable.}
+
+### Metrics
+- docs_scanned: {number of docs found in docs/}
+- docs_selected: {number of docs deemed relevant and read}
+- docs_loaded: {comma-separated filenames of selected docs}
+- web_search: {true/false — whether web search was triggered}
+- web_queries: {number of web search queries run, 0 if none}
 ```
 
 ## Anti-Patterns
