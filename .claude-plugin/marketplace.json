@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "autoUpdate": true,
   "owner": {
     "name": "app-vitals",
@@ -52,6 +52,11 @@
       "name": "repo-readiness",
       "description": "Agent-readiness audit and bootstrapping. Scores a repo across 5 categories (agent context, docs, structure, tests, observability) and generates missing assets with --fix. Run before /plan-session on a new codebase.",
       "source": "./plugins/repo-readiness"
+    },
+    {
+      "name": "research",
+      "description": "Lazy-loads project docs and runs web research in an isolated sub-agent. Scans docs/, selects task-relevant files, optionally web searches, and returns distilled context.",
+      "source": "./plugins/research"
     },
     {
       "name": "shipwright",

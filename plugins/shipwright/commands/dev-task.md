@@ -36,6 +36,7 @@ Check if the following plugins are installed by looking for their skills in the 
 |--------|-----------|---------|
 | `learning-loop` | `/learn` skill | Step 12f (Learning Capture, merge-mode only) |
 | `frontend-design` | `frontend-design` skill | Step 7a (Discovery, for Design Skill-tagged tasks) |
+| `research` | `research` skill | Step 7a (Discovery — loads task-relevant project docs for implementation context) |
 
 If any are missing, present:
 
@@ -51,6 +52,8 @@ MISSING:
     Install: /plugin install learning-loop@app-vitals/marketplace
   ✗ frontend-design — high-quality UI for design-tagged tasks
     Install: /plugin install frontend-design
+  ✗ research — loads task-relevant project docs automatically
+    Install: /plugin install research@app-vitals/marketplace
 
 INSTALLED:
   ✓ {installed plugins}
@@ -241,8 +244,9 @@ Execute the implementation using the prompt from Step 5. This is a self-containe
 ### 7a. Discovery
 1. Read `CLAUDE.md` to understand project conventions
 2. Read all files listed in the Technical Details section
-3. If Design Skill is specified, check if that skill is available and invoke it if so
-4. Understand the existing patterns, naming conventions, and architecture
+3. **Load project docs** (if `research` plugin is available): Spawn the research agent via the Agent tool with the task ID, title, description, and layer. Use the agent's output to inform architecture decisions and implementation patterns in steps 7b and 7c. If the research plugin is not available, skip this step silently.
+4. If Design Skill is specified, check if that skill is available and invoke it if so
+5. Understand the existing patterns, naming conventions, and architecture
 
 ### 7b. Architecture
 Apply the task's architecture approach:

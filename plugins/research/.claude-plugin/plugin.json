@@ -1,0 +1,13 @@
+{
+  "name": "research",
+  "version": "0.1.0",
+  "description": "Lazy-loads project docs and runs web research in an isolated sub-agent. Scans docs/, selects task-relevant files, optionally web searches, and returns distilled context — never raw dumps.",
+  "author": {
+    "name": "app-vitals",
+    "email": "dave@app-vitals.com"
+  },
+  "keywords": ["research", "documentation", "context", "docs", "web-search"],
+  "homepage": "https://github.com/app-vitals/marketplace",
+  "repository": "https://github.com/app-vitals/marketplace",
+  "license": "MIT"
+}
