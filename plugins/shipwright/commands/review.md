@@ -216,6 +216,15 @@ CODE REVIEW REPORT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+## Step 7b: Submit GitHub Review
+
+After determining the verdict, submit a **formal GitHub review** to structurally enforce it — a plain comment is not enough, as it doesn't change `reviewDecision` and won't block merges.
+
+- **SHIP IT** → `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — SHIP IT. All criteria met, no blocking issues."`
+- **NEEDS FIXES** or **NEEDS WORK** → `gh pr review {pr-number} --repo {owner/repo} --request-changes --body "{condensed findings: one line per issue, category + file:line + description}"`
+
+This sets the PR's `reviewDecision` to `APPROVED` or `CHANGES_REQUESTED`. The pr-health cron and GitHub's branch protection both read this field — a formal review is what actually enforces the gate.
+
 **Pause point:** Ask the user which findings to fix (if any). The user may dismiss some findings.
 
 ## Step 8: Fix Issues
@@ -304,7 +313,11 @@ If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were m
 
 **Pause point:** Ask the user: "Merge PR #{pr-number}? (Yes / No)"
 
-If yes, merge the PR using `gh pr merge {pr-number} --squash --delete-branch`.
+If yes:
+
+1. If the initial verdict in Step 7 was **NEEDS FIXES** or **NEEDS WORK** (i.e., a `--request-changes` review was submitted in Step 7b), re-submit as an approval now that fixes are verified:
+   `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — fixes verified, approving."`
+2. Merge the PR: `gh pr merge {pr-number} --squash --delete-branch`
 
 After merge (or if user declines merge), scan the planning doc Appendix for the **suggested next task**: find `[ ]` tasks whose dependencies are all `[x]` (or have no dependencies).
 
