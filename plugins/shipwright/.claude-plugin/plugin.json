@@ -1,7 +1,7 @@
 {
   "name": "shipwright",
-  "version": "1.5.0",
-  "description": "Shipwright — structured dev pipeline with plan sessions, task execution, autonomous dev loops, and multi-agent code review for any software project",
+  "version": "1.6.0",
+  "description": "Shipwright — structured dev pipeline with plan sessions, task execution, autonomous dev loops, multi-agent code review, and integrated project research for any software project",
   "author": {
     "name": "App Vitals",
     "url": "https://github.com/app-vitals"
@@ -15,6 +15,8 @@
     "autonomous",
     "code-review",
     "dev-loop",
-    "task-management"
+    "task-management",
+    "research",
+    "documentation"
   ]
 }

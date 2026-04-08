@@ -15,10 +15,9 @@ This is a **Claude Code plugin marketplace** - a collection of plugins that exte
 - **meeting-transcripts** - Browse and read meeting transcripts captured by the mt CLI tool
 - **distill** - Distill conversations into persistent context files for continuity across /clear cycles
 - **dependabot-review** - AI-powered triage of Dependabot PRs with patrol-style risk assessments
-- **shipwright** - Structured dev pipeline with plan sessions, task execution, and autonomous dev loops
+- **shipwright** - Structured dev pipeline with plan sessions, task execution, autonomous dev loops, and integrated research
 - **terraform** - Opinionated Terraform best practices for Claude Code
 - **entropy-patrol** - Continuous code health enforcement via golden principles
-- **research** - Lazy-loads project docs and web research in an isolated sub-agent
 - **repo-readiness** - Agent-readiness audit and bootstrapping for codebases
 
 ## Architecture

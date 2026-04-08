@@ -119,7 +119,7 @@ Read from the planning doc's Model column. `null` if not specified (pre-model-ro
 | `research.web_search` | boolean | `false` | Whether web search was triggered (local docs had gaps) |
 | `research.web_queries` | integer | `0` | Number of web search queries run |
 
-Omit the `research` object entirely if the research plugin was not available or not invoked for this task.
+Omit the `research` object entirely if the research agent was not invoked for this task (e.g., no docs/ directory found).
 
 #### `coverage` — Step 10 coverage delta
 

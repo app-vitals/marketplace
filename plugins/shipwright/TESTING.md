@@ -35,6 +35,15 @@ Manual test scenarios for each command across different project types.
 | 14 | `/dev-task` + `/dev-loop` | Any | PR/branch cleanup on failure | Orphan PRs closed, branches deleted, retry logic |
 | 15 | `/dev-loop` | Any | Parallel task execution | Batch selection, worktree isolation, post-sync |
 | 16 | `/plan-session` | Any | Task consolidation | Merge criteria applied, consolidation report |
+| 21 | `/research` | Any (with docs/) | Project with docs | Agent discovers docs, selects relevant, returns structured output |
+| 22 | `/research` | Any (no docs/) | Project without docs | Detects no docs, proceeds with web-only research |
+| 23 | `/research` | Any | Web search triggered | Agent reads local docs, identifies gap, triggers web search |
+| 24 | `/research` | Any | Simple solution bias | Output leads with simplest approach, complex alternatives only if warranted |
+| 25 | `/research` | Any | Read-only enforcement | Agent does not create or modify files, no user prompts |
+| 26 | `/research-docs` | Any (with docs/) | Full audit with existing docs | Detects structure, identifies current/stale/missing, waits for confirmation |
+| 27 | `/research-docs` | Any | Single module focus | Focuses on specified module only, generates doc following conventions |
+| 28 | `/research-docs` | Any (no docs/) | No docs directory | Creates docs/, identifies all modules as missing, generates docs |
+| 29 | `/research-docs` | Any (with docs/) | Style detection | Generated docs match existing naming/heading/content patterns |
 
 ---
 
@@ -238,6 +247,7 @@ Run these across ALL scenarios to verify genericization:
 - [ ] Coverage threshold defaults to 90% (configurable)
 - [ ] No `frontend-design` as required — optional Design Skill tag
 - [ ] No hardcoded layer names "Background/UI/Content Script/Shared" — uses auto-detected layers
+- [ ] `/research` and `/research-docs` work as built-in shipwright commands (not standalone plugin)
 
 ---
 
@@ -636,6 +646,163 @@ Run these across ALL scenarios to verify genericization:
 - [ ] With POSTHOG_PROJECT_API_KEY set: sends batch events via curl
 - [ ] Without API key: prints setup instructions and skips export gracefully
 - [ ] Reports event counts per event type after export
+
+---
+
+## Scenario 21: /research — Project With Docs
+
+### Setup
+1. Open a project that has a `docs/` directory with multiple markdown files
+
+### Run
+```
+/research add retry logic to the payment service API calls
+```
+
+### Verify
+- [ ] Agent discovers docs directory
+- [ ] Agent selects relevant files (not all files)
+- [ ] Output is structured with "Research Results" format
+- [ ] Output includes "Relevant Project Docs", "Recommended Approach", "Key Constraints"
+- [ ] No raw file contents in output — only distilled summaries
+- [ ] Intermediate reasoning does not appear in main session
+
+---
+
+## Scenario 22: /research — Project Without Docs
+
+### Setup
+1. Open a project that has no `docs/`, `documentation/`, or `doc/` directory
+
+### Run
+```
+/research implement a caching layer
+```
+
+### Verify
+- [ ] Detects no docs directory
+- [ ] Informs user and proceeds with web-only research
+- [ ] Web search results are summarized, not raw
+- [ ] Output still follows structured format
+
+---
+
+## Scenario 23: /research — Web Search Triggered
+
+### Setup
+1. Open a project with docs that don't cover the topic
+
+### Run
+```
+/research integrate with Stripe webhooks
+```
+
+### Verify
+- [ ] Agent reads local docs first
+- [ ] Agent identifies gap (Stripe not covered locally)
+- [ ] Web search is triggered and results are summarized
+- [ ] Output clearly indicates web research was performed
+
+---
+
+## Scenario 24: /research — Simple Solution Bias
+
+### Run
+```
+/research implement authentication for the API
+```
+
+### Verify
+- [ ] Output leads with simplest, most standard approach
+- [ ] Complex alternatives mentioned only if genuinely warranted
+- [ ] Language favors proven/established patterns
+
+---
+
+## Scenario 25: /research — Read-Only Enforcement
+
+### Run
+```
+/research refactor the billing module
+```
+
+### Verify
+- [ ] Agent does not create or modify any files
+- [ ] Agent does not prompt the user with questions
+- [ ] Only the final structured output appears in the session
+
+---
+
+## Scenario 26: /research-docs — Full Audit With Existing Docs
+
+### Setup
+1. Open a project with a `docs/` directory that has some but not all modules documented
+
+### Run
+```
+/research-docs
+```
+
+### Verify
+- [ ] Detects project structure (modules, services)
+- [ ] Lists existing docs as CURRENT
+- [ ] Identifies missing docs
+- [ ] Identifies stale docs (if any references are outdated)
+- [ ] Presents audit summary before writing anything
+- [ ] Waits for user confirmation
+
+---
+
+## Scenario 27: /research-docs — Single Module Focus
+
+### Setup
+1. Open a project with a `docs/` directory
+
+### Run
+```
+/research-docs accounts
+```
+
+### Verify
+- [ ] Focuses only on the accounts module
+- [ ] Reads accounts source code (routes, models, handlers)
+- [ ] Generates doc following existing naming convention
+- [ ] Does not touch other docs
+
+---
+
+## Scenario 28: /research-docs — No Docs Directory
+
+### Setup
+1. Open a project with no `docs/` directory
+
+### Run
+```
+/research-docs
+```
+
+### Verify
+- [ ] Creates `docs/` directory
+- [ ] Identifies all modules as missing docs
+- [ ] Generates docs following sensible defaults
+- [ ] Updates CLAUDE.md references if applicable
+
+---
+
+## Scenario 29: /research-docs — Style Detection
+
+### Setup
+1. Open a project with existing docs that use a specific style (tables, ASCII diagrams, etc.)
+
+### Run
+```
+/research-docs
+```
+
+### Verify
+- [ ] Generated docs match the naming convention of existing docs
+- [ ] Generated docs use the same heading structure and content patterns
+- [ ] Does not overwrite or reformat existing current docs
 
 ---
 
