@@ -1,6 +1,6 @@
-# Shipwright v1.5.0
+# Shipwright v1.6.0
 
-A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, and perform multi-agent code reviews — for any software project.
+A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, perform multi-agent code reviews, and conduct integrated project research — for any software project.
 
 A shipwright builds ships. This one ships software.
 
@@ -21,6 +21,8 @@ A shipwright builds ships. This one ships software.
 | `/metrics {project?}` | Analyze pipeline metrics — fix cascade trends, quality rates, and recommendations |
 | `/refresh-plan {folder}` | Syncs planning doc against current codebase state |
 | `/review` | Auto-detecting multi-agent code review for the current branch |
+| `/research {task}` | Load relevant project docs and web research for a given task |
+| `/research-docs [module]` | Analyze codebase and generate or update project documentation |
 
 ## Workflow
 
@@ -111,6 +113,17 @@ The command also generates actionable recommendations (e.g., "Simplify is catchi
 
 **PostHog export:** Use `--export posthog` to push metrics to PostHog for historical dashboards. Requires `POSTHOG_PROJECT_API_KEY` environment variable. See the command for setup instructions.
 
+### 7. Research
+
+Load task-relevant documentation and research context using an isolated sub-agent:
+
+- `/research {task}` scans your project's `docs/` directory, selects relevant files, optionally runs web search, and returns distilled context
+- `/research-docs [module]` audits your existing documentation, identifies gaps and stale content, and generates or updates docs
+
+Research is also used automatically by `/plan-session` (Phase 2) and `/dev-task` (Step 7a) to load context before planning and implementation.
+
+> **Migration:** If you previously installed the `research` plugin separately, uninstall it after updating shipwright: `/plugin uninstall research`
+
 ## Toolchain Support
 
 Shipwright auto-detects your project's toolchain and adapts all commands accordingly:
@@ -181,12 +194,16 @@ All commands look for planning docs at `planning/**/*_Task_Breakdown.md`. Create
 shipwright/
 ├── .claude-plugin/
 │   └── plugin.json              # Plugin manifest
+├── agents/
+│   └── researcher.md            # Research sub-agent (sonnet)
 ├── commands/
 │   ├── plan-session.md          # Planning session workflow
 │   ├── dev-task.md              # Single task execution
 │   ├── dev-loop.md              # Autonomous continuous loop
 │   ├── metrics.md               # Pipeline metrics analysis
 │   ├── refresh-plan.md          # Planning doc refresh
+│   ├── research.md              # Load project docs and web research
+│   ├── research-docs.md         # Generate/update project documentation
 │   └── review.md                # Multi-agent code review
 ├── references/
 │   ├── metrics-schema.md        # Metrics JSONL schema reference
