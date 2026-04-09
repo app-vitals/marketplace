@@ -21,7 +21,7 @@ Add this marketplace to Claude Code:
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.0 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
 | [dependabot-review](plugins/dependabot-review/README.md) | 0.1.0 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
-| [shipwright](plugins/shipwright/README.md) | 1.6.0 | Structured dev pipeline — plan, build, review, research, ship |
+| [shipwright](plugins/shipwright/README.md) | 1.6.1 | Structured dev pipeline — plan, build, review, research, ship |
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
 | [entropy-patrol](plugins/entropy-patrol/README.md) | 0.2.0 | Continuous code health enforcement via golden principles |
 | [repo-readiness](plugins/repo-readiness/README.md) | 0.1.0 | Agent-readiness audit and bootstrapping for codebases |
