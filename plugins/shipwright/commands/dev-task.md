@@ -606,7 +606,30 @@ In standalone mode, **omit the `review` field** — Steps 12b-d don't run. The `
 
 All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b).
 
-#### 12b-standalone. Print Handoff
+#### 12b-standalone. PostHog Export (silent)
+
+Auto-export the metrics record just written to PostHog.
+
+1. Check the `POSTHOG_PROJECT_API_KEY` environment variable. If not set, skip this step silently — no output.
+2. Read the last line of `planning/{folder-name}/metrics.jsonl` (the record just appended).
+3. Set `POSTHOG_HOST` to the value of the `POSTHOG_HOST` env var, or `https://us.i.posthog.com` if unset.
+4. Build a batch of PostHog events from the record using the same event mapping as `metrics.md` Step 7c:
+   - `shipwright_task_completed` — always
+   - `shipwright_simplify_pass` — if `simplify` field present
+   - `shipwright_review_pass` — if `review` field present
+   - `shipwright_ci_gate` — if `ci` field present or `ci_fix_attempts > 0`
+   - `shipwright_coverage` — if `coverage` field present
+   Use `shipwright/{project}/{task_id}` as `distinct_id`. Include `$insert_id` as `{event_name}/{project}/{task_id}` for deduplication. Set `timestamp` from the record's `ts` field.
+5. POST the batch:
+   ```bash
+   curl -s -X POST "${POSTHOG_HOST}/batch/" \
+     -H "Content-Type: application/json" \
+     -d '{"api_key":"{POSTHOG_PROJECT_API_KEY}","batch":[...]}'
+   ```
+6. If the POST fails (non-200), print one warning line: `⚠ PostHog export failed: {status} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+7. On success: silent, no output.
+
+#### 12c-standalone. Print Handoff
 
 Print the handoff block with a quality summary:
 
@@ -719,6 +742,17 @@ Field derivation:
 - `research.*`: from Step 7a research agent output. Omit the `research` field entirely if the research agent was not invoked for this task (e.g., no docs/ directory found).
 
 This step is silent — no output. JSONL format means one JSON object per line; append-only. Old metrics.jsonl files without the new fields remain valid — see `references/metrics-schema.md` for backward compatibility rules.
+
+#### 12e.3. PostHog Export (silent)
+
+Auto-export the metrics record just written to PostHog. Same logic as Step 12b-standalone:
+
+1. Check `POSTHOG_PROJECT_API_KEY` — if not set, skip silently.
+2. Read the last line of `planning/{folder-name}/metrics.jsonl`.
+3. Build events per `metrics.md` Step 7c mapping (all five event types, including `review` data which is now available).
+4. POST to `${POSTHOG_HOST:-https://us.i.posthog.com}/batch/`.
+5. On failure: print `⚠ PostHog export failed: {status} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+6. On success: silent.
 
 #### 12f. Learning Capture (Optional)
 Check if the `learning-loop` plugin is available by checking if `/learn` skill exists.
