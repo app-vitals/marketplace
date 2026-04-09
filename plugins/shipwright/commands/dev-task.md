@@ -4,7 +4,7 @@ arguments:
   - name: task-id
     description: Task ID from the planning doc (e.g., MR-2.1). Append --merge to auto-create PR, review, and merge without pausing.
     required: true
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(bun:*), Bash(npm:*), Bash(pnpm:*), Bash(yarn:*), Bash(cargo:*), Bash(go:*), Bash(python:*), Bash(python3:*), Bash(npx:*), Bash(node:*), Bash(make:*), Bash(wc:*), Bash(find:*), Bash(grep:*), Edit(planning/**), Write(planning/**)
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(bun:*), Bash(npm:*), Bash(pnpm:*), Bash(yarn:*), Bash(cargo:*), Bash(go:*), Bash(python:*), Bash(python3:*), Bash(npx:*), Bash(node:*), Bash(make:*), Bash(wc:*), Bash(find:*), Bash(grep:*), Edit, Write, Read, Glob, Grep
 ---
 
 # Dev Task: $ARGUMENTS

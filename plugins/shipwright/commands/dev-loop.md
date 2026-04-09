@@ -4,7 +4,7 @@ arguments:
   - name: folder-name
     description: Planning session folder under planning/ (e.g., february-2026-workspace-switcher). Optional — auto-detected if only one planning doc exists with [ ] tasks remaining.
     required: false
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(bun:*), Bash(npm:*), Bash(pnpm:*), Bash(yarn:*), Bash(cargo:*), Bash(go:*), Bash(python:*), Bash(python3:*), Bash(npx:*), Bash(node:*), Bash(make:*), Bash(wc:*), Bash(find:*), Bash(grep:*), Edit(planning/**), Write(planning/**)
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(bun:*), Bash(npm:*), Bash(pnpm:*), Bash(yarn:*), Bash(cargo:*), Bash(go:*), Bash(python:*), Bash(python3:*), Bash(npx:*), Bash(node:*), Bash(make:*), Bash(wc:*), Bash(find:*), Bash(grep:*), Edit, Write, Read, Glob, Grep
 ---
 
 # Dev Loop
