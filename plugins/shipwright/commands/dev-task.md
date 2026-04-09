@@ -4,7 +4,6 @@ arguments:
   - name: task-id
     description: Task ID from the planning doc (e.g., MR-2.1). Append --merge to auto-create PR, review, and merge without pausing.
     required: true
-
 ---
 
 # Dev Task: $ARGUMENTS
