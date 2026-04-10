@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "autoUpdate": true,
   "owner": {
     "name": "app-vitals",
@@ -17,6 +17,11 @@
       "name": "dependabot-review",
       "description": "AI-powered triage of Dependabot PRs. Posts patrol-style risk assessments on individual PRs and bulk-processes all open Dependabot PRs to get them merge-ready.",
       "source": "./plugins/dependabot-review"
+    },
+    {
+      "name": "discovery-report",
+      "description": "Generate a polished dark-theme HTML discovery report for any technical or organizational investigation. Interviews the user, gathers evidence, and produces a self-contained HTML file.",
+      "source": "./plugins/discovery-report"
     },
     {
       "name": "distill",

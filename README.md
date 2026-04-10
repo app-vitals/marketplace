@@ -21,6 +21,7 @@ Add this marketplace to Claude Code:
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.0 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
 | [dependabot-review](plugins/dependabot-review/README.md) | 0.1.0 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
+| [discovery-report](plugins/discovery-report/README.md) | 1.1.0 | Generate dark-theme HTML discovery reports (with optional Playwright-based PDF export) |
 | [shipwright](plugins/shipwright/README.md) | 1.7.0 | Structured dev pipeline — plan, build, review, research, ship |
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
 | [entropy-patrol](plugins/entropy-patrol/README.md) | 0.2.0 | Continuous code health enforcement via golden principles |
@@ -81,6 +82,14 @@ No commands — hooks activate automatically on install.
 ```
 
 `/triage-dependabot-prs`
+
+### discovery-report
+
+```
+/plugin install discovery-report@app-vitals/marketplace
+```
+
+No commands — skill activates automatically when asked to write a discovery report, post-mortem, or investigation summary.
 
 ### shipwright
 
