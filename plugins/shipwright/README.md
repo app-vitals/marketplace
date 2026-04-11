@@ -1,4 +1,4 @@
-# Shipwright v1.7.0
+# Shipwright v1.8.0
 
 A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, perform multi-agent code reviews, and conduct integrated project research — for any software project.
 
@@ -23,6 +23,7 @@ A shipwright builds ships. This one ships software.
 | `/review` | Auto-detecting multi-agent code review for the current branch |
 | `/research {task}` | Load relevant project docs and web research for a given task |
 | `/research-docs [module]` | Analyze codebase and generate or update project documentation |
+| `/verify-posthog` | Publish a synthetic metric and read it back via the PostHog MCP — run before shipping any change to dev-task/metrics/review or the export script |
 
 ## Workflow
 

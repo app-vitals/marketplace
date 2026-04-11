@@ -608,26 +608,15 @@ All other fields are populated from data already collected: `simplify.*` (Step 8
 
 #### 12b-standalone. PostHog Export (silent)
 
-Auto-export the metrics record just written to PostHog.
+Invoke the deterministic exporter script on the line just appended. It handles the missing-key short-circuit, event mapping, and HTTP POST. Event-firing rules and property mappings are centralized in that script — do NOT rebuild the curl inline here.
 
-1. Check the `POSTHOG_PROJECT_API_KEY` environment variable. If not set, skip this step silently — no output.
-2. Read the last line of `planning/{folder-name}/metrics.jsonl` (the record just appended).
-3. Set `POSTHOG_HOST` to the value of the `POSTHOG_HOST` env var, or `https://us.i.posthog.com` if unset.
-4. Build a batch of PostHog events from the record using the same event mapping as `metrics.md` Step 7c:
-   - `shipwright_task_completed` — always
-   - `shipwright_simplify_pass` — if `simplify` field present
-   - `shipwright_review_pass` — if `review` field present
-   - `shipwright_ci_gate` — if `ci` field present or `ci_fix_attempts > 0`
-   - `shipwright_coverage` — if `coverage` field present
-   Use `shipwright/{project}/{task_id}` as `distinct_id`. Include `$insert_id` as `{event_name}/{project}/{task_id}` for deduplication. Set `timestamp` from the record's `ts` field.
-5. POST the batch:
-   ```bash
-   curl -s -X POST "${POSTHOG_HOST}/batch/" \
-     -H "Content-Type: application/json" \
-     -d '{"api_key":"{POSTHOG_PROJECT_API_KEY}","batch":[...]}'
-   ```
-6. If the POST fails (non-200), print one warning line: `⚠ PostHog export failed: {status} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
-7. On success: silent, no output.
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/posthog-export.sh planning/{folder-name}/metrics.jsonl
+```
+
+If it exits **0**: silent, continue to the next step. If it exits **non-zero**: print one warning line `⚠ PostHog export failed — metrics saved locally in metrics.jsonl` and continue. Never fail the task on export errors — the local JSONL is always the source of truth.
+
+To verify this step works end-to-end before shipping any change to dev-task.md, run `/shipwright:verify-posthog`.
 
 #### 12c-standalone. Print Handoff
 
@@ -745,14 +734,13 @@ This step is silent — no output. JSONL format means one JSON object per line; 
 
 #### 12e.3. PostHog Export (silent)
 
-Auto-export the metrics record just written to PostHog. Same logic as Step 12b-standalone:
+Same as Step 12b-standalone, but the record just written now includes the `review` object from the inline review in Steps 12b-d, so the exporter will fire the `shipwright_review_pass` event too.
 
-1. Check `POSTHOG_PROJECT_API_KEY` — if not set, skip silently.
-2. Read the last line of `planning/{folder-name}/metrics.jsonl`.
-3. Build events per `metrics.md` Step 7c mapping (all five event types, including `review` data which is now available).
-4. POST to `${POSTHOG_HOST:-https://us.i.posthog.com}/batch/`.
-5. On failure: print `⚠ PostHog export failed: {status} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
-6. On success: silent.
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/posthog-export.sh planning/{folder-name}/metrics.jsonl
+```
+
+On non-zero exit: print `⚠ PostHog export failed — metrics saved locally in metrics.jsonl` and continue. Never fail the task on export errors.
 
 #### 12f. Learning Capture (Optional)
 Check if the `learning-loop` plugin is available by checking if `/learn` skill exists.

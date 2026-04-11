@@ -231,41 +231,29 @@ RECOMMENDATIONS
 
 Only run if `--export posthog` was passed.
 
-This uses the PostHog **Capture API** (HTTP POST) to send events — not the PostHog MCP server (which is read-only for querying insights/flags). The only requirement is a PostHog project API key.
+This delegates to `${CLAUDE_PLUGIN_ROOT}/scripts/posthog-export.sh` — the single source of truth for event emission. The script handles the `POSTHOG_PROJECT_API_KEY` check, builds events per the mapping table below, and POSTs via the PostHog Capture API's `/batch/` endpoint. Dev-task.md auto-export (Steps 12b-standalone and 12e.3) calls the same script, so a successful `/shipwright:verify-posthog` run guarantees both paths work.
 
-### 7a. Check API Key
+### 7a. Preflight
 
-Look for the PostHog project API key in this order:
+1. If `POSTHOG_PROJECT_API_KEY` is not set in the environment, the script will skip silently with a stderr notice. Either `export POSTHOG_PROJECT_API_KEY="phc_..."` or configure it in `~/.claude/settings.json` under `"env"` so Claude Code can see it, then retry.
+2. `POSTHOG_HOST` defaults to `https://us.i.posthog.com`. Override for EU Cloud or self-hosted: `export POSTHOG_HOST="https://eu.i.posthog.com"`.
+3. Verify `${CLAUDE_PLUGIN_ROOT}/scripts/posthog-export.sh` exists and is executable (`ls -l`). If not, `chmod +x` it.
 
-1. Environment variable: `POSTHOG_PROJECT_API_KEY`
-2. If not set, ask the user:
-   ```
-   PostHog export requires a project API key.
-   
-   To set it permanently:
-     export POSTHOG_PROJECT_API_KEY="phc_your_key_here"
-   
-   Or provide it now to continue:
-   ```
+### 7b. Export Every Record
 
-If the user cannot or does not want to provide a key, skip the export gracefully:
+For each target JSONL file (filtered by project/--from/--to arguments from Step 1), loop over every line and call the exporter:
+
+```bash
+for f in {target_jsonl_files}; do
+  total=$(wc -l < "$f")
+  for n in $(seq 1 "$total"); do
+    "${CLAUDE_PLUGIN_ROOT}/scripts/posthog-export.sh" "$f" "$n" || \
+      echo "⚠ line $n of $f failed — see stderr"
+  done
+done
 ```
-PostHog export skipped — no API key available.
-The metrics report above is still valid. Set POSTHOG_PROJECT_API_KEY to enable export.
-```
-Stop the export (the analysis report from Step 6 still displays).
 
-### 7b. Detect PostHog Host
-
-Default: `https://us.i.posthog.com` (PostHog US Cloud).
-
-If the environment variable `POSTHOG_HOST` is set, use that instead (for EU Cloud or self-hosted instances).
-
-### 7c. Export Events
-
-Build a batch of events from the metrics.jsonl records and send them via the PostHog Capture API.
-
-**Event mapping:**
+Event-firing rules and property mappings live inside the script. For reference, the mapping is:
 
 | Event Name | Fired For | Properties |
 |------------|-----------|------------|
@@ -275,51 +263,20 @@ Build a batch of events from the metrics.jsonl records and send them via the Pos
 | `shipwright_ci_gate` | Records with `ci` data or `ci_fix_attempts > 0` | `task_id`, `project`, `fix_attempts`, `passed_first_try` (boolean), `failure_descriptions` (comma-joined string) |
 | `shipwright_coverage` | Records with `coverage` data | `task_id`, `project`, `before`, `after`, `delta` |
 
-Use `shipwright/{project}/{task_id}` as the `distinct_id` for each event. Set `timestamp` to the record's `ts` field so PostHog orders events correctly. Include a `$insert_id` property in every event, set to `{event_name}/{project}/{task_id}` — this enables PostHog deduplication so re-exports are safe.
+All events use `distinct_id = shipwright/{project}/{task_id}` and include `$insert_id = {event_name}/{project}/{task_id}` so PostHog dedupes on re-export — running this command multiple times is safe.
 
-**Send via batch API:**
-
-For each batch of events (up to 100 per request), POST to the capture endpoint:
-
-```bash
-curl -s -X POST "{POSTHOG_HOST}/batch/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "api_key": "{POSTHOG_PROJECT_API_KEY}",
-    "batch": [
-      {
-        "event": "shipwright_task_completed",
-        "distinct_id": "shipwright/{project}/{task_id}",
-        "timestamp": "{ts}",
-        "properties": {
-          "$insert_id": "shipwright_task_completed/{project}/{task_id}",
-          ...
-        }
-      }
-    ]
-  }'
-```
-
-Check the HTTP response. If the API returns a non-200 status:
-```
-PostHog export failed: {status code} — {error message}
-Check your API key and PostHog host configuration.
-```
-
-### 7d. Report
+### 7c. Report
 
 ```
 PostHog export complete:
   Host:       {POSTHOG_HOST}
-  Events sent:
-    {task_events} shipwright_task_completed
-    {simplify_events} shipwright_simplify_pass
-    {review_events} shipwright_review_pass
-    {ci_events} shipwright_ci_gate
-    {coverage_events} shipwright_coverage
+  Records exported: {n}
+  Failures:   {m}
 ```
 
-**Note:** This is a batch export, not a real-time hook. Run `/metrics --export posthog` after a dev-loop completes to push all accumulated data. Each event includes a deterministic `$insert_id` so PostHog deduplicates on re-export — running this multiple times is safe.
+If `m > 0`, print the failing lines and remind the user to re-run after fixing the underlying issue. The metrics.jsonl files are unchanged by this step, so retries are always safe.
+
+**Note:** This is a batch export of historical data. The dev-task command already auto-exports each record when it completes. Run `/metrics --export posthog` when you want to replay accumulated data to a fresh PostHog project.
 
 ---
 

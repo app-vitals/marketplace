@@ -11,6 +11,24 @@ Manual test scenarios for each command across different project types.
 
 ---
 
+## Before Shipping Changes That Touch Metrics
+
+**Required** — if your PR modifies any of:
+
+- `commands/dev-task.md` (especially Steps 12a/b/e)
+- `commands/metrics.md` (especially Step 7)
+- `commands/review.md` (Step 10b)
+- `references/metrics-schema.md`
+- `scripts/posthog-export.sh`
+
+You must run `/shipwright:verify-posthog` locally and paste the output into the PR description. The command publishes a synthetic event via the real `scripts/posthog-export.sh` and confirms all 5 event types arrive via the PostHog MCP. A **5/5 pass is required** to merge.
+
+Prerequisites for the verify command:
+- `POSTHOG_PROJECT_API_KEY` set in Claude Code's shell environment (see `~/.claude/settings.json` `env` block — `~/.zshrc` will NOT work for non-interactive shells)
+- `posthog` MCP plugin installed
+
+---
+
 ## Test Matrix
 
 | # | Command | Project Type | Scenario | Key Verification |
@@ -643,9 +661,10 @@ Run these across ALL scenarios to verify genericization:
 - [ ] When all metrics are healthy: prints "All metrics are within healthy ranges"
 
 #### Verify: PostHog export
-- [ ] With POSTHOG_PROJECT_API_KEY set: sends batch events via curl
-- [ ] Without API key: prints setup instructions and skips export gracefully
-- [ ] Reports event counts per event type after export
+- [ ] With POSTHOG_PROJECT_API_KEY set: loops over records calling `scripts/posthog-export.sh`
+- [ ] Without API key: script exits 0 with a "skipped" stderr notice, command reports gracefully
+- [ ] Reports record count and failure count after export
+- [ ] For end-to-end proof that events actually reach PostHog, see **Scenario 30** below
 
 ---
 
@@ -803,6 +822,35 @@ Run these across ALL scenarios to verify genericization:
 - [ ] Generated docs match the naming convention of existing docs
 - [ ] Generated docs use the same heading structure and content patterns
 - [ ] Does not overwrite or reformat existing current docs
+
+---
+
+## Scenario 30: PostHog Metrics Verification (`/shipwright:verify-posthog`)
+
+### Setup
+1. Set `POSTHOG_PROJECT_API_KEY` in Claude Code's shell environment (via `~/.claude/settings.json` `env` block, NOT `~/.zshrc`)
+2. Install the `posthog` MCP plugin so `mcp__plugin_posthog_posthog__query-run` is available
+3. Confirm `${CLAUDE_PLUGIN_ROOT}/scripts/posthog-export.sh` exists and is executable
+
+### Run
+```
+/shipwright:verify-posthog
+```
+
+### Verify
+- [ ] Preflight fails cleanly if `POSTHOG_PROJECT_API_KEY` is not visible (with the actionable fix instructions)
+- [ ] Preflight fails cleanly if the posthog MCP is not installed
+- [ ] Generates a unique synthetic record with a `verify-{timestamp}-{pid}` task id under `shipwright-selftest` project
+- [ ] Runs `scripts/posthog-export.sh` (exit 0) — the same script dev-task.md invokes
+- [ ] After 8s, the MCP HogQL query returns **5 rows**: `shipwright_task_completed`, `shipwright_simplify_pass`, `shipwright_review_pass`, `shipwright_ci_gate`, `shipwright_coverage`
+- [ ] Prints the 5 pass-marks followed by `✓ VERIFIED — 5/5 events reached PostHog`
+- [ ] Runs the historical 30-day diagnostic and prints the per-event counts table
+- [ ] If historical result is empty, prints the diagnostic hint about `POSTHOG_PROJECT_API_KEY` visibility and the pre-v1.8.0 prose-based emission
+- [ ] Cleanup: prints the synthetic `distinct_id` for manual deletion and removes the temp working directory
+
+### Negative checks
+- [ ] Temporarily rename `scripts/posthog-export.sh` and re-run: verify aborts with the install hint
+- [ ] Manually corrupt the jq pipeline (e.g., drop the `shipwright_coverage` event condition): verify reports `✗ FAILED — 4/5 events reached PostHog`
 
 ---
 
