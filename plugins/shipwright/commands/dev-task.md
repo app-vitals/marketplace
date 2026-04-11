@@ -562,7 +562,7 @@ Collect all failure output into a single context block for the fix subagent. If 
 
 ### 11b.4. Fix Loop
 
-Initialize: `ci_attempt = 0`, `ci_max_retries = 3`.
+Initialize: `ci_attempt = 0`, `ci_max_retries = 6`, `ci_fix_history = []` (accumulates a one-line summary of what each attempt tried).
 
 While `ci_attempt < ci_max_retries`:
 
@@ -587,9 +587,13 @@ While `ci_attempt < ci_max_retries`:
      Branch: {branch}
      PR: #{pr-number}
 
-     Failure context:
+     Current failure context:
      {If merge conflict: "Merging origin/main produced conflicts. Run `git merge origin/main`, resolve all conflicts, then commit and push."}
      {If CI failure: collected failure logs from 11b.3}
+
+     {If ci_attempt > 1:}
+     Previous fix attempts (do NOT repeat these — try a different approach):
+     {ci_fix_history formatted as numbered list}
 
      PR diff (for context):
      {output of gh pr diff {pr-number}}
@@ -597,13 +601,15 @@ While `ci_attempt < ci_max_retries`:
      Instructions:
      1. Analyze the failure logs (or conflict markers) to identify the root cause
      2. Read the relevant source files
-     3. Fix the failing code, tests, or merge conflicts
+     3. Fix the failing code, tests, or merge conflicts — if a previous attempt already tried an approach that didn't work, take a different angle
      4. Run the project's local validation commands to confirm the fix
      5. Commit with message: "fix: {brief description}"
      6. Push to the branch: git push
      ```
 
-4. After the subagent completes, **loop back to 11b.1** — update from main again (main may have moved while the fix was in progress), then re-wait for CI in 11b.2.
+4. After the subagent completes, **append a one-line summary** of what this attempt tried to `ci_fix_history` (e.g., `"Attempt 1: updated failing snapshot in UserCard.test.tsx"`, `"Attempt 2: fixed type error in api/auth.ts — wrong return type"`).
+
+5. **Loop back to 11b.1** — update from main again (main may have moved while the fix was in progress), then re-wait for CI in 11b.2.
 
 5. **All checks pass:** Break the loop. Print:
    ```
