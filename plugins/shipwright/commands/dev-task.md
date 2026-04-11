@@ -448,7 +448,6 @@ If all criteria are MET, write "## All Criteria Met".
   4. Repeat until all are MET
 - **PARTIAL** (standalone mode): Pause and ask the user: "Some criteria are partially implemented. Fix now or proceed to Step 9?"
 - **PARTIAL** (merge-mode): Treat PARTIAL the same as NOT MET — auto-fix before proceeding.
-
 ---
 
 ## Step 9: Requirements Verification
