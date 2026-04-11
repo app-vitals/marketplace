@@ -388,10 +388,11 @@ After implementation completes, run a simplification pass:
    Store these counts for use in Step 12e.2 metrics. If no fixes were needed, all counts are 0.
 5. Run the detected typecheck command (if applicable) to verify types still pass after cleanup
 
-If `POSTHOG_SCRIPT` is set, fire `shipwright_simplify_complete`:
+Fire `shipwright_simplify_complete` — always fire, even if all counts are 0 (signals phase completion regardless of fix count). Re-resolve the script path inline so this step does not depend on shell state from Step 6b:
 
 ```bash
-python3 "$POSTHOG_SCRIPT" shipwright_simplify_complete \
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_simplify_complete \
   --project {project} --task {task_id} \
   total={simplify_total} dry={simplify_dry} dead_code={simplify_dead_code} \
   naming={simplify_naming} complexity_fixes={simplify_complexity} consistency={simplify_consistency}
@@ -651,6 +652,13 @@ Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If t
 **No CI configured:** If `gh pr checks {pr-number}` returns no checks (empty output), skip the rest of Step 11b and proceed to Step 12. Print:
 ```
 ⏭ No CI checks configured — skipping CI gate
+```
+Then fire `shipwright_ci_result` with `no_ci=true` to record that CI was not present for this task:
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
+  --project {project} --task {task_id} \
+  passed_first_try=true fix_attempts=0 'failures=[]' no_ci=true
 ```
 
 **All checks pass:** Print the following and proceed to Step 12:
