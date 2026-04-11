@@ -15,6 +15,8 @@ Manual test scenarios for each command across different project types.
 
 | # | Command | Project Type | Scenario | Key Verification |
 |---|---------|-------------|----------|-----------------|
+| 30 | `/brainstorm` | Any | Full interactive session | Questions asked one at a time, PRODUCT-SPEC.md written with all sections, valid input for /plan-session |
+| 31 | `/brainstorm` | Any | Vague/minimal input | Probes trigger, open questions captured, no requirements invented |
 | 1 | `/plan-session` | Node.js (pnpm) | New feature planning | Toolchain detected, layers auto-detected, template correct |
 | 17 | `/plan-session` | Any | Complexity scoring | Complexity column (1-5) in task table, scores correlate with task characteristics |
 | 18 | `/dev-loop` | Any | Cross-session handoff | Handoff section written after each batch, restored on restart |
@@ -803,6 +805,60 @@ Run these across ALL scenarios to verify genericization:
 - [ ] Generated docs match the naming convention of existing docs
 - [ ] Generated docs use the same heading structure and content patterns
 - [ ] Does not overwrite or reformat existing current docs
+
+---
+
+## Scenario 30: /brainstorm — Full Interactive Session
+
+### Setup
+1. Open any software project with a `CLAUDE.md` and at least one code directory
+2. Have a clear feature idea in mind (e.g., "add user notifications")
+
+### Run
+```
+/brainstorm april-2026-notifications
+```
+
+### Verify
+- [ ] Phase 0 creates `planning/april-2026-notifications/` if it doesn't exist
+- [ ] Phase 0 detects project toolchain correctly
+- [ ] Phase 0 reads `CLAUDE.md` and uses it to inform questions
+- [ ] Phase 0 spawns researcher agent and incorporates findings
+- [ ] Phase 1 asks Q2 (problem statement) first — not multiple questions at once
+- [ ] Each question waits for a response before asking the next
+- [ ] Phase 1 probes vague answers with follow-up questions
+- [ ] Phase 1 asks depth probes (Q4a) for each feature mentioned in Q4
+- [ ] Phase 2 spawns researcher agent with feature list for enrichment
+- [ ] Phase 3 generates complete PRODUCT-SPEC.md with all sections populated:
+  - [ ] Overview, Problem Statement, Users & Context
+  - [ ] Feature sections with ### headings
+  - [ ] Acceptance criteria as `- [ ]` checkboxes
+  - [ ] Technical Constraints, Scope (In/Out), Priorities, Open Questions, Success Criteria
+- [ ] Phase 4 presents complete spec and iterates on feedback
+- [ ] Phase 5 writes `planning/april-2026-notifications/PRODUCT-SPEC.md`
+- [ ] Phase 5 prints BRAINSTORM COMPLETE block with feature count and next step
+- [ ] Running `/plan-session april-2026-notifications` after this succeeds (reads the spec)
+
+---
+
+## Scenario 31: /brainstorm — Vague/Minimal Input
+
+### Setup
+1. Prepare to give very short, vague answers (e.g., "something better", "it should work faster")
+
+### Run
+```
+/brainstorm test-vague-input
+```
+
+### Verify
+- [ ] When Q2 answer is vague ("make it better"), command probes with a follow-up before moving on
+- [ ] When Q4 features are one-word ("search", "auth"), command asks depth probes
+- [ ] When acceptance criteria can't be derived from the answer, criterion goes to Open Questions instead of being invented
+- [ ] PRODUCT-SPEC.md Open Questions section is populated (not empty)
+- [ ] No acceptance criteria contains subjective language ("works correctly", "fast", "good")
+- [ ] PRODUCT-SPEC.md is still written and is valid input for `/plan-session` even with sparse answers
+- [ ] Plan-session can run on the output without errors
 
 ---
 
