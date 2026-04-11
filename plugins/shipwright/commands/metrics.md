@@ -2,9 +2,9 @@
 description: Analyze pipeline metrics — fix cascade trends, quality rates, and actionable recommendations across planning sessions
 arguments:
   - name: options
-    description: "Optional: project name, --from YYYY-MM-DD, --to YYYY-MM-DD, --compare projectA projectB, --export posthog"
+    description: "Optional: project name, --from YYYY-MM-DD, --to YYYY-MM-DD, --compare projectA projectB"
     required: false
-allowed-tools: Bash(git:*), Bash(find:*), Bash(grep:*), Bash(wc:*), Bash(jq:*), Bash(cat:*), Bash(curl:*)
+allowed-tools: Bash(git:*), Bash(find:*), Bash(grep:*), Bash(wc:*), Bash(jq:*), Bash(cat:*)
 ---
 
 # Pipeline Metrics
@@ -20,7 +20,6 @@ Parse `$ARGUMENTS` to extract:
 - **--from YYYY-MM-DD**: Start date filter (inclusive, compared against `ts` field)
 - **--to YYYY-MM-DD**: End date filter (inclusive)
 - **--compare projectA projectB**: Side-by-side analysis of two projects
-- **--export posthog**: Trigger PostHog event export after analysis
 
 If no arguments provided, analyze all `planning/*/metrics.jsonl` files.
 
@@ -227,109 +226,14 @@ RECOMMENDATIONS
 
 ---
 
-## Step 7: PostHog Export (optional)
+## PostHog Data
 
-Only run if `--export posthog` was passed.
+PostHog events are emitted automatically by `/dev-task` at each pipeline checkpoint — no manual export step needed. See `references/metrics-schema.md` for the full event catalogue.
 
-This uses the PostHog **Capture API** (HTTP POST) to send events — not the PostHog MCP server (which is read-only for querying insights/flags). The only requirement is a PostHog project API key.
+To query pipeline data in PostHog, use the PostHog MCP (`mcp__plugin_posthog_posthog__query-run`) or build dashboards directly:
 
-### 7a. Check API Key
-
-Look for the PostHog project API key in this order:
-
-1. Environment variable: `POSTHOG_PROJECT_API_KEY`
-2. If not set, ask the user:
-   ```
-   PostHog export requires a project API key.
-   
-   To set it permanently:
-     export POSTHOG_PROJECT_API_KEY="phc_your_key_here"
-   
-   Or provide it now to continue:
-   ```
-
-If the user cannot or does not want to provide a key, skip the export gracefully:
-```
-PostHog export skipped — no API key available.
-The metrics report above is still valid. Set POSTHOG_PROJECT_API_KEY to enable export.
-```
-Stop the export (the analysis report from Step 6 still displays).
-
-### 7b. Detect PostHog Host
-
-Default: `https://us.i.posthog.com` (PostHog US Cloud).
-
-If the environment variable `POSTHOG_HOST` is set, use that instead (for EU Cloud or self-hosted instances).
-
-### 7c. Export Events
-
-Build a batch of events from the metrics.jsonl records and send them via the PostHog Capture API.
-
-**Event mapping:**
-
-| Event Name | Fired For | Properties |
-|------------|-----------|------------|
-| `shipwright_task_completed` | Every record | `task_id`, `project`, `title`, `estimated_h`, `actual_h`, `complexity`, `retries`, `files_changed`, `model`, `ts` |
-| `shipwright_simplify_pass` | Records with `simplify` data | `task_id`, `project`, `total_fixes`, `dry`, `dead_code`, `naming`, `complexity_fixes` (renamed to avoid PostHog reserved word), `consistency` |
-| `shipwright_review_pass` | Records with `review` data | `task_id`, `project`, `verdict`, `findings`, `fixes_applied`, `agents` (comma-joined string) |
-| `shipwright_ci_gate` | Records with `ci` data or `ci_fix_attempts > 0` | `task_id`, `project`, `fix_attempts`, `passed_first_try` (boolean), `failure_descriptions` (comma-joined string) |
-| `shipwright_coverage` | Records with `coverage` data | `task_id`, `project`, `before`, `after`, `delta` |
-
-Use `shipwright/{project}/{task_id}` as the `distinct_id` for each event. Set `timestamp` to the record's `ts` field so PostHog orders events correctly. Include a `$insert_id` property in every event, set to `{event_name}/{project}/{task_id}` — this enables PostHog deduplication so re-exports are safe.
-
-**Send via batch API:**
-
-For each batch of events (up to 100 per request), POST to the capture endpoint:
-
-```bash
-curl -s -X POST "{POSTHOG_HOST}/batch/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "api_key": "{POSTHOG_PROJECT_API_KEY}",
-    "batch": [
-      {
-        "event": "shipwright_task_completed",
-        "distinct_id": "shipwright/{project}/{task_id}",
-        "timestamp": "{ts}",
-        "properties": {
-          "$insert_id": "shipwright_task_completed/{project}/{task_id}",
-          ...
-        }
-      }
-    ]
-  }'
-```
-
-Check the HTTP response. If the API returns a non-200 status:
-```
-PostHog export failed: {status code} — {error message}
-Check your API key and PostHog host configuration.
-```
-
-### 7d. Report
-
-```
-PostHog export complete:
-  Host:       {POSTHOG_HOST}
-  Events sent:
-    {task_events} shipwright_task_completed
-    {simplify_events} shipwright_simplify_pass
-    {review_events} shipwright_review_pass
-    {ci_events} shipwright_ci_gate
-    {coverage_events} shipwright_coverage
-```
-
-**Note:** This is a batch export, not a real-time hook. Run `/metrics --export posthog` after a dev-loop completes to push all accumulated data. Each event includes a deterministic `$insert_id` so PostHog deduplicates on re-export — running this multiple times is safe.
-
----
-
-## Suggested PostHog Dashboards
-
-After exporting, these PostHog dashboards provide useful views:
-
-1. **First-time quality rate over time** — trend line of `shipwright_task_completed` filtered by simplify.total=0, review.verdict="SHIP IT", ci_fix_attempts=0
-2. **Simplify fix breakdown** — stacked bar chart of `shipwright_simplify_pass` by category
-3. **Review verdict distribution** — pie chart from `shipwright_review_pass.verdict`
-4. **CI pass rate over time** — trend from `shipwright_ci_gate.passed_first_try`
-5. **Coverage delta trend** — line chart from `shipwright_coverage.delta`
-6. **Estimation accuracy by complexity** — grouped bar from `shipwright_task_completed` grouping by complexity
+1. **First-time quality rate over time** — filter `shipwright_task_completed` where `simplify_total=0`, `review_verdict="SHIP IT"`, `ci_fix_attempts=0`
+2. **Simplify fix breakdown** — stacked bar of `shipwright_simplify_complete` by category
+3. **Review verdict distribution** — pie chart of `shipwright_review_complete` by `verdict`
+4. **CI pass rate** — trend of `shipwright_ci_result` by `passed_first_try`
+5. **Pipeline funnel** — funnel from `shipwright_task_started` → `shipwright_pr_created` → `shipwright_task_completed`
