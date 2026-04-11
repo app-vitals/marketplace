@@ -822,7 +822,9 @@ Run these across ALL scenarios to verify genericization:
 ### Verify
 - [ ] Phase 0 creates `planning/april-2026-notifications/` if it doesn't exist
 - [ ] Phase 0 detects project toolchain correctly
-- [ ] Phase 0 reads `CLAUDE.md` and uses it to inform questions
+- [ ] Phase 0 reads `CLAUDE.md`, `README.md`, and relevant `docs/` markdown files
+- [ ] Phase 0 skips changelogs, license files, and contributor guides in `docs/`
+- [ ] Phase 1 questions reflect what was learned from docs (no asking about things already documented)
 - [ ] Phase 0 spawns researcher agent and incorporates findings
 - [ ] Phase 1 asks Q2 (problem statement) first — not multiple questions at once
 - [ ] Each question waits for a response before asking the next

@@ -15,6 +15,7 @@ Follow all phases in order. Proceed automatically between phases. The only pause
 ## Phase 0: Project Context Setup
 
 1. **Create the planning folder** if it doesn't exist: `planning/$ARGUMENTS/`
+
 2. **Detect toolchain** by scanning the project root in this order:
    - `package.json` + lockfile → Node.js (identify package manager from lockfile)
    - `Cargo.toml` → Rust
@@ -22,10 +23,21 @@ Follow all phases in order. Proceed automatically between phases. The only pause
    - `pyproject.toml` / `requirements.txt` → Python
    - `Gemfile` → Ruby
    - `Makefile` → Generic Make
-3. **Read `CLAUDE.md`** (if it exists) for project context, conventions, and constraints
-4. **Research existing context**: Spawn the `agents/researcher.md` agent with the task: "Summarize the project's current architecture, key modules, and any features that might be related to a new feature being designed. Focus on patterns that a new feature should follow and any existing utilities available for reuse." Use the output to inform your questions — don't repeat what's already obvious from the codebase.
 
-Store detected toolchain and research findings for use in Phase 2.
+3. **Read project documentation** (lightweight scan — highlights only, no deep code dive):
+   - `CLAUDE.md` — conventions, architecture decisions, and constraints
+   - `README.md` — project overview and current capabilities
+   - `docs/` directory (if it exists) — scan for markdown files and read the ones most likely to describe existing features, modules, or architecture (e.g., `docs/architecture.md`, `docs/api.md`, `docs/features/`). Skip changelogs, license files, and contributor guides.
+
+   **Goal**: Build a high-level picture of what the project currently does, what modules exist, and what patterns are established. Use this to:
+   - Skip questions whose answers are already obvious from the docs
+   - Ask informed questions ("your README mentions a notification system — is this extending that or something new?")
+   - Surface relevant existing capabilities before the user describes requirements
+   - Populate Technical Constraints with known conventions (e.g., "uses repository pattern for data access")
+
+4. **Research existing context**: Spawn the `agents/researcher.md` agent with the task: "Based on the project documentation, summarize: (1) the project's current feature set and key modules, (2) architectural patterns a new feature should follow, (3) any existing utilities or abstractions available for reuse." Use the output to further enrich your understanding before asking questions — don't surface what the docs already made clear.
+
+Store detected toolchain, doc findings, and research output for use in Phase 1 (to inform questions) and Phase 2 (to enrich technical considerations).
 
 ## Phase 1: Interactive Discovery
 
