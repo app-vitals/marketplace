@@ -35,7 +35,7 @@ Check if the following plugins are installed by looking for their skills in the 
 | Plugin | Check For | Used In |
 |--------|-----------|---------|
 | `learning-loop` | `/learn` skill | Step 12f (Learning Capture, merge-mode only) |
-| `frontend-design` | `frontend-design` skill | Step 7a (Discovery, for Design Skill-tagged tasks) |
+| `frontend-design` | `frontend-design` skill | Step 7a (Prepare Subagent Context, for Design Skill-tagged tasks) |
 
 If any are missing, present:
 
@@ -209,6 +209,9 @@ Implementation Decisions (PRE-ANSWERED — do not re-ask):
 - Backward Compatibility: {backward compat from planning doc}
 - Performance: {performance constraints from planning doc}
 
+Expected Tests (RED phase — write these first in Step [C]):
+{Expected Tests from task table, or "None specified — write tests for each acceptance criterion above"}
+
 AUTONOMOUS MODE: All clarifying questions have been pre-answered
 above during planning. Proceed directly from discovery to
 architecture to implementation. For architecture, use the
@@ -255,45 +258,113 @@ python3 "$POSTHOG_SCRIPT" shipwright_task_started \
 
 Replace all `{...}` placeholders with their actual values. This event fires at the earliest moment — before implementation — so pipeline drop-off (tasks started but not completed) is visible in PostHog.
 
-## Step 7: Start Feature Development
+## Step 7: Dispatch Implementation Subagent
 
-Execute the implementation using the prompt from Step 5. This is a self-contained inline workflow — no external skills required.
+**TDD REQUIRED**: The subagent below must follow red-green-refactor. No production code is written before a failing test exists. Expected Tests in the brief are the starting point for the RED phase.
 
-### 7a. Discovery
-1. Read `CLAUDE.md` to understand project conventions
-2. Read all files listed in the Technical Details section
-3. **Load project docs**: Spawn the research agent via the Agent tool with the task ID, title, description, and layer. Use the agent's output to inform architecture decisions and implementation patterns in steps 7b and 7c. **Metrics:** Extract the `### Metrics` block from the agent's output and store for Step 12e.2: `docs_scanned`, `docs_selected`, `docs_loaded` (as JSON array), `web_search` (boolean), `web_queries` (integer).
-4. If Design Skill is specified, check if that skill is available and invoke it if so
-5. Understand the existing patterns, naming conventions, and architecture
+To preserve context quality for the post-implementation steps (Simplify, Spec Check, Requirements Verification), all implementation work is dispatched to a fresh subagent. Construct the subagent prompt from context already in session, then hand it off.
 
-### 7b. Architecture
-Apply the task's architecture approach:
-- **minimal**: Smallest change possible, maximum reuse
-- **clean**: Proper abstractions, well-separated concerns
-- **pragmatic**: Balance of speed and quality
+### 7a. Prepare Subagent Context
 
-Plan the implementation: which files to create/modify, what patterns to follow, what to reuse.
+Before dispatching:
+1. Read `CLAUDE.md` at project root (pass full contents to subagent)
+2. Read all files listed in the Technical Details section (pass contents to subagent)
+3. If Design Skill is specified, check if that skill is available — note availability in the subagent prompt
 
-### 7c. Implementation
-1. Write the code following project conventions from CLAUDE.md
-2. Follow existing patterns in the codebase
-3. Handle all edge cases from Implementation Decisions
-4. Apply the error handling strategy from Implementation Decisions
-5. Respect scope boundaries — don't implement what's explicitly excluded
+### 7b. Dispatch Implementation Subagent
 
-### 7d. Testing
-1. Detect the project's test framework from Step 0 toolchain detection
-2. Follow existing test patterns in the codebase (find nearby test files for examples)
-3. Write tests appropriate to the task's Test Type (if specified) or based on what's needed
-4. Run the detected test command to verify tests pass
+Dispatch a `general-purpose` subagent with this prompt (fill in all `{placeholders}` from context already collected):
 
-### 7e. Validation
-1. Run the detected validate/build/test commands from Step 0
-2. Fix any errors that arise
-3. If the task specifies a Test Type, ensure that specific type of test exists and passes
+```
+You are implementing a feature task. Follow TDD (red-green-refactor) strictly — write failing tests BEFORE writing implementation code.
+
+You are already on branch: {branch}
+Do NOT create a new branch. Commit your work with conventional commit messages.
+
+━━━━ IMPLEMENTATION BRIEF ━━━━
+{Full implementation brief from Step 5, including Expected Tests section}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROJECT CONVENTIONS (from CLAUDE.md):
+{CLAUDE.md contents}
+
+TOOLCHAIN:
+  Test command:     {test command from Step 0}
+  Validate command: {validate command from Step 0}
+  Typecheck:        {typecheck command from Step 0, or "none"}
+
+DISCOVERY: Read these files before starting:
+{List of file paths from Technical Details}
+
+INSTRUCTIONS — follow in order:
+
+[A] Discovery
+  - Read each file listed above
+  - Spawn the shipwright:researcher agent via the Agent tool, passing: task ID "{task-id}", title "{task title}", description "{description}", layer "{layer}", and the project docs directory path
+  - Use research output to inform architecture and patterns
+  - Extract the ### Metrics block from research output — include it verbatim in your STATUS report at the end
+
+[B] Architecture — apply the "{architecture}" approach:
+  - minimal: smallest change, maximum reuse of existing code
+  - clean: proper abstractions, well-separated concerns
+  - pragmatic: balance of speed and quality
+  Plan which files to create/modify and what patterns to follow.
+
+[C] Testing — RED (Write failing tests first)
+  {If Expected Tests are specified in the brief:
+  "Start with these Expected Tests — write them exactly as specified, then run them to confirm they fail."}
+  1. Detect the test framework from existing test files
+  2. Follow test patterns found in nearby test files
+  3. Write tests covering each acceptance criterion
+  4. Run: {test command}
+     → Tests MUST FAIL at this point. A test passing immediately means it is testing existing behavior or is incorrectly written — fix it.
+
+[D] Implementation — GREEN (Make tests pass)
+  1. Write minimal code to make the failing tests pass
+  2. Follow CLAUDE.md conventions and existing codebase patterns
+  3. Handle: {edge cases from planning doc}
+  4. Apply: {error handling strategy from planning doc}
+  5. Respect scope: {scope boundaries from planning doc}
+  6. Run: {test command} — ALL tests must pass before continuing
+
+[E] Refactor — Keep tests green
+  1. Clean up: remove duplication, improve naming, simplify complexity
+  2. No new behavior during refactor
+  3. Rerun tests after each change — must stay green
+
+[F] Validation
+  1. Run: {validate command}
+  2. Fix any errors
+  3. {If Test Type specified: "Ensure a {test-type} test exists and passes"}
+
+Commit all changes: use conventional commit format (e.g., "feat: {task title}")
+
+━━━━ REPORT BACK ━━━━
+At the end, output a block in this exact format:
+
+STATUS: DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED
+
+RESEARCH_METRICS:
+{paste the ### Metrics block verbatim from the research agent output}
+
+CONCERNS: {if DONE_WITH_CONCERNS: describe them here}
+BLOCKER:  {if BLOCKED: describe what is blocking you}
+━━━━━━━━━━━━━━━━━━━━
+```
+
+### 7c. Handle Subagent Status
+
+Parse the subagent's STATUS report:
+
+- **DONE**: Store the RESEARCH_METRICS block for Step 12e.2. Proceed to Step 8.
+- **DONE_WITH_CONCERNS**: Read the concerns. If they indicate correctness or scope gaps, address them before Step 8. If they are observations only (e.g., "this file is growing large"), note them and proceed.
+- **NEEDS_CONTEXT**: Provide the missing context and re-dispatch with the same prompt augmented with the answer.
+- **BLOCKED**: Assess the blocker. If it is a context problem, re-dispatch with more context. If the task is too large, break it into smaller sub-tasks. If the plan is wrong, escalate to the user.
+
+Extract from RESEARCH_METRICS for Step 12e.2: `docs_scanned`, `docs_selected`, `docs_loaded` (as JSON array), `web_search` (boolean), `web_queries` (integer).
 
 > **CRITICAL — DO NOT SKIP STEPS 8–12**
-> After implementation completes, you MUST continue through ALL remaining steps. Do NOT stop or ask to run a separate workflow.
+> After the implementation subagent completes (Step 7), you MUST continue through ALL remaining steps: Simplify (8), Spec Compliance Check (8.5), Requirements Verification (9), Pre-Ship Checks (10), Push & PR (11), CI Gate (11b), Handoff (12). Do NOT stop or ask to run a separate workflow.
 
 ## Step 8: Simplify
 
@@ -325,6 +396,58 @@ python3 "$POSTHOG_SCRIPT" shipwright_simplify_complete \
   total={simplify_total} dry={simplify_dry} dead_code={simplify_dead_code} \
   naming={simplify_naming} complexity_fixes={simplify_complexity} consistency={simplify_consistency}
 ```
+
+---
+
+## Step 8.5: Spec Compliance Check
+
+Before creating a PR, launch an independent spec compliance subagent to verify the implementation actually satisfies the acceptance criteria. This is an independent review — the subagent has no knowledge of implementation decisions made in Step 7, only the spec and the diff.
+
+**Dispatch a `general-purpose` subagent** with this prompt:
+
+```
+You are performing a spec compliance review. Review the implementation diff against the acceptance criteria and report whether each criterion is MET, PARTIAL, or NOT MET.
+
+Task: {task-id} — {task title}
+
+Feature Overview:
+{parent feature Overview section from Step 2}
+
+Acceptance Criteria:
+{each acceptance criterion from Step 2, as a list}
+
+Implementation Diff:
+{output of: git diff main...HEAD}
+
+Implementation Decisions (context):
+- Edge Cases: {edge cases from planning doc}
+- Error Handling: {error handling from planning doc}
+- Scope Boundaries: {scope boundaries from planning doc}
+
+For each criterion, evaluate the diff and assign:
+  MET     — clear evidence in the diff that this criterion is satisfied
+  PARTIAL — partially implemented but incomplete
+  NOT MET — no evidence of implementation in the diff
+
+Respond with:
+| Criterion | Status | Evidence |
+|-----------|--------|----------|
+{one row per criterion}
+
+At the end, list any NOT MET criteria explicitly under "## Gaps Found".
+If all criteria are MET, write "## All Criteria Met".
+```
+
+**Handle the result:**
+
+- **All MET**: Proceed to Step 9.
+- **Any NOT MET**:
+  1. Fix the gaps (re-enter the implementation subagent from Step 7b with specific fix instructions)
+  2. Run `{validate command}` to confirm the fix doesn't break existing tests
+  3. Re-dispatch the spec compliance subagent to confirm all criteria are now MET
+  4. Repeat until all are MET
+- **PARTIAL** (standalone mode): Pause and ask the user: "Some criteria are partially implemented. Fix now or proceed to Step 9?"
+- **PARTIAL** (merge-mode): Treat PARTIAL the same as NOT MET — auto-fix before proceeding.
 
 ---
 
@@ -667,7 +790,7 @@ Append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file
 
 In standalone mode, **omit the `review` field** — Steps 12b-d don't run. The `/review` command will enrich this line with review data later (see review.md Step 10b).
 
-All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b). Include `started_at` from `$TASK_STARTED_AT` (Step 6b).
+All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b). Include `started_at` from `$TASK_STARTED_AT` (Step 6b). The spec compliance check in Step 8.5 does not add separate metrics — its outcome is reflected in `requirements.*` from Step 9.
 
 #### 12b-standalone. PostHog Export (silent)
 

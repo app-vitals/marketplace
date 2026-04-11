@@ -51,6 +51,25 @@ Docs directory: {docs path, or "none — web search only"}
 
 Follow your standard workflow: discover docs, select relevant ones,
 assess gaps, web search if needed, and return distilled results.
+
+In addition to docs, search the codebase for:
+
+1. REUSE PATTERNS — Find existing implementations similar to this task.
+   Identify functions, utilities, or abstractions that can be reused
+   rather than reimplemented. Search for related file paths, function
+   names, or patterns near the Technical Details files.
+
+2. ANTI-PATTERNS — Scan recent code (git log --oneline -10 to identify
+   active files, then read them) for patterns to avoid: inconsistent
+   naming, overly complex abstractions, or known tech debt areas.
+
+3. TEST PATTERNS — Find test files for the same layer or module as this
+   task. Extract the testing approach used: mocking strategy, assertion
+   style, test file structure, and naming conventions.
+
+Include a "## Patterns" section in your output with findings for each
+of the three categories above. If nothing notable is found for a
+category, write "None found."
 ```
 
 ## Step 3: Present Results

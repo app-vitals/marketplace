@@ -300,7 +300,7 @@ Before presenting the document, verify all of the following. Fix any issues foun
 1. **Coverage**: Every input requirement maps to at least one task
 2. **Math**: Feature subtotals equal the sum of their individual tasks; grand total equals the sum of all subtotals; executive summary percentages add to 100%
 3. **Dependencies**: No circular dependencies; all referenced task IDs exist in the document
-4. **Completeness**: Every task has Description, Technical Details, Acceptance Criteria, Risk, Layer, Branch, Context, Architecture, Complexity, and Implementation Decisions (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance)
+4. **Completeness**: Every task has Description, Technical Details, Acceptance Criteria, Risk, Layer, Branch, Context, Architecture, Complexity, Implementation Decisions (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance), and Expected Tests
 5. **Granularity**: No single task exceeds 8 hours
 6. **Design Skill Tags**: UI-layer tasks that create or significantly redesign user-facing components have a Design Skill tag if applicable; non-UI tasks do not
 7. **Appendix**: Complete task list matches the sum of all feature sections
@@ -311,6 +311,7 @@ Before presenting the document, verify all of the following. Fix any issues foun
 12. **Context & Branch Fields**: Every task has both Context and Branch fields populated
 13. **Implementation Decisions**: Every task has all 5 Implementation Decisions fields filled in (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance) — no "TBD" or empty values. These are required for autonomous `/dev-loop` execution.
 14. **Architecture Approach**: Every task has an Architecture field set to `minimal`, `clean`, or `pragmatic`
+15. **Expected Tests**: Every task has at least 2 Expected Tests entries — concrete test descriptions that map to the acceptance criteria and will serve as the TDD RED phase starting point during implementation
 
 Report the quality check results to the user.
 
