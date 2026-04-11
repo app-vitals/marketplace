@@ -620,14 +620,23 @@ Auto-export the metrics record just written to PostHog.
    - `shipwright_ci_gate` — if `ci` field present or `ci_fix_attempts > 0`
    - `shipwright_coverage` — if `coverage` field present
    Use `shipwright/{project}/{task_id}` as `distinct_id`. Include `$insert_id` as `{event_name}/{project}/{task_id}` for deduplication. Set `timestamp` from the record's `ts` field.
-5. POST the batch:
-   ```bash
-   curl -s -X POST "${POSTHOG_HOST}/batch/" \
-     -H "Content-Type: application/json" \
-     -d '{"api_key":"{POSTHOG_PROJECT_API_KEY}","batch":[...]}'
+5. POST the batch using `python3` — **never use curl with single-quoted JSON** (the shell does not expand variables inside single quotes; `'{POSTHOG_PROJECT_API_KEY}'` is sent as a literal string, not the actual key value):
+   ```python
+   import json, os, urllib.request, sys
+   key = os.environ.get("POSTHOG_PROJECT_API_KEY", "")
+   host = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+   # `events` = list of event dicts built in step 4
+   payload = json.dumps({"api_key": key, "batch": events}).encode()
+   req = urllib.request.Request(f"{host}/batch/", data=payload,
+         headers={"Content-Type": "application/json"}, method="POST")
+   try:
+       urllib.request.urlopen(req, timeout=10)
+   except Exception as e:
+       print(f"⚠ PostHog export failed: {e} — metrics saved locally in metrics.jsonl",
+             file=sys.stderr)
    ```
-6. If the POST fails (non-200), print one warning line: `⚠ PostHog export failed: {status} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
-7. On success: silent, no output.
+6. On connection/network failure the script prints one warning line. On success: silent. Do NOT fail the task.
+7. **Important:** PostHog `/batch/` always returns HTTP 200 even for invalid API keys — do not treat a 200 response as proof of success. The only meaningful guard is the non-empty key check in step 1.
 
 #### 12c-standalone. Print Handoff
 
@@ -750,8 +759,8 @@ Auto-export the metrics record just written to PostHog. Same logic as Step 12b-s
 1. Check `POSTHOG_PROJECT_API_KEY` — if not set, skip silently.
 2. Read the last line of `planning/{folder-name}/metrics.jsonl`.
 3. Build events per `metrics.md` Step 7c mapping (all five event types, including `review` data which is now available).
-4. POST to `${POSTHOG_HOST:-https://us.i.posthog.com}/batch/`.
-5. On failure: print `⚠ PostHog export failed: {status} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+4. POST using `python3` (same approach as Step 12b-standalone step 5 — use `os.environ.get("POSTHOG_PROJECT_API_KEY")` and `urllib.request`, never curl with single-quoted JSON).
+5. On connection/network failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
 6. On success: silent.
 
 #### 12f. Learning Capture (Optional)
