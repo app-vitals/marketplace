@@ -57,6 +57,7 @@ This template is used by `/plan-session` Phase 4 to generate the task breakdown 
 | **Design Skill** | {skill name if applicable, otherwise omit this row} |
 | **Test Type** | {`unit` / `integration` / `e2e` — only for test tasks, otherwise omit this row} |
 | **Architecture** | {`minimal` / `clean` / `pragmatic` — see guidelines below} |
+| **Expected Tests** | - `test: {behavior under test}` (one bullet per key scenario) |
 
 **Description**: {One-line summary}
 
@@ -68,6 +69,12 @@ This template is used by `/plan-session` Phase 4 to generate the task breakdown 
 - [ ] {Testable criterion}
 
 **Risk**: {Low/Medium/High} — {brief justification if Medium or High}
+
+**Expected Tests** (RED phase — implementer writes these first):
+- `test: {key scenario from acceptance criteria}`
+- `test: {edge case from Implementation Decisions}`
+- `test: {error/failure path that must be handled}`
+(Provide at least 2–3 test descriptions per task; more for complex tasks. These become the TDD red phase starting point.)
 
 **Implementation Decisions** (pre-answers for autonomous development):
 - **Edge Cases**: {List specific edge cases to handle}

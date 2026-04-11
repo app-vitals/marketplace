@@ -1,4 +1,4 @@
-# Shipwright v1.9.0
+# Shipwright v2.0.0
 
 A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, perform multi-agent code reviews, and conduct integrated project research — for any software project.
 
@@ -31,6 +31,7 @@ Every feature moves through the same stages. One `planning/{folder}/` directory 
 
 | Command | Description |
 |---------|-------------|
+| `/brainstorm {folder}` | Interactive PRD session — qualifying questions, codebase research, and PRODUCT-SPEC.md output ready for /plan-session |
 | `/plan-session {folder}` | Structured planning — reads input docs, analyzes codebase, produces a stateful task breakdown |
 | `/dev-task {task-id}` | Single task execution — branch, implement, test, simplify, review, PR |
 | `/dev-task {task-id} --merge` | Same as above, but auto-merges after review (used by dev-loop) |
@@ -44,8 +45,20 @@ Every feature moves through the same stages. One `planning/{folder}/` directory 
 ## Workflow
 
 ```
-/plan-session → /dev-task (or /dev-loop) → /review → merge
+/brainstorm → /plan-session → /dev-task (or /dev-loop) → /review → merge
 ```
+
+### 0. Brainstorm
+
+Have an idea but no spec yet? `/brainstorm` turns a rough concept into a structured `PRODUCT-SPEC.md` through an interactive session:
+
+1. Detects toolchain and reads existing project context
+2. Asks qualifying questions one at a time: problem statement, users, features (with depth probes per feature), constraints, out-of-scope, priorities, open questions, success criteria
+3. Spawns the research agent to surface existing patterns and reuse opportunities
+4. Drafts a `PRODUCT-SPEC.md` in the planning folder for review
+5. Saves the approved PRD and hands off to `/plan-session`
+
+The output is a properly formatted PRD that `/plan-session` reads directly — features labeled, acceptance criteria in checkbox format, constraints and out-of-scope documented.
 
 ### 1. Plan Session
 
@@ -268,6 +281,7 @@ shipwright/
 ├── agents/
 │   └── researcher.md            # Research sub-agent (sonnet)
 ├── commands/
+│   ├── brainstorm.md            # Interactive PRD session → PRODUCT-SPEC.md
 │   ├── plan-session.md          # Planning session workflow
 │   ├── dev-task.md              # Single task execution
 │   ├── dev-loop.md              # Autonomous continuous loop
@@ -279,7 +293,8 @@ shipwright/
 ├── references/
 │   ├── metrics-schema.md        # Metrics JSONL schema reference
 │   ├── planning-doc-template.md # Task breakdown document template
-│   └── toolchain-patterns.md   # Config file → command mapping
+│   ├── product-spec-template.md # PRODUCT-SPEC.md template for /brainstorm
+│   └── toolchain-patterns.md    # Config file → command mapping
 ├── scripts/
 │   └── posthog_send.py          # PostHog event sender (stdlib Python, no deps)
 ├── README.md
