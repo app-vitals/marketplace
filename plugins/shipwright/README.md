@@ -1,4 +1,4 @@
-# Shipwright v1.8.0
+# Shipwright v1.9.0
 
 A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, perform multi-agent code reviews, and conduct integrated project research — for any software project.
 
@@ -9,6 +9,23 @@ A shipwright builds ships. This one ships software.
 ```
 /plugin install shipwright@app-vitals/marketplace
 ```
+
+## The Pipeline
+
+```mermaid
+flowchart LR
+    PS["/plan-session"] -->|"Task Breakdown"| DT["/dev-task"]
+    DT -->|"Pull Request"| RV["/review"]
+    RV --> M["✓ Merged"]
+    DT -.->|"--merge\nautomated"| M
+
+    style PS fill:#1e2d52,stroke:#4f8ef7,color:#c9d1e0
+    style DT fill:#1e2d52,stroke:#4f8ef7,color:#c9d1e0
+    style RV fill:#1e2d52,stroke:#4f8ef7,color:#c9d1e0
+    style M fill:#0f2d1e,stroke:#34c77b,color:#34c77b
+```
+
+Every feature moves through the same stages. One `planning/{folder}/` directory ties everything together — `/plan-session` writes the task breakdown, `/dev-task` reads it and appends metrics, `/dev-loop` runs tasks continuously.
 
 ## Commands
 
@@ -32,53 +49,72 @@ A shipwright builds ships. This one ships software.
 
 ### 1. Plan Session
 
-Feed it a folder of requirements docs (PRDs, specs, wireframes) and it produces a structured task breakdown with:
-- Auto-detected project layers and toolchain
-- Granular tasks (1-8h each) with acceptance criteria
-- Pre-answered implementation decisions for autonomous execution
-- Branch names, dependency chains, and coverage targets
-- Permission pre-flight for unattended operation
+Feed it a folder of requirements docs (PRDs, specs, wireframes). It runs 10 phases to produce a self-contained task breakdown:
+
+| Phase | What Happens |
+|-------|-------------|
+| 0 | Detect toolchain · check recommended plugins |
+| 1–2 | Read all docs in the planning folder · spawn researcher agent to enrich with codebase context |
+| 3 | Auto-detect project layers (`src/api/` → API, `src/components/` → Frontend, etc.) · map requirements |
+| 4 | Generate granular tasks (1–8h) with IDs, branches, complexity scores (1–5), and pre-answered implementation decisions · run consolidation pass |
+| 5–6 | Quality checks (14 verification rules) + user review |
+| 7 | Permission pre-flight for env-var prefixed commands |
+
+**Output:** `planning/{folder}/{Project}_Task_Breakdown.md`
+
+Every task includes estimated hours, branch name, layer, dependency chain, complexity score, pre-answered implementation decisions (edge cases, error handling, scope, performance), and acceptance criteria with coverage target.
 
 ### 2. Dev Task
 
-Picks up a task from the planning doc and runs end-to-end:
-1. Extract task details from planning doc
-2. Check dependencies
-3. Create feature branch
-4. Implement (discovery → architecture → code → tests → validate)
-5. Simplify (DRY, dead code, naming, complexity)
-6. Verify acceptance criteria against the diff
-7. Run pre-ship checks (lint, types, tests, coverage)
-8. Push and create PR
-9. Update from main, wait for CI checks to pass (auto-fix failures up to 3 times)
+```
+/dev-task WS-2.1          # Stops at PR for human review
+/dev-task WS-2.1 --merge  # Fully automated through merge
+```
 
-With `--merge` flag, continues automatically:
-10. Launch parallel review agents (code review, silent failure hunting, test analysis, etc.)
-11. Auto-fix review findings
-12. Update planning doc status
-13. Squash-merge PR and delete branch
-14. Capture learnings (if learning-loop plugin installed)
+```mermaid
+flowchart TD
+    A["1–3  Extract task · check dependencies · detect toolchain"]
+    B["4–5  Create feature branch · mark in-progress"]
+    C["6–7  Research docs · implement\n        discovery → architecture → code → tests"]
+    D["8    Simplify pass  DRY · dead code · naming · complexity"]
+    E["9–10 Verify acceptance criteria\n        lint · typecheck · tests · coverage"]
+    F["11   Create PR · CI gate  auto-fix failures"]
+    G["12–14 Parallel review agents · auto-fix · squash-merge"]
+    H["✓ PR ready"]
+    I["✓ Done · planning doc updated"]
+
+    A --> B --> C --> D --> E --> F
+    F -->|standalone| H
+    F -->|"--merge"| G --> I
+
+    style H fill:#0f2d1e,stroke:#34c77b,color:#34c77b
+    style I fill:#0f2d1e,stroke:#34c77b,color:#34c77b
+```
+
+| Mode | Behavior | Best For |
+|------|----------|----------|
+| Standalone | Pauses after PR creation · presents handoff block with PR link | Tasks that need human review before merging |
+| `--merge` | No pause points — all steps unattended | Routine tasks with clear acceptance criteria |
 
 ### 3. Dev Loop
 
 Runs `/dev-task --merge` in a continuous loop until all tasks are done or blocked:
 
-1. Pick next task with satisfied dependencies
-2. Launch subagent running `/dev-task --merge` (steps 1–14 above)
-3. Confirm task merged, loop to next task
+1. Pick next task with all dependencies `[x]` (complete)
+2. Run `/dev-task --merge` — all steps, fully automated
+3. Confirm merged, loop to next task
 
-Pauses only when human judgment is genuinely needed (NOT MET criteria, build failures, AC gaps). Offers to roll back pipeline permissions when complete.
+Pauses only when human judgment is genuinely needed: unmet acceptance criteria, repeated CI failures, blocked dependencies. Offers to roll back pipeline permissions when complete.
 
 ### 4. Review
 
 Multi-agent code review that:
 - Auto-detects branch and PR context
 - Recovers the task ID from the branch name
-- Launches parallel review agents (code review, silent failure hunting, test analysis, comment review, type design)
+- Launches parallel agents (code review, silent failure hunting, test analysis, comment review, type design)
 - Verifies acceptance criteria against the diff
-- Runs coverage checks
-- Presents a structured report with confidence-scored findings
-- Optionally captures learnings (if learning-loop plugin is installed)
+- Presents a confidence-scored report with structured findings
+- Optionally captures learnings (if learning-loop is installed)
 
 ### 5. Refresh Plan
 
@@ -90,8 +126,6 @@ Updates stale tasks in a planning doc:
 
 ### 6. Metrics
 
-Analyzes pipeline metrics across planning sessions to measure code quality and identify improvements:
-
 ```
 /metrics                              # all projects, all time
 /metrics my-project                   # single project
@@ -99,22 +133,18 @@ Analyzes pipeline metrics across planning sessions to measure code quality and i
 /metrics --compare projectA projectB  # side-by-side
 ```
 
-**The fix cascade** — Shipwright's dev-task pipeline has three phases after initial implementation that catch and fix issues: Simplify (Step 8), PR Review (Steps 12b-d), and CI Gate (Step 11b). Each fix applied in these phases is a signal that upstream code generation could be better. `/metrics` measures this rework and tracks it over time.
+**The fix cascade** — Shipwright's pipeline has three post-implementation phases that catch and fix issues: Simplify (Step 8), PR Review (Steps 12–14), and CI Gate (Step 11). Each fix is a signal that upstream code generation could be better. `/metrics` measures this rework and tracks it over time.
 
 Key metrics:
-- **First-time quality rate** — % of tasks that ship with zero simplify fixes, a clean review verdict, and CI passing on first try
+- **First-time quality rate** — % of tasks with zero simplify fixes, SHIP IT verdict, and CI pass on first try
 - **Simplify fix breakdown** — DRY violations, dead code, naming, complexity, consistency
 - **Review verdict distribution** — SHIP IT / NEEDS FIXES / NEEDS WORK
-- **CI first-pass rate** — % of PRs where CI passes without fix attempts
-- **Coverage trend** — whether test coverage is improving or declining
+- **CI first-pass rate** and common failure patterns
+- **Estimation accuracy** by complexity tier (1–2 / 3 / 4–5)
 
-The command also generates actionable recommendations (e.g., "Simplify is catching 4.2 DRY violations per task — consider adding DRY enforcement to implementation prompts").
-
-**PostHog data** is emitted automatically by `/dev-task` at each pipeline checkpoint — no manual export needed. Set `POSTHOG_PROJECT_API_KEY` in your environment and events flow to PostHog as each task runs.
+PostHog events are fired automatically by `/dev-task` at each checkpoint — `/metrics` is pure local analysis.
 
 ### 7. Research
-
-Load task-relevant documentation and research context using an isolated sub-agent:
 
 - `/research {task}` scans your project's `docs/` directory, selects relevant files, optionally runs web search, and returns distilled context
 - `/research-docs [module]` audits your existing documentation, identifies gaps and stale content, and generates or updates docs
@@ -122,6 +152,48 @@ Load task-relevant documentation and research context using an isolated sub-agen
 Research is also used automatically by `/plan-session` (Phase 2) and `/dev-task` (Step 7a) to load context before planning and implementation.
 
 > **Migration:** If you previously installed the `research` plugin separately, uninstall it after updating shipwright: `/plugin uninstall research`
+
+---
+
+## Planning Folder — Shared State
+
+Every command in the pipeline shares a single `planning/{folder}/` directory:
+
+```
+planning/april-2026-workspace-switcher/
+├── PRODUCT-SPEC.md                       # Input: requirements doc
+├── WorkspaceSwitcher_Task_Breakdown.md   # Written by /plan-session
+└── metrics.jsonl                         # Appended by /dev-task after each task
+```
+
+```mermaid
+flowchart LR
+    PS["/plan-session"] -->|writes| TB["Task_Breakdown.md"]
+    DT["/dev-task\n/dev-loop"] -->|reads| TB
+    DT -->|appends| MJ["metrics.jsonl"]
+    MJ -->|read by| MC["/metrics"]
+    MJ -->|calibrates estimates| PS
+    DT -->|"6 events via\nposthog_send.py"| PH[("PostHog")]
+```
+
+---
+
+## PostHog — Automatic Pipeline Telemetry
+
+Set `POSTHOG_PROJECT_API_KEY` in your environment. `/dev-task` fires 6 events at pipeline checkpoints — no other configuration needed.
+
+| Event | Trigger | Key Properties |
+|-------|---------|---------------|
+| `shipwright_task_started` | Branch created (Step 6b) | task_id · estimated_h · complexity · branch · model |
+| `shipwright_simplify_complete` | Simplify pass done (Step 8) | total · dry · dead_code · naming · complexity_fixes · consistency |
+| `shipwright_pr_created` | PR created (Step 11) | pr · files_changed |
+| `shipwright_ci_result` | CI passes or exhausts (Step 11b) | passed_first_try · fix_attempts · failures[] · exhausted |
+| `shipwright_review_complete` | Review verdict (Step 12c, merge-mode) | verdict · findings · fixes_applied · agents[] |
+| `shipwright_task_completed` | Task complete (Step 12) | actual_h · started_at · simplify_total · review_verdict |
+
+The `distinct_id` is `shipwright/{project}/{task_id}` across all events. Build a funnel from `task_started → pr_created → task_completed` to see where tasks drop off — tasks that appear in `task_started` but not in `task_completed` were abandoned mid-pipeline.
+
+---
 
 ## Toolchain Support
 
@@ -148,7 +220,7 @@ Shipwright works standalone using Claude Code's built-in agent types (`feature-d
 |--------|--------|---------|-----------------|
 | `learning-loop` | [app-vitals marketplace](https://github.com/app-vitals/marketplace) | `/review`, `/dev-task --merge` | After code review, captures patterns and recurring issues as learnings, then promotes them to CLAUDE.md so the project gets smarter over time |
 | `frontend-design` | [Claude Code plugins](https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design) | `/dev-task` | When a task is tagged with `Design Skill: frontend-design` in the planning doc, produces distinctive, high-quality UI instead of generic AI-generated interfaces |
-| `posthog` (optional) | [PostHog plugin](https://github.com/PostHog/posthog-mcp) | `/metrics --export posthog` | Enables pushing pipeline metrics to PostHog for historical dashboards and trend visualization. Only needs `POSTHOG_PROJECT_API_KEY` env var — the MCP server is optional for querying |
+| `posthog` (optional) | [PostHog plugin](https://github.com/PostHog/posthog-mcp) | `/metrics` | Enables querying PostHog pipeline data via MCP. Only needs `POSTHOG_PROJECT_API_KEY` env var for event sending — the MCP server is optional for querying |
 
 ### How Plugin Checks Work
 
@@ -185,7 +257,7 @@ All commands look for planning docs at `planning/**/*_Task_Breakdown.md`. Create
 
 ### Permissions
 
-`/plan-session` Phase 7 auto-detects needed permissions and pre-populates `.claude/settings.local.json`. After `/dev-loop` completes, it offers to roll back pipeline-specific permissions.
+`/plan-session` Phase 7 auto-detects env-var prefixed commands that won't auto-approve, and presents patterns to add to `.claude/settings.local.json`. After `/dev-loop` completes, it offers to roll back pipeline-specific permissions.
 
 ## Architecture
 
@@ -207,7 +279,9 @@ shipwright/
 ├── references/
 │   ├── metrics-schema.md        # Metrics JSONL schema reference
 │   ├── planning-doc-template.md # Task breakdown document template
-│   └── toolchain-patterns.md    # Config file → command mapping
+│   └── toolchain-patterns.md   # Config file → command mapping
+├── scripts/
+│   └── posthog_send.py          # PostHog event sender (stdlib Python, no deps)
 ├── README.md
 └── TESTING.md
 ```
