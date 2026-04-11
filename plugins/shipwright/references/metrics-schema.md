@@ -52,7 +52,8 @@ Metrics are written in two phases to support the standalone `/dev-task` → `/re
 | `pr` | integer | Step 11 | — | GitHub PR number |
 | `hotfixes` | integer | dev-loop Phase 3b | `0` | Hotfix tasks spawned by this task |
 | `files_changed` | integer | `git diff --stat` | — | Files changed vs main |
-| `ts` | string (ISO-8601) | Step 12e.2 | — | Timestamp when metrics line was written |
+| `started_at` | string (ISO-8601) | Step 6b | `null` | Timestamp when the feature branch was created (task start). Used for phase timing when combined with `ts`. New in v1.9.0. |
+| `ts` | string (ISO-8601) | Step 12e.2 | — | Timestamp when metrics line was written (task end) |
 
 ### Fix Cascade Fields (v1.4.0+)
 
@@ -147,6 +148,12 @@ Best-effort measurement. Use `null` for any field the toolchain can't provide.
 {"task":"WS-1.2","title":"Add workspace API routes","estimated_h":3,"actual_h":2.8,"complexity":3,"retries":0,"ci_fix_attempts":1,"pr":43,"hotfixes":0,"files_changed":6,"ts":"2026-03-31T16:45:00Z","simplify":{"total":2,"dry":1,"dead_code":0,"naming":1,"complexity":0,"consistency":0},"requirements":{"met":5,"partial":0,"not_met":0,"unverifiable":0,"total":5},"review":{"verdict":"NEEDS FIXES","findings":3,"fixes_applied":2,"agents":["code-reviewer","silent-failure-hunter","test-analyzer"]},"ci":{"fix_attempts":1,"failures":["jest: 1 test suite failed — missing mock for workspace service"]},"model":"sonnet","coverage":{"before":87.2,"after":91.5,"delta":4.3}}
 ```
 
+### v1.9.0 record (with started_at for phase timing)
+
+```json
+{"task":"WS-1.3","title":"Add workspace switcher UI","estimated_h":4,"actual_h":3.5,"complexity":4,"retries":0,"ci_fix_attempts":0,"pr":44,"hotfixes":0,"files_changed":8,"started_at":"2026-04-10T14:00:00Z","ts":"2026-04-10T17:30:00Z","simplify":{"total":1,"dry":0,"dead_code":0,"naming":1,"complexity":0,"consistency":0},"requirements":{"met":6,"partial":0,"not_met":0,"unverifiable":0,"total":6},"review":{"verdict":"SHIP IT","findings":0,"fixes_applied":0,"agents":["code-reviewer","silent-failure-hunter"]},"ci":{"fix_attempts":0,"failures":[]},"model":"sonnet","coverage":{"before":89.1,"after":92.3,"delta":3.2}}
+```
+
 ---
 
 ## Backward Compatibility Rules
@@ -158,12 +165,32 @@ Best-effort measurement. Use `null` for any field the toolchain can't provide.
 
 ---
 
+## Incremental PostHog Events (v1.9.0+)
+
+In addition to the batch export at task end, Shipwright fires individual PostHog events at each pipeline checkpoint. These events share the same `distinct_id` as the batch events (`shipwright/{project}/{task_id}`), so they can be joined in PostHog to reconstruct the full task lifecycle.
+
+| Event Name | Fired At | Key Properties |
+|------------|----------|----------------|
+| `shipwright_task_started` | Step 6b — branch created | `task_id`, `project`, `title`, `estimated_h`, `complexity`, `branch`, `model` |
+| `shipwright_simplify_complete` | Step 8 — after simplify pass | `task_id`, `project`, `total`, `dry`, `dead_code`, `naming`, `complexity_fixes`, `consistency` |
+| `shipwright_pr_created` | Step 11 — after PR creation | `task_id`, `project`, `pr`, `files_changed` |
+| `shipwright_ci_result` | Step 11b — after CI pass or exhaustion | `task_id`, `project`, `passed_first_try`, `fix_attempts`, `failures`, `exhausted` (only on max retry) |
+| `shipwright_review_complete` | Step 12c — after review verdict (merge-mode) | `task_id`, `project`, `verdict`, `findings`, `fixes_applied`, `agents` |
+| `shipwright_task_completed` | Step 12b-standalone / 12e.3 — at task end | Full task summary including `started_at` |
+
+All events include a `$insert_id` property set to `{event_name}/{project}/{task_id}` for PostHog deduplication — re-exporting is safe.
+
+These events are fired by `scripts/posthog_send.py`, which is a no-op when `POSTHOG_PROJECT_API_KEY` is not set.
+
+---
+
 ## Writers
 
 | Writer | File | What It Writes | When |
 |--------|------|----------------|------|
-| **Dev-task (standalone)** | `dev-task.md` Step 12a-standalone | All fields except `review` | After PR creation |
-| **Dev-task (merge-mode)** | `dev-task.md` Step 12e.2 | All fields including `review` | After inline review + merge |
+| **Dev-task (standalone)** | `dev-task.md` Step 6b | `started_at` (in PostHog event only, not in JSONL) | At branch creation |
+| **Dev-task (standalone)** | `dev-task.md` Step 12a-standalone | All JSONL fields except `review`; `started_at` in PostHog export | After PR creation |
+| **Dev-task (merge-mode)** | `dev-task.md` Step 12e.2 | All JSONL fields including `review`; `started_at` in PostHog export | After inline review + merge |
 | **Review** | `review.md` Step 10b | `review.*` fields (updates existing line) | After review verdict |
 
 ## Consumers

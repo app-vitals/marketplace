@@ -234,6 +234,24 @@ Task:   {task-id} — {task title}
 
 If any git command fails, report the error and stop.
 
+### 6b. PostHog Setup (silent)
+
+Resolve the PostHog send script and record the task start time for phase timing:
+
+1. Locate the script: `POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)`
+2. Record `task_started_at` as the current ISO-8601 UTC timestamp: `TASK_STARTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")`
+3. Store both values for use in later steps.
+
+If `POSTHOG_SCRIPT` is empty (e.g., running from a local clone rather than an installed plugin), all PostHog calls in this task are silently skipped — do not warn or fail.
+
+If `POSTHOG_SCRIPT` is set, fire `shipwright_task_started`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_task_started\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$TASK_STARTED_AT\",\"properties\":{\"\\$insert_id\":\"shipwright_task_started/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"title\":\"{task title}\",\"estimated_h\":{hours},\"complexity\":{complexity},\"branch\":\"{branch}\",\"model\":\"{model_tier}\"}}"
+```
+
+Replace `{project}` with the planning folder name (parent directory of the metrics.jsonl file), `{task_id}` with the parsed task ID, and all other `{...}` placeholders with their values. This event fires at the earliest moment — before implementation — so pipeline drop-off (tasks started but not completed) is visible in PostHog.
+
 ## Step 7: Start Feature Development
 
 Execute the implementation using the prompt from Step 5. This is a self-contained inline workflow — no external skills required.
@@ -295,6 +313,12 @@ After implementation completes, run a simplification pass:
    - `simplify_total`: sum of above
    Store these counts for use in Step 12e.2 metrics. If no fixes were needed, all counts are 0.
 5. Run the detected typecheck command (if applicable) to verify types still pass after cleanup
+
+If `POSTHOG_SCRIPT` is set, fire `shipwright_simplify_complete`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_simplify_complete\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_simplify_complete/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"total\":{simplify_total},\"dry\":{simplify_dry},\"dead_code\":{simplify_dead_code},\"naming\":{simplify_naming},\"complexity_fixes\":{simplify_complexity},\"consistency\":{simplify_consistency}}}"
+```
 
 ---
 
@@ -418,6 +442,12 @@ Generated with [Claude Code](https://claude.com/claude-code)
    Do NOT use `--body "$(cat <<'EOF'..."` — this produces a different command string each time and cannot be matched by `Bash(gh pr create:*)`.
 4. Display the PR URL. Store it as `{pr-url}` for use in Step 11b.5.
 
+5. If `POSTHOG_SCRIPT` is set, fire `shipwright_pr_created`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_pr_created\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_pr_created/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"pr\":{pr_number},\"files_changed\":{files_changed}}}"
+```
+
 ### PR Failure Cleanup
 
 If PR creation fails, OR if CI checks fail after max retries (in merge-mode, Step 11b.5), OR if `gh pr merge` fails later (in merge-mode Step 12g), after 2 retries:
@@ -498,6 +528,11 @@ Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If t
 ✓ CI checks passed
 ```
 
+If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass case):
+```bash
+python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_ci_result\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_ci_result/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"passed_first_try\":true,\"fix_attempts\":0,\"failures\":[]}}"
+```
+
 **Any check fails:** Continue to 11b.3.
 
 ### 11b.3. Collect Failure Logs
@@ -564,6 +599,10 @@ While `ci_attempt < ci_max_retries`:
    ```
    ✓ CI checks passed (after {ci_attempt} fix attempt(s))
    ```
+   If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass after fixes):
+   ```bash
+   python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_ci_result\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_ci_result/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"passed_first_try\":false,\"fix_attempts\":{ci_attempt},\"failures\":{ci_failures_json_array}}}"
+   ```
    Proceed to Step 12.
 
 6. **Checks still failing:** Collect new failure logs (repeat 11b.3) and continue the loop.
@@ -588,6 +627,10 @@ Failing checks:
 If the user chooses (2), run PR Failure Cleanup (Step 11).
 
 **When merge-mode is ON:**
+If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (exhausted):
+```bash
+python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_ci_result\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_ci_result/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"passed_first_try\":false,\"fix_attempts\":{ci_max_retries},\"failures\":{ci_failures_json_array},\"exhausted\":true}}"
+```
 Print:
 ```
 ⚠️ CI gate exhausted — task {task-id} reset for retry
@@ -604,39 +647,28 @@ Append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file
 
 In standalone mode, **omit the `review` field** — Steps 12b-d don't run. The `/review` command will enrich this line with review data later (see review.md Step 10b).
 
-All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b).
+All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b). Include `started_at` from `$TASK_STARTED_AT` (Step 6b).
 
 #### 12b-standalone. PostHog Export (silent)
 
 Auto-export the metrics record just written to PostHog.
 
-1. Check the `POSTHOG_PROJECT_API_KEY` environment variable. If not set, skip this step silently — no output.
+1. If `POSTHOG_SCRIPT` is empty (not resolved in Step 6b) or `POSTHOG_PROJECT_API_KEY` is unset, skip this step silently — no output.
 2. Read the last line of `planning/{folder-name}/metrics.jsonl` (the record just appended).
-3. Set `POSTHOG_HOST` to the value of the `POSTHOG_HOST` env var, or `https://us.i.posthog.com` if unset.
-4. Build a batch of PostHog events from the record using the same event mapping as `metrics.md` Step 7c:
-   - `shipwright_task_completed` — always
-   - `shipwright_simplify_pass` — if `simplify` field present
+3. Build and send one event per applicable event type using `posthog_send.py`. For each event, construct the JSON and call:
+   ```bash
+   python3 "$POSTHOG_SCRIPT" '{"event":"...","distinct_id":"shipwright/{project}/{task_id}","timestamp":"{ts}","properties":{"$insert_id":".../{project}/{task_id}",...}}'
+   ```
+   Event types to send (same mapping as `metrics.md` Step 7c):
+   - `shipwright_task_completed` — always; include `started_at` (the `$TASK_STARTED_AT` value from Step 6b) in properties
+   - `shipwright_simplify_pass` — if `simplify` field present in the record
    - `shipwright_review_pass` — if `review` field present
    - `shipwright_ci_gate` — if `ci` field present or `ci_fix_attempts > 0`
    - `shipwright_coverage` — if `coverage` field present
-   Use `shipwright/{project}/{task_id}` as `distinct_id`. Include `$insert_id` as `{event_name}/{project}/{task_id}` for deduplication. Set `timestamp` from the record's `ts` field.
-5. POST the batch using `python3` — **never use curl with single-quoted JSON** (the shell does not expand variables inside single quotes; `'{POSTHOG_PROJECT_API_KEY}'` is sent as a literal string, not the actual key value):
-   ```python
-   import json, os, urllib.request, sys
-   key = os.environ.get("POSTHOG_PROJECT_API_KEY", "")
-   host = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
-   # `events` = list of event dicts built in step 4
-   payload = json.dumps({"api_key": key, "batch": events}).encode()
-   req = urllib.request.Request(f"{host}/batch/", data=payload,
-         headers={"Content-Type": "application/json"}, method="POST")
-   try:
-       urllib.request.urlopen(req, timeout=10)
-   except Exception as e:
-       print(f"⚠ PostHog export failed: {e} — metrics saved locally in metrics.jsonl",
-             file=sys.stderr)
-   ```
-6. On connection/network failure the script prints one warning line. On success: silent. Do NOT fail the task.
-7. **Important:** PostHog `/batch/` always returns HTTP 200 even for invalid API keys — do not treat a 200 response as proof of success. The only meaningful guard is the non-empty key check in step 1.
+4. On failure from any call: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+5. On success: silent.
+
+**Note:** PostHog `/batch/` always returns HTTP 200 even for invalid API keys — the only meaningful guard is the non-empty key check in step 1.
 
 #### 12c-standalone. Print Handoff
 
@@ -716,6 +748,11 @@ Collect findings, verify against source files, categorize.
 - `review_agents`: list of agent type names that were launched (e.g., `["code-reviewer", "silent-failure-hunter", "test-analyzer"]`)
 Store these for use in Step 12e.2 metrics.
 
+If `POSTHOG_SCRIPT` is set, fire `shipwright_review_complete`:
+```bash
+python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_review_complete\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_review_complete/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"verdict\":\"{review_verdict}\",\"findings\":{review_findings},\"fixes_applied\":{review_fixes_applied},\"agents\":{review_agents_json_array}}}"
+```
+
 #### 12d. Fix Issues (if NEEDS FIXES)
 1. Apply fixes using Edit tool
 2. Run detected validation commands
@@ -733,10 +770,11 @@ After marking done, append one JSONL line to `planning/{folder-name}/metrics.jso
 > **Note:** In standalone mode, metrics are written earlier in Step 12a-standalone (without `review` data). This step only runs in merge-mode where the review has already completed inline.
 
 ```json
-{"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"ci_fix_attempts":{ci_attempt},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"ts":"{ISO timestamp}","simplify":{"total":{simplify_total},"dry":{simplify_dry},"dead_code":{simplify_dead_code},"naming":{simplify_naming},"complexity":{simplify_complexity},"consistency":{simplify_consistency}},"requirements":{"met":{req_met},"partial":{req_partial},"not_met":{req_not_met},"unverifiable":{req_unverifiable},"total":{req_total}},"review":{"verdict":"{review_verdict}","findings":{review_findings},"fixes_applied":{review_fixes_applied},"agents":{review_agents_json_array}},"ci":{"fix_attempts":{ci_attempt},"failures":{ci_failures_json_array}},"model":"{model_tier}","coverage":{"before":{coverage_before},"after":{coverage_after},"delta":{coverage_delta}}}
+{"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"ci_fix_attempts":{ci_attempt},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"started_at":"{TASK_STARTED_AT}","ts":"{ISO timestamp}","simplify":{"total":{simplify_total},"dry":{simplify_dry},"dead_code":{simplify_dead_code},"naming":{simplify_naming},"complexity":{simplify_complexity},"consistency":{simplify_consistency}},"requirements":{"met":{req_met},"partial":{req_partial},"not_met":{req_not_met},"unverifiable":{req_unverifiable},"total":{req_total}},"review":{"verdict":"{review_verdict}","findings":{review_findings},"fixes_applied":{review_fixes_applied},"agents":{review_agents_json_array}},"ci":{"fix_attempts":{ci_attempt},"failures":{ci_failures_json_array}},"model":"{model_tier}","coverage":{"before":{coverage_before},"after":{coverage_after},"delta":{coverage_delta}}}
 ```
 
 Field derivation:
+- `started_at`: the `$TASK_STARTED_AT` value recorded in Step 6b (`null` if Step 6b didn't run, e.g., older plugin version).
 - `actual_h`: elapsed time from Step 6 branch creation to now (approximate from wall clock or git timestamps)
 - `complexity`: from the task's Complexity field in the planning doc (0 if not set — pre-B1.2 planning docs)
 - `retries`: 0 in standalone dev-task; passed from dev-loop retryMap when called via dev-loop
@@ -756,11 +794,11 @@ This step is silent — no output. JSONL format means one JSON object per line; 
 
 Auto-export the metrics record just written to PostHog. Same logic as Step 12b-standalone:
 
-1. Check `POSTHOG_PROJECT_API_KEY` — if not set, skip silently.
+1. If `POSTHOG_SCRIPT` is empty or `POSTHOG_PROJECT_API_KEY` is unset, skip silently.
 2. Read the last line of `planning/{folder-name}/metrics.jsonl`.
-3. Build events per `metrics.md` Step 7c mapping (all five event types, including `review` data which is now available).
-4. POST using `python3` (same approach as Step 12b-standalone step 5 — use `os.environ.get("POSTHOG_PROJECT_API_KEY")` and `urllib.request`, never curl with single-quoted JSON).
-5. On connection/network failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+3. Build and send events per `metrics.md` Step 7c mapping (all five event types, including `review` data which is now available). Include `started_at` (the `$TASK_STARTED_AT` value from Step 6b) in the `shipwright_task_completed` properties.
+4. For each event, call `python3 "$POSTHOG_SCRIPT" '{event JSON}'`.
+5. On failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
 6. On success: silent.
 
 #### 12f. Learning Capture (Optional)

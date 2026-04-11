@@ -4,7 +4,7 @@ arguments:
   - name: options
     description: "Optional: project name, --from YYYY-MM-DD, --to YYYY-MM-DD, --compare projectA projectB, --export posthog"
     required: false
-allowed-tools: Bash(git:*), Bash(find:*), Bash(grep:*), Bash(wc:*), Bash(jq:*), Bash(cat:*), Bash(curl:*)
+allowed-tools: Bash(git:*), Bash(find:*), Bash(grep:*), Bash(wc:*), Bash(jq:*), Bash(cat:*), Bash(python3 *)
 ---
 
 # Pipeline Metrics
@@ -277,33 +277,33 @@ Build a batch of events from the metrics.jsonl records and send them via the Pos
 
 Use `shipwright/{project}/{task_id}` as the `distinct_id` for each event. Set `timestamp` to the record's `ts` field so PostHog orders events correctly. Include a `$insert_id` property in every event, set to `{event_name}/{project}/{task_id}` — this enables PostHog deduplication so re-exports are safe.
 
-**Send via batch API:**
+**Send via `posthog_send.py`:**
 
-For each batch of events (up to 100 per request), POST to the capture endpoint:
+Locate the script: `POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)`
 
+For each event, call:
 ```bash
-curl -s -X POST "{POSTHOG_HOST}/batch/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "api_key": "{POSTHOG_PROJECT_API_KEY}",
-    "batch": [
-      {
-        "event": "shipwright_task_completed",
-        "distinct_id": "shipwright/{project}/{task_id}",
-        "timestamp": "{ts}",
-        "properties": {
-          "$insert_id": "shipwright_task_completed/{project}/{task_id}",
-          ...
-        }
-      }
-    ]
-  }'
+python3 "$POSTHOG_SCRIPT" '{"event":"...","distinct_id":"...","timestamp":"...","properties":{...}}'
 ```
 
-Check the HTTP response. If the API returns a non-200 status:
+If `POSTHOG_SCRIPT` is empty (running from a local clone rather than an installed plugin), fall back to inline Python for each event:
+```python
+import json, os, urllib.request, sys
+key = os.environ.get("POSTHOG_PROJECT_API_KEY", "")
+host = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+# event = the event dict for this iteration
+payload = json.dumps({"api_key": key, "batch": [event]}).encode()
+req = urllib.request.Request(f"{host}/batch/", data=payload,
+      headers={"Content-Type": "application/json"}, method="POST")
+try:
+    urllib.request.urlopen(req, timeout=10)
+except Exception as e:
+    print(f"⚠ PostHog export failed: {e}", file=sys.stderr)
 ```
-PostHog export failed: {status code} — {error message}
-Check your API key and PostHog host configuration.
+
+If an event fails to deliver:
+```
+PostHog export failed: {error} — check your API key and PostHog host configuration.
 ```
 
 ### 7d. Report
