@@ -97,7 +97,6 @@ Analyzes pipeline metrics across planning sessions to measure code quality and i
 /metrics my-project                   # single project
 /metrics --from 2026-03-01            # date filter
 /metrics --compare projectA projectB  # side-by-side
-/metrics --export posthog             # push to PostHog
 ```
 
 **The fix cascade** — Shipwright's dev-task pipeline has three phases after initial implementation that catch and fix issues: Simplify (Step 8), PR Review (Steps 12b-d), and CI Gate (Step 11b). Each fix applied in these phases is a signal that upstream code generation could be better. `/metrics` measures this rework and tracks it over time.
@@ -111,7 +110,7 @@ Key metrics:
 
 The command also generates actionable recommendations (e.g., "Simplify is catching 4.2 DRY violations per task — consider adding DRY enforcement to implementation prompts").
 
-**PostHog export:** Use `--export posthog` to push metrics to PostHog for historical dashboards. Requires `POSTHOG_PROJECT_API_KEY` environment variable. See the command for setup instructions.
+**PostHog data** is emitted automatically by `/dev-task` at each pipeline checkpoint — no manual export needed. Set `POSTHOG_PROJECT_API_KEY` in your environment and events flow to PostHog as each task runs.
 
 ### 7. Research
 
