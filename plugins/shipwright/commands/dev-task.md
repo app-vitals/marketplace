@@ -247,10 +247,13 @@ If `POSTHOG_SCRIPT` is empty (e.g., running from a local clone rather than an in
 If `POSTHOG_SCRIPT` is set, fire `shipwright_task_started`:
 
 ```bash
-python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_task_started\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$TASK_STARTED_AT\",\"properties\":{\"\\$insert_id\":\"shipwright_task_started/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"title\":\"{task title}\",\"estimated_h\":{hours},\"complexity\":{complexity},\"branch\":\"{branch}\",\"model\":\"{model_tier}\"}}"
+python3 "$POSTHOG_SCRIPT" shipwright_task_started \
+  --project {project} --task {task_id} --ts "$TASK_STARTED_AT" \
+  title="{task title}" estimated_h={hours} complexity={complexity} \
+  branch="{branch}" model="{model_tier}"
 ```
 
-Replace `{project}` with the planning folder name (parent directory of the metrics.jsonl file), `{task_id}` with the parsed task ID, and all other `{...}` placeholders with their values. This event fires at the earliest moment — before implementation — so pipeline drop-off (tasks started but not completed) is visible in PostHog.
+Replace all `{...}` placeholders with their actual values. This event fires at the earliest moment — before implementation — so pipeline drop-off (tasks started but not completed) is visible in PostHog.
 
 ## Step 7: Start Feature Development
 
@@ -317,7 +320,10 @@ After implementation completes, run a simplification pass:
 If `POSTHOG_SCRIPT` is set, fire `shipwright_simplify_complete`:
 
 ```bash
-python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_simplify_complete\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_simplify_complete/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"total\":{simplify_total},\"dry\":{simplify_dry},\"dead_code\":{simplify_dead_code},\"naming\":{simplify_naming},\"complexity_fixes\":{simplify_complexity},\"consistency\":{simplify_consistency}}}"
+python3 "$POSTHOG_SCRIPT" shipwright_simplify_complete \
+  --project {project} --task {task_id} \
+  total={simplify_total} dry={simplify_dry} dead_code={simplify_dead_code} \
+  naming={simplify_naming} complexity_fixes={simplify_complexity} consistency={simplify_consistency}
 ```
 
 ---
@@ -445,7 +451,9 @@ Generated with [Claude Code](https://claude.com/claude-code)
 5. If `POSTHOG_SCRIPT` is set, fire `shipwright_pr_created`:
 
 ```bash
-python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_pr_created\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_pr_created/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"pr\":{pr_number},\"files_changed\":{files_changed}}}"
+python3 "$POSTHOG_SCRIPT" shipwright_pr_created \
+  --project {project} --task {task_id} \
+  pr={pr_number} files_changed={files_changed}
 ```
 
 ### PR Failure Cleanup
@@ -530,7 +538,9 @@ Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If t
 
 If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass case):
 ```bash
-python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_ci_result\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_ci_result/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"passed_first_try\":true,\"fix_attempts\":0,\"failures\":[]}}"
+python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
+  --project {project} --task {task_id} \
+  passed_first_try=true fix_attempts=0 'failures=[]'
 ```
 
 **Any check fails:** Continue to 11b.3.
@@ -601,7 +611,9 @@ While `ci_attempt < ci_max_retries`:
    ```
    If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass after fixes):
    ```bash
-   python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_ci_result\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_ci_result/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"passed_first_try\":false,\"fix_attempts\":{ci_attempt},\"failures\":{ci_failures_json_array}}}"
+   python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
+     --project {project} --task {task_id} \
+     passed_first_try=false fix_attempts={ci_attempt} "failures={ci_failures_json_array}"
    ```
    Proceed to Step 12.
 
@@ -629,7 +641,9 @@ If the user chooses (2), run PR Failure Cleanup (Step 11).
 **When merge-mode is ON:**
 If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (exhausted):
 ```bash
-python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_ci_result\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_ci_result/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"passed_first_try\":false,\"fix_attempts\":{ci_max_retries},\"failures\":{ci_failures_json_array},\"exhausted\":true}}"
+python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
+  --project {project} --task {task_id} \
+  passed_first_try=false fix_attempts={ci_max_retries} "failures={ci_failures_json_array}" exhausted=true
 ```
 Print:
 ```
@@ -651,21 +665,20 @@ All other fields are populated from data already collected: `simplify.*` (Step 8
 
 #### 12b-standalone. PostHog Export (silent)
 
-Auto-export the metrics record just written to PostHog.
+Auto-export task completion to PostHog. Sub-phase events (simplify, CI, PR) are already fired incrementally — this step only emits the final `shipwright_task_completed` event.
 
 1. If `POSTHOG_SCRIPT` is empty (not resolved in Step 6b) or `POSTHOG_PROJECT_API_KEY` is unset, skip this step silently — no output.
 2. Read the last line of `planning/{folder-name}/metrics.jsonl` (the record just appended).
-3. Build and send one event per applicable event type using `posthog_send.py`. For each event, construct the JSON and call:
+3. Fire `shipwright_task_completed`:
    ```bash
-   python3 "$POSTHOG_SCRIPT" '{"event":"...","distinct_id":"shipwright/{project}/{task_id}","timestamp":"{ts}","properties":{"$insert_id":".../{project}/{task_id}",...}}'
+   python3 "$POSTHOG_SCRIPT" shipwright_task_completed \
+     --project {project} --task {task_id} --ts "{ts from jsonl}" \
+     started_at="$TASK_STARTED_AT" estimated_h={estimated_h} actual_h={actual_h} \
+     complexity={complexity} ci_fix_attempts={ci_fix_attempts}
    ```
-   Event types to send (same mapping as `metrics.md` Step 7c):
-   - `shipwright_task_completed` — always; include `started_at` (the `$TASK_STARTED_AT` value from Step 6b) in properties
-   - `shipwright_simplify_pass` — if `simplify` field present in the record
-   - `shipwright_review_pass` — if `review` field present
-   - `shipwright_ci_gate` — if `ci` field present or `ci_fix_attempts > 0`
-   - `shipwright_coverage` — if `coverage` field present
-4. On failure from any call: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+   If `simplify` data is present in the record, add: `simplify_total={simplify.total}`
+   If `review` data is present, add: `review_verdict="{review.verdict}"`
+4. On failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
 5. On success: silent.
 
 **Note:** PostHog `/batch/` always returns HTTP 200 even for invalid API keys — the only meaningful guard is the non-empty key check in step 1.
@@ -750,7 +763,10 @@ Store these for use in Step 12e.2 metrics.
 
 If `POSTHOG_SCRIPT` is set, fire `shipwright_review_complete`:
 ```bash
-python3 "$POSTHOG_SCRIPT" "{\"event\":\"shipwright_review_complete\",\"distinct_id\":\"shipwright/{project}/{task_id}\",\"timestamp\":\"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\",\"properties\":{\"\\$insert_id\":\"shipwright_review_complete/{project}/{task_id}\",\"task_id\":\"{task_id}\",\"project\":\"{project}\",\"verdict\":\"{review_verdict}\",\"findings\":{review_findings},\"fixes_applied\":{review_fixes_applied},\"agents\":{review_agents_json_array}}}"
+python3 "$POSTHOG_SCRIPT" shipwright_review_complete \
+  --project {project} --task {task_id} \
+  verdict="{review_verdict}" findings={review_findings} fixes_applied={review_fixes_applied} \
+  "agents={review_agents_json_array}"
 ```
 
 #### 12d. Fix Issues (if NEEDS FIXES)
@@ -792,14 +808,21 @@ This step is silent — no output. JSONL format means one JSON object per line; 
 
 #### 12e.3. PostHog Export (silent)
 
-Auto-export the metrics record just written to PostHog. Same logic as Step 12b-standalone:
+Auto-export task completion to PostHog. Same logic as Step 12b-standalone — only fires `shipwright_task_completed` (sub-phase events are already fired incrementally):
 
 1. If `POSTHOG_SCRIPT` is empty or `POSTHOG_PROJECT_API_KEY` is unset, skip silently.
 2. Read the last line of `planning/{folder-name}/metrics.jsonl`.
-3. Build and send events per `metrics.md` Step 7c mapping (all five event types, including `review` data which is now available). Include `started_at` (the `$TASK_STARTED_AT` value from Step 6b) in the `shipwright_task_completed` properties.
-4. For each event, call `python3 "$POSTHOG_SCRIPT" '{event JSON}'`.
-5. On failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
-6. On success: silent.
+3. Fire `shipwright_task_completed`:
+   ```bash
+   python3 "$POSTHOG_SCRIPT" shipwright_task_completed \
+     --project {project} --task {task_id} --ts "{ts from jsonl}" \
+     started_at="$TASK_STARTED_AT" estimated_h={estimated_h} actual_h={actual_h} \
+     complexity={complexity} ci_fix_attempts={ci_fix_attempts} \
+     simplify_total={simplify.total} review_verdict="{review.verdict}"
+   ```
+   Omit `simplify_total` and `review_verdict` if those fields are absent in the record.
+4. On failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
+5. On success: silent.
 
 #### 12f. Learning Capture (Optional)
 Check if the `learning-loop` plugin is available by checking if `/learn` skill exists.
