@@ -27,9 +27,31 @@ Exit codes:
 
 import json
 import os
+import ssl
 import sys
 import urllib.request
 import urllib.error
+
+# Known system CA bundle locations (covers macOS python.org builds, Linux, etc.)
+_CA_CANDIDATES = [
+    "/etc/ssl/cert.pem",           # macOS system bundle
+    "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
+    "/etc/pki/tls/certs/ca-bundle.crt",    # RHEL/CentOS
+]
+
+
+def _ssl_context():
+    """Return an SSL context using an explicit CA bundle when available.
+
+    python.org macOS builds ship without a CA bundle populated, causing
+    CERTIFICATE_VERIFY_FAILED even though the system has a valid bundle at
+    /etc/ssl/cert.pem. Prefer explicit CA files over the (possibly empty)
+    default to keep this working without requiring 'Install Certificates.command'.
+    """
+    for ca in _CA_CANDIDATES:
+        if os.path.exists(ca):
+            return ssl.create_default_context(cafile=ca)
+    return ssl.create_default_context()
 
 
 def main():
@@ -58,7 +80,7 @@ def main():
     )
 
     try:
-        urllib.request.urlopen(req, timeout=10)
+        urllib.request.urlopen(req, context=_ssl_context(), timeout=10)
     except urllib.error.URLError as e:
         print(
             f"⚠ PostHog export failed: {e} — event not delivered",
