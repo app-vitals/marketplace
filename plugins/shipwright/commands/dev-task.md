@@ -1,985 +1,288 @@
 ---
-description: End-to-end feature development — read task from planning doc, build feature, simplify, verify, ship PR
-arguments:
-  - name: task-id
-    description: Task ID from the planning doc (e.g., MR-2.1). Append --merge to auto-create PR, review, and merge without pausing.
-    required: true
-allowed-tools: Bash, Read, Glob, Grep, Edit, Write
+description: Execute the next ready task from the queue — implement, test, lint, create PR, update queue, capture metrics
+allowed-tools: Bash, Read, Glob, Grep, Edit, Write, Agent
 ---
 
-# Dev Task: $ARGUMENTS
+# Dev Task
 
-Read the task from the planning doc, build the feature, simplify, verify requirements, and ship a PR. Follow all steps in order.
+Pick the next ready task from `state/todos.json` and execute it end-to-end.
 
----
-
-## Argument Parsing
-
-Parse `$ARGUMENTS` to extract:
-- **task-id**: Everything before `--merge` (trimmed), e.g., `MR-2.1`
-- **merge-mode**: `true` if `$ARGUMENTS` contains `--merge`, `false` otherwise
-
-When **merge-mode is ON**:
-- All pause points become auto-proceed (skip user prompts)
-- After PR creation, run review and merge automatically
-- Used by `/dev-loop` for fully autonomous operation
+**This command runs autonomously. Do not pause for user input unless a build or test failure cannot be auto-resolved.**
 
 ---
 
-## Step 0: Setup
+## Step 1: Pick Task
 
-### 0a. Check Recommended Plugins
+Read `state/todos.json`. Find `shipwright` tasks where:
+- `status` is `pending`
+- All entries in `dependencies` have `status: "merged"` (or `dependencies` is empty)
 
-Check if the following plugins are installed by looking for their skills in the available skills list:
+If multiple tasks are ready, pick the one with the earliest `addedAt`.
 
-| Plugin | Check For | Used In |
-|--------|-----------|---------|
-| `learning-loop` | `/learn` skill | Step 12f (Learning Capture, merge-mode only) |
-| `frontend-design` | `frontend-design` skill | Step 7a (Prepare Subagent Context, for Design Skill-tagged tasks) |
+If no tasks are ready, print:
+```
+No ready tasks. Either all tasks are complete, or remaining tasks are waiting on open PRs.
+```
+and stop.
 
-If any are missing, present:
-
+Print:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RECOMMENDED PLUGINS
+TASK: {id}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-The following plugins enhance this workflow:
-
-MISSING:
-  ✗ learning-loop — captures review learnings
-    Install: /plugin install learning-loop@app-vitals/marketplace
-  ✗ frontend-design — high-quality UI for design-tagged tasks
-    Install: /plugin install frontend-design
-
-INSTALLED:
-  ✓ {installed plugins}
-
-Continue without them? (Yes / Install first)
+{title}
+Session: {session} | Repo: {repo}
+Layer:   {layer}   | Hours: {hours}
+Deps:    {dependencies or "none"}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-If all plugins are installed, skip the prompt and continue. If plugins are missing and the user chooses to continue, note which are unavailable so later steps can skip those features. **In merge-mode, skip this prompt — log missing plugins and auto-proceed.**
+Record `execution_started_at` (current ISO timestamp) for metrics.
 
-### 0b. Detect Project Toolchain
+---
 
-Auto-detect the project toolchain (run once, reuse throughout):
+## Step 2: Mark In-Progress
 
-1. Scan the project root for config files:
-   - `package.json` + lockfile → Node.js (detect manager: pnpm/yarn/npm/bun)
+Update the task in `state/todos.json`:
+- Set `status: "in_progress"`
+- Set `startedAt: "{ISO timestamp}"`
+
+Write the updated todos.json.
+
+---
+
+## Step 3: Set Up Worktree
+
+All work happens in a worktree — see workspace `CLAUDE.md` for the convention. Branch slug = branch name with `/` replaced by `-`.
+
+```bash
+git -C ~/src/{repo} pull
+git -C ~/src/{repo} worktree add ~/worktrees/{repo}-{branch-slug} origin/main -b {branch}
+```
+
+If the worktree already exists (interrupted prior run):
+```bash
+git -C ~/src/{repo} worktree remove ~/worktrees/{repo}-{branch-slug} --force
+git -C ~/src/{repo} worktree add ~/worktrees/{repo}-{branch-slug} origin/main -b {branch}
+```
+
+All subsequent file operations and commands run from `~/worktrees/{repo}-{branch-slug}/`.
+
+---
+
+## Step 4: Load Context
+
+1. Read `CLAUDE.md` in the worktree
+2. Detect the project toolchain:
+   - `package.json` + lockfile → Node.js (detect manager: pnpm/yarn/npm/bun; read scripts for `validate`, `build`, `test`, `lint`, `typecheck`)
    - `Cargo.toml` → Rust
    - `go.mod` → Go
    - `pyproject.toml` / `setup.py` → Python
-   - `Gemfile` → Ruby
-   - `Makefile` → Generic Make
+3. Read the files listed in the task's `description` that are relevant to the implementation
+4. Read nearby test files to understand the testing patterns in use
 
-2. For Node.js: read `package.json` scripts for `validate`, `build`, `test`, `lint`, `typecheck`/`check`
-
-3. Check for monorepo indicators
-
-4. Store the detected commands:
-   - **validate**: Full validation command (e.g., `pnpm validate`, `cargo clippy && cargo test`, `make check`)
-   - **test**: Test command (e.g., `pnpm test`, `cargo test`, `go test ./...`, `pytest`)
-   - **lint**: Lint command (e.g., `pnpm lint`, `cargo clippy`, `golangci-lint run`, `ruff check`)
-   - **typecheck**: Type check command if applicable (e.g., `pnpm -r check`, `tsc --noEmit`)
-   - **build**: Build command (e.g., `pnpm build`, `cargo build`, `go build ./...`)
-
-Refer to `references/toolchain-patterns.md` for the full detection lookup table.
-
-## Step 1: Find Planning Doc
-
-Search for the parsed task ID (from Argument Parsing above).
-
-1. Glob for `planning/**/*_Task_Breakdown.md`
-2. Grep each file for the task ID
-3. If not found, also try case-insensitive search and check if the ID format needs adjusting (e.g., `mr-2.1` vs `MR-2.1`)
-4. If still not found, tell the user: "Task {task-id} not found in any planning doc under planning/. Check the task ID and try again." and stop.
-
-## Step 2: Extract Task
-
-Parse the task block from the planning doc. Extract:
-
-- **Task title** and **Description**
-- **Parent feature Overview** (the `### Overview` section of the feature this task belongs to)
-- **Context** field (from the task table)
-- **Branch** field (from the task table)
-- **Acceptance Criteria** (the `- [ ]` items under the task)
-- **Technical Details** (Location + implementation notes)
-- **Dependencies** (comma-separated task IDs or None)
-- **Design Skill** (if present in the task table)
-- **Test Type** (if present — indicates this is a test task)
-- **Architecture** (`minimal` / `clean` / `pragmatic`)
-- **Implementation Decisions** (Edge Cases, Error Handling, Scope Boundaries, Backward Compatibility, Performance)
-- **Layer**
-- **Hours** estimate
-
-Present a brief summary:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TASK: $ARGUMENTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{Task title}
-Branch: {branch}
-Layer:  {layer} | Hours: {hours}
-Deps:   {dependencies}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-## Step 3: Dependency Pre-flight
-
-For each dependency listed:
-
-1. Search the planning doc Appendix for the dependency task ID
-2. Check its Status column value
-
-If any dependency does not have `[x]` status:
-
-```
-⚠ DEPENDENCY WARNING
-- {DEP-ID}: {task title} — status: {status}
-```
-
-**Pause point:** Ask the user: "Some dependencies are not complete. Continue anyway, or stop and work on dependencies first?" **{In merge-mode, skip this pause — warn and auto-proceed.}**
-
-If all dependencies are `[x]` or there are no dependencies, continue without pausing.
-
-## Step 4: Mark In-Progress
-
-### Orphan Check (prior session recovery)
-
-If the task's current status is already `[🔨]` (in-progress from a prior interrupted session):
-
-1. Check for an orphaned branch: `git branch --list {branch}` and `git ls-remote --heads origin {branch}`
-2. Check for an orphaned PR: `gh pr list --head {branch} --state open --json number,title`
-3. If an orphaned PR exists, close it: `gh pr close {number} --comment "Shipwright cleanup — resuming task from prior session"`
-4. If a remote branch exists, delete it: `git push origin --delete {branch}`
-5. If a local branch exists, delete it: `git branch -D {branch}`
-6. Print:
-   ```
-   ↩ Recovered orphaned session for {task-id}
-   {If PR closed: "Closed PR #{number}"}
-   {If branch deleted: "Deleted branch {branch}"}
-   Starting fresh.
-   ```
-
-### Mark In-Progress
-
-Update the planning doc:
-
-1. In the **Appendix: Complete Task List** table, change the Status column for the task from `[ ]` (or `[🔨]`) to `[🔨]`
-2. In the **{Feature Name} Summary** table, change the same task's status to `[🔨]`
-3. Commit: `chore: mark {task-id} in-progress`
-
-## Step 5: Build Feature-Dev Prompt
-
-Construct the implementation prompt from the extracted fields:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IMPLEMENTATION BRIEF
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-{Task title}
-
-Context:
-{Context field from the task table}
-
-Feature Overview:
-{Parent feature Overview section}
-
-Description:
-{Description field}
-
-Technical Details:
-{Technical Details section}
-
-Acceptance Criteria:
-{Acceptance Criteria items}
-
-Layer: {layer}
-Architecture: {architecture approach}
-{If Test Type present: "Test Type: {test-type}"}
-{If Design Skill present: "Design Skill: {design-skill}"}
-
-Implementation Decisions (PRE-ANSWERED — do not re-ask):
-- Edge Cases: {edge cases from planning doc}
-- Error Handling: {error handling strategy from planning doc}
-- Scope Boundaries: {scope boundaries from planning doc}
-- Backward Compatibility: {backward compat from planning doc}
-- Performance: {performance constraints from planning doc}
-
-Expected Tests (RED phase — write these first in Step [C]):
-{Expected Tests from task table, or "None specified — write tests for each acceptance criterion above"}
-
-AUTONOMOUS MODE: All clarifying questions have been pre-answered
-above during planning. Proceed directly from discovery to
-architecture to implementation. For architecture, use the
-"{architecture}" approach. For quality review issues, auto-fix
-all fixable issues.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-## Step 6: Set Up Repo & Branch
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-READY TO START
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Branch: {branch from task}
-Task:   {task-id} — {task title}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-1. `git checkout main && git pull`
-2. `git checkout -b {branch-from-task}`
-
-If any git command fails, report the error and stop.
-
-### 6b. PostHog Setup (silent)
-
-Resolve the PostHog send script and record the task start time for phase timing:
-
-1. Locate the script: `POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)`
-2. Record `task_started_at` as the current ISO-8601 UTC timestamp: `TASK_STARTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")`
-3. Store both values for use in later steps.
-
-If `POSTHOG_SCRIPT` is empty (e.g., running from a local clone rather than an installed plugin), all PostHog calls in this task are silently skipped — do not warn or fail.
-
-If `POSTHOG_SCRIPT` is set, fire `shipwright_task_started`:
-
-```bash
-python3 "$POSTHOG_SCRIPT" shipwright_task_started \
-  --project {project} --task {task_id} --ts "$TASK_STARTED_AT" \
-  title="{task title}" estimated_h={hours} complexity={complexity} \
-  branch="{branch}" model="{model_tier}"
-```
-
-Replace all `{...}` placeholders with their actual values. This event fires at the earliest moment — before implementation — so pipeline drop-off (tasks started but not completed) is visible in PostHog.
-
-## Step 7: Dispatch Implementation Subagent
-
-**TDD REQUIRED**: The subagent below must follow red-green-refactor. No production code is written before a failing test exists. Expected Tests in the brief are the starting point for the RED phase.
-
-To preserve context quality for the post-implementation steps (Simplify, Spec Check, Requirements Verification), all implementation work is dispatched to a fresh subagent. Construct the subagent prompt from context already in session, then hand it off.
-
-### 7a. Prepare Subagent Context
-
-Before dispatching:
-1. Read `CLAUDE.md` at project root (pass full contents to subagent)
-2. Read all files listed in the Technical Details section (pass contents to subagent)
-3. If Design Skill is specified, check if that skill is available — note availability in the subagent prompt
-
-### 7b. Dispatch Implementation Subagent
-
-Dispatch a `general-purpose` subagent with this prompt (fill in all `{placeholders}` from context already collected):
-
-```
-You are implementing a feature task. Follow TDD (red-green-refactor) strictly — write failing tests BEFORE writing implementation code.
-
-You are already on branch: {branch}
-Do NOT create a new branch. Commit your work with conventional commit messages.
-
-━━━━ IMPLEMENTATION BRIEF ━━━━
-{Full implementation brief from Step 5, including Expected Tests section}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-PROJECT CONVENTIONS (from CLAUDE.md):
-{CLAUDE.md contents}
-
-TOOLCHAIN:
-  Test command:     {test command from Step 0}
-  Validate command: {validate command from Step 0}
-  Typecheck:        {typecheck command from Step 0, or "none"}
-
-DISCOVERY: Read these files before starting:
-{List of file paths from Technical Details}
-
-INSTRUCTIONS — follow in order:
-
-[A] Discovery
-  - Read each file listed above
-  - Spawn the shipwright:researcher agent via the Agent tool, passing: task ID "{task-id}", title "{task title}", description "{description}", layer "{layer}", and the project docs directory path
-  - Use research output to inform architecture and patterns
-  - Extract the ### Metrics block from research output — include it verbatim in your STATUS report at the end
-
-[B] Architecture — apply the "{architecture}" approach:
-  - minimal: smallest change, maximum reuse of existing code
-  - clean: proper abstractions, well-separated concerns
-  - pragmatic: balance of speed and quality
-  Plan which files to create/modify and what patterns to follow.
-
-[C] Testing — RED (Write failing tests first)
-  {If Expected Tests are specified in the brief:
-  "Start with these Expected Tests — write them exactly as specified, then run them to confirm they fail."}
-  1. Detect the test framework from existing test files
-  2. Follow test patterns found in nearby test files
-  3. Write tests covering each acceptance criterion
-  4. Run: {test command}
-     → Tests MUST FAIL at this point. A test passing immediately means it is testing existing behavior or is incorrectly written — fix it.
-
-[D] Implementation — GREEN (Make tests pass)
-  1. Write minimal code to make the failing tests pass
-  2. Follow CLAUDE.md conventions and existing codebase patterns
-  3. Handle: {edge cases from planning doc}
-  4. Apply: {error handling strategy from planning doc}
-  5. Respect scope: {scope boundaries from planning doc}
-  6. Run: {test command} — ALL tests must pass before continuing
-
-[E] Refactor — Keep tests green
-  1. Clean up: remove duplication, improve naming, simplify complexity
-  2. No new behavior during refactor
-  3. Rerun tests after each change — must stay green
-
-[F] Validation
-  1. Run: {validate command}
-  2. Fix any errors
-  3. {If Test Type specified: "Ensure a {test-type} test exists and passes"}
-
-Commit all changes: use conventional commit format (e.g., "feat: {task title}")
-
-━━━━ REPORT BACK ━━━━
-At the end, output a block in this exact format:
-
-STATUS: DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED
-
-RESEARCH_METRICS:
-{paste the ### Metrics block verbatim from the research agent output}
-
-CONCERNS: {if DONE_WITH_CONCERNS: describe them here}
-BLOCKER:  {if BLOCKED: describe what is blocking you}
-━━━━━━━━━━━━━━━━━━━━
-```
-
-### 7c. Handle Subagent Status
-
-Parse the subagent's STATUS report:
-
-- **DONE**: Store the RESEARCH_METRICS block for Step 12e.2. Proceed to Step 8.
-- **DONE_WITH_CONCERNS**: Read the concerns. If they indicate correctness or scope gaps, address them before Step 8. If they are observations only (e.g., "this file is growing large"), note them and proceed.
-- **NEEDS_CONTEXT**: Provide the missing context and re-dispatch with the same prompt augmented with the answer.
-- **BLOCKED**: Assess the blocker. If it is a context problem, re-dispatch with more context. If the task is too large, break it into smaller sub-tasks. If the plan is wrong, escalate to the user.
-
-Extract from RESEARCH_METRICS for Step 12e.2: `docs_scanned`, `docs_selected`, `docs_loaded` (as JSON array), `web_search` (boolean), `web_queries` (integer).
-
-> **CRITICAL — DO NOT SKIP STEPS 8–12**
-> After the implementation subagent completes (Step 7), you MUST continue through ALL remaining steps: Simplify (8), Spec Compliance Check (8.5), Requirements Verification (9), Pre-Ship Checks (10), Push & PR (11), CI Gate (11b), Handoff (12). Do NOT stop or ask to run a separate workflow.
-
-## Step 8: Simplify
-
-After implementation completes, run a simplification pass:
-
-1. Review `git diff main...HEAD` to see all changes on this branch
-2. Look for and fix:
-   - **DRY violations**: Duplicated code that should be extracted
-   - **Dead code**: Unused imports, variables, or functions introduced
-   - **Naming**: Unclear or inconsistent names
-   - **Complexity**: Over-engineered solutions that can be simplified
-   - **Consistency**: Patterns that don't match the rest of the codebase
-3. Apply fixes using the Edit tool
-4. **Tally simplify fixes**: After applying fixes, count how many were applied in each category:
-   - `simplify_dry`: count of DRY violation fixes
-   - `simplify_dead_code`: count of dead code removals
-   - `simplify_naming`: count of naming improvements
-   - `simplify_complexity`: count of complexity reductions
-   - `simplify_consistency`: count of consistency fixes
-   - `simplify_total`: sum of above
-   Store these counts for use in Step 12e.2 metrics. If no fixes were needed, all counts are 0.
-5. Run the detected typecheck command (if applicable) to verify types still pass after cleanup
-
-If `POSTHOG_SCRIPT` is set, fire `shipwright_simplify_complete`:
-
-```bash
-python3 "$POSTHOG_SCRIPT" shipwright_simplify_complete \
-  --project {project} --task {task_id} \
-  total={simplify_total} dry={simplify_dry} dead_code={simplify_dead_code} \
-  naming={simplify_naming} complexity_fixes={simplify_complexity} consistency={simplify_consistency}
-```
+Do not over-read. Load what's needed to understand the existing patterns and where to make changes.
 
 ---
 
-## Step 8.5: Spec Compliance Check
+## Step 5: Implement
 
-Before creating a PR, launch an independent spec compliance subagent to verify the implementation actually satisfies the acceptance criteria. This is an independent review — the subagent has no knowledge of implementation decisions made in Step 7, only the spec and the diff.
+Build the feature. Follow the acceptance criteria from the task. Follow the patterns in `CLAUDE.md` and the existing codebase.
 
-**Dispatch a `general-purpose` subagent** with this prompt:
+### Code
+- Follow existing patterns — naming, file structure, error handling
+- Implement only what's in scope. Do not add features not in the acceptance criteria.
+- Do not add comments or docstrings to code you didn't change
 
-```
-You are performing a spec compliance review. Review the implementation diff against the acceptance criteria and report whether each criterion is MET, PARTIAL, or NOT MET.
+### Tests
+- Unit tests for new logic
+- Integration tests if the feature crosses service boundaries
+- Follow the test patterns already in the codebase
+- Tests must pass before continuing
 
-Task: {task-id} — {task title}
+### Docs
+- If the task changes a public API, CLI interface, or user-facing behavior, update the relevant docs
+- If `README.md` or `CLAUDE.md` has a section that describes what you changed, update it
 
-Feature Overview:
-{parent feature Overview section from Step 2}
-
-Acceptance Criteria:
-{each acceptance criterion from Step 2, as a list}
-
-Implementation Diff:
-{output of: git diff main...HEAD}
-
-Implementation Decisions (context):
-- Edge Cases: {edge cases from planning doc}
-- Error Handling: {error handling from planning doc}
-- Scope Boundaries: {scope boundaries from planning doc}
-
-For each criterion, evaluate the diff and assign:
-  MET     — clear evidence in the diff that this criterion is satisfied
-  PARTIAL — partially implemented but incomplete
-  NOT MET — no evidence of implementation in the diff
-
-Respond with:
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
-{one row per criterion}
-
-At the end, list any NOT MET criteria explicitly under "## Gaps Found".
-If all criteria are MET, write "## All Criteria Met".
-```
-
-**Handle the result:**
-
-- **All MET**: Proceed to Step 9.
-- **Any NOT MET**:
-  1. Fix the gaps (re-enter the implementation subagent from Step 7b with specific fix instructions)
-  2. Run `{validate command}` to confirm the fix doesn't break existing tests
-  3. Re-dispatch the spec compliance subagent to confirm all criteria are now MET
-  4. Repeat until all are MET
-- **PARTIAL** (standalone mode): Pause and ask the user: "Some criteria are partially implemented. Fix now or proceed to Step 9?"
-- **PARTIAL** (merge-mode): Treat PARTIAL the same as NOT MET — auto-fix before proceeding.
 ---
 
-## Step 9: Requirements Verification
+## Step 6: Simplify
 
-Using the acceptance criteria extracted in Step 2, run `git diff main...HEAD` to see all changes on this branch.
+Review `git diff main...HEAD` in the worktree. Look for and fix:
 
-For each acceptance criterion, evaluate against the diff:
+- Duplicated code that should be extracted (DRY)
+- Unused imports or variables introduced by this change
+- Names that are unclear or inconsistent with the codebase
+- Logic that's more complex than it needs to be
+
+Apply fixes with Edit. Run typecheck if applicable.
+
+**Tally simplify fixes** for metrics (count each category separately):
+- `simplify_dry` — DRY violations extracted
+- `simplify_dead_code` — unused imports/vars removed
+- `simplify_naming` — names clarified
+- `simplify_complexity` — logic simplified
+- `simplify_total` — sum of above
+
+Store these counts for Step 11.
+
+---
+
+## Step 7: Verify Acceptance Criteria
+
+For each acceptance criterion in the task, evaluate against the diff:
 
 | Status | Meaning |
-|--------|---------|
-| MET | Clear evidence in the diff that this criterion is satisfied |
-| PARTIAL | Some progress but incomplete implementation |
-| NOT MET | No evidence of implementation |
-| UNVERIFIABLE | Cannot determine from code alone (e.g., "feels snappy") |
+|---|---|
+| MET | Clear evidence in the diff |
+| PARTIAL | Some progress but incomplete |
+| NOT MET | No evidence |
 
-Present results in a table:
+Print the results. If any criterion is NOT MET, implement what's missing before continuing.
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REQUIREMENTS VERIFICATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-{one row per criterion}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-**Tally requirement statuses**: Count the verdicts from the table above:
-- `req_met`: count of MET criteria
-- `req_partial`: count of PARTIAL criteria
-- `req_not_met`: count of NOT_MET criteria
-- `req_unverifiable`: count of UNVERIFIABLE criteria
-- `req_total`: total criteria evaluated
-Store these counts for use in Step 12e.2 metrics.
-
-**Pause point:** If any criterion is PARTIAL or NOT MET, ask the user: "Some criteria have gaps. Continue shipping, or go back and address them?" **{In merge-mode, only pause if NOT MET criteria exist. PARTIAL is acceptable — auto-proceed.}**
-
-## Step 10: Pre-Ship Checks
-
-Run the detected validation commands from Step 0. For multi-ecosystem projects, run all applicable commands.
-
-Examples based on detected toolchain:
-- Node.js: `{manager} validate` (or `{manager} lint && {manager} test && {manager} build`)
-- Rust: `cargo clippy --workspace -- -D warnings && cargo test --workspace`
-- Go: `go vet ./... && go test ./...`
-- Python: `pytest` (or `poetry run pytest`, `uv run pytest`)
-- Ruby: `bundle exec rspec` (or `bundle exec rake test`)
-
-### Coverage Gate
-
-Run coverage checks for each package that has changed files on this branch:
-
-1. **Detect changed packages**: From the diff, identify which packages/modules were modified
-2. **Run tests with coverage**: Use the detected test command with coverage enabled (e.g., `--coverage` flag for most frameworks)
-3. **Report**:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COVERAGE REPORT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-| Package | Type | Lines | Branches | Target | Status |
-|---------|------|-------|----------|--------|--------|
-{one row per package+type}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-**Coverage threshold**: Use the threshold from the planning doc's Project Metadata (default: 90%).
-
-**Capture coverage delta**: Record coverage measurements for metrics:
-- `coverage_before`: If the test framework reports a baseline (e.g., from a prior run on main, or a coverage badge), use it. Otherwise, set to `null`.
-- `coverage_after`: The line coverage percentage reported for changed packages (use the lowest package coverage if multiple).
-- `coverage_delta`: `coverage_after - coverage_before` if both are available, otherwise `null`.
-Store these values for use in Step 12e.2 metrics. Coverage measurement is best-effort — if the toolchain doesn't support baseline comparison, only `coverage_after` is populated.
-
-**Pause point:** If any coverage is below the threshold, warn the user:
-"Coverage for {package} is at {X}% (target: >{threshold}%). Add tests to bring it up, or continue anyway?" **{In merge-mode, skip this pause — log the warning and auto-proceed.}**
-
-Do NOT silently skip this check. Coverage must be measured and reported even if the user chooses to continue below threshold.
-
-### Build & Lint
-
-**Pause point (conditional):** Only if a check fails and cannot be auto-fixed, stop and let the user resolve.
-
-## Step 11: Push & PR
-
-1. Run `git status` and `git diff --stat`
-2. Push to remote (use `-u origin {branch}` if no upstream exists)
-
-**Pause point:** Ask the user: "All checks pass. Create PR? (Yes / Push only)" **{In merge-mode, skip this pause — auto-create PR.}**
-
-If creating a PR:
-1. Draft a PR title from the task title (under 70 characters, conventional commit format)
-2. Draft a PR body:
-
-```
-## Summary
-- {1-3 bullet points summarizing the changes}
-
-## Acceptance Criteria
-{Copy the acceptance criteria table from Step 9, or list criteria from the task}
-
-## Test Plan
-- {Key test scenarios verified}
-- [x] Pre-commit checks passing
-
-Generated with [Claude Code](https://claude.com/claude-code)
-```
-
-3. **Write the PR body to a temp file** to avoid heredoc syntax in the command string (heredocs break permission glob matching and cause repeated approval prompts during `/dev-loop`):
-   ```
-   Write the PR body content to /tmp/shipwright-pr-body-{task-id}.txt
-   gh pr create --title "{title}" --body-file /tmp/shipwright-pr-body-{task-id}.txt
-   rm /tmp/shipwright-pr-body-{task-id}.txt
-   ```
-   The temp file path MUST include the task ID to avoid race conditions when `/dev-loop` runs multiple subagents in parallel — `/tmp` is shared across all worktrees.
-   Do NOT use `--body "$(cat <<'EOF'..."` — this produces a different command string each time and cannot be matched by `Bash(gh pr create:*)`.
-4. Display the PR URL. Store it as `{pr-url}` for use in Step 11b.5.
-
-5. If `POSTHOG_SCRIPT` is set, fire `shipwright_pr_created`:
-
-```bash
-python3 "$POSTHOG_SCRIPT" shipwright_pr_created \
-  --project {project} --task {task_id} \
-  pr={pr_number} files_changed={files_changed}
-```
-
-### PR Failure Cleanup
-
-If PR creation fails, OR if CI checks fail after max retries (in merge-mode, Step 11b.5), OR if `gh pr merge` fails later (in merge-mode Step 12g), after 2 retries:
-
-1. Check for orphaned PRs on this branch:
-   `gh pr list --head {branch} --state open --json number,title`
-
-2. If orphaned PRs found, close each:
-   `gh pr close {pr-number} --comment "Shipwright cleanup — PR creation/merge failed"`
-
-3. Delete the remote branch (if it exists):
-   `git push origin --delete {branch}`
-
-4. Return to main and clean up local branch:
-   `git checkout main && git branch -D {branch}`
-
-5. Reset the task status in the planning doc from `[🔨]` back to `[ ]`
-
-6. Commit: `chore: reset {task-id} after PR failure`
-
-7. Print cleanup summary:
-   ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   CLEANUP: {task-id}
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Closed PR(s): {list or "none"}
-   Deleted branch: {branch}
-   Task status: reset to [ ]
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ```
-
-This cleanup ensures no orphaned PRs or branches are left behind. In merge-mode, the dev-loop's Phase 3 failure recovery will handle re-queuing the task.
-
-## Step 11b: CI Gate
-
-After PR creation, update the branch from main and monitor GitHub Actions CI checks before proceeding. This applies in both standalone and merge-mode.
-
-### 11b.1. Update from Main
-
-Merge the latest main into the PR branch to satisfy branch protection rules:
-
-```
-git fetch origin main
-git merge origin/main
-```
-
-If the merge **succeeds** (no conflicts):
-
-Check whether the merge actually brought in new commits:
-```
-git diff HEAD @{1} --quiet
-```
-If no changes (exit code 0 = already up to date), skip the push — CI is already running against the current code. Proceed directly to 11b.2.
-
-If there are changes:
-```
-git push
-```
-The push triggers new CI runs against the updated code. Proceed to 11b.2.
-
-If the merge produces **conflicts**: do NOT commit the merge. Instead, abort it (`git merge --abort`) and jump directly to 11b.4 (Fix Loop) with the conflict details as the failure context. The fix subagent will run `git merge origin/main`, resolve the conflicts, commit, and push.
-
-### 11b.2. Wait for Checks
-
-```
-gh pr checks {pr-number} --watch
-```
-
-Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If the command times out, treat it as a failure.
-
-**No CI configured:** If `gh pr checks {pr-number}` returns no checks (empty output), skip the rest of Step 11b and proceed to Step 12. Print:
-```
-⏭ No CI checks configured — skipping CI gate
-```
-
-**All checks pass:** Print the following and proceed to Step 12:
-```
-✓ CI checks passed
-```
-
-If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass case):
-```bash
-python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
-  --project {project} --task {task_id} \
-  passed_first_try=true fix_attempts=0 'failures=[]'
-```
-
-**Any check fails:** Continue to 11b.3.
-
-### 11b.3. Collect Failure Logs
-
-1. Get the failed check names:
-   `gh pr checks {pr-number} --json name,status,conclusion --jq '.[] | select(.conclusion == "failure")'`
-
-2. List the failed workflow runs for this branch:
-   `gh run list --branch {branch} --status failure --json databaseId,name,conclusion --limit 5`
-
-3. For each failed run, get the logs (truncated to last 200 lines per run to avoid context blowup):
-   `gh run view {run-id} --log --failed 2>&1 | tail -200`
-
-Collect all failure output into a single context block for the fix subagent. If `--failed` is not supported by the installed `gh` version, fall back to `gh run view {run-id} --log 2>&1 | tail -200`.
-
-4. **Record failure summary**: Append a one-line description of the CI failure to the `ci_failures[]` array (e.g., `"jest: 2 test suites failed"`, `"eslint: 4 lint errors in src/api/routes.ts"`, `"merge conflict with origin/main"`). Keep each entry under 100 characters. This array is written to metrics in Step 12e.2.
-
-### 11b.4. Fix Loop
-
-Initialize: `ci_attempt = 0`, `ci_max_retries = 6`, `ci_fix_history = []` (accumulates a one-line summary of what each attempt tried).
-
-While `ci_attempt < ci_max_retries`:
-
-1. Increment `ci_attempt`.
-
-2. Print:
-   ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   CI FIX: attempt {ci_attempt}/{ci_max_retries}
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ```
-
-3. **Launch fix subagent** using the Agent tool:
-
-   - **Type**: `general-purpose`
-   - **Prompt**:
-     ```
-     You are fixing CI failures (or merge conflicts) on an open pull request.
-     Do NOT create a new PR or branch. Fix the code on the current branch and push.
-
-     Task: {task-id} — {task title}
-     Branch: {branch}
-     PR: #{pr-number}
-
-     Current failure context:
-     {If merge conflict: "Merging origin/main produced conflicts. Run `git merge origin/main`, resolve all conflicts, then commit and push."}
-     {If CI failure: collected failure logs from 11b.3}
-
-     {If ci_attempt > 1:}
-     Previous fix attempts (do NOT repeat these — try a different approach):
-     {ci_fix_history formatted as numbered list}
-
-     PR diff (for context):
-     {output of gh pr diff {pr-number}}
-
-     Instructions:
-     1. Analyze the failure logs (or conflict markers) to identify the root cause
-     2. Read the relevant source files
-     3. Fix the failing code, tests, or merge conflicts — if a previous attempt already tried an approach that didn't work, take a different angle
-     4. Run the project's local validation commands to confirm the fix
-     5. Commit with message: "fix: {brief description}"
-     6. Push to the branch: git push
-     ```
-
-4. After the subagent completes, **append a one-line summary** of what this attempt tried to `ci_fix_history` (e.g., `"Attempt 1: updated failing snapshot in UserCard.test.tsx"`, `"Attempt 2: fixed type error in api/auth.ts — wrong return type"`).
-
-5. **Loop back to 11b.1** — update from main again (main may have moved while the fix was in progress), then re-wait for CI in 11b.2.
-
-5. **All checks pass:** Break the loop. Print:
-   ```
-   ✓ CI checks passed (after {ci_attempt} fix attempt(s))
-   ```
-   If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass after fixes):
-   ```bash
-   python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
-     --project {project} --task {task_id} \
-     passed_first_try=false fix_attempts={ci_attempt} "failures={ci_failures_json_array}"
-   ```
-   Proceed to Step 12.
-
-6. **Checks still failing:** Collect new failure logs (repeat 11b.3) and continue the loop.
-
-### 11b.5. Max Retries Exhausted
-
-If `ci_attempt >= ci_max_retries` and checks are still failing:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CI GATE FAILED: {task-id}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{ci_max_retries} fix attempts exhausted.
-Failing checks:
-  {list of still-failing check names}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-**When merge-mode is OFF (standalone):**
-**Pause point:** "CI checks are still failing after {ci_max_retries} fix attempts. The PR is open at {pr-url}. Would you like to: (1) Try fixing manually, (2) Close the PR and clean up?"
-
-If the user chooses (2), run PR Failure Cleanup (Step 11).
-
-**When merge-mode is ON:**
-If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (exhausted):
-```bash
-python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
-  --project {project} --task {task_id} \
-  passed_first_try=false fix_attempts={ci_max_retries} "failures={ci_failures_json_array}" exhausted=true
-```
-Print:
-```
-⚠️ CI gate exhausted — task {task-id} reset for retry
-```
-Trigger PR Failure Cleanup (Step 11) and stop — do NOT proceed to Step 12. The dev-loop's Phase 3a-retry failure recovery will handle re-queuing the task.
-
-## Step 12: Handoff / Review & Merge
-
-### When merge-mode is OFF (standalone)
-
-#### 12a-standalone. Append Metrics
-
-Append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist). See Step 12e.2 for the full field specification and `references/metrics-schema.md` for the schema.
-
-In standalone mode, **omit the `review` field** — Steps 12b-d don't run. The `/review` command will enrich this line with review data later (see review.md Step 10b).
-
-All other fields are populated from data already collected: `simplify.*` (Step 8), `requirements.*` (Step 9), `coverage.*` (Step 10), `ci.*` (Step 11b). Include `started_at` from `$TASK_STARTED_AT` (Step 6b). The spec compliance check in Step 8.5 does not add separate metrics — its outcome is reflected in `requirements.*` from Step 9.
-
-#### 12b-standalone. PostHog Export (silent)
-
-Auto-export task completion to PostHog. Sub-phase events (simplify, CI, PR) are already fired incrementally — this step only emits the final `shipwright_task_completed` event.
-
-1. If `POSTHOG_SCRIPT` is empty (not resolved in Step 6b) or `POSTHOG_PROJECT_API_KEY` is unset, skip this step silently — no output.
-2. Read the last line of `planning/{folder-name}/metrics.jsonl` (the record just appended).
-3. Fire `shipwright_task_completed`:
-   ```bash
-   python3 "$POSTHOG_SCRIPT" shipwright_task_completed \
-     --project {project} --task {task_id} --ts "{ts from jsonl}" \
-     started_at="$TASK_STARTED_AT" estimated_h={estimated_h} actual_h={actual_h} \
-     complexity={complexity} ci_fix_attempts={ci_fix_attempts}
-   ```
-   If `simplify` data is present in the record, add: `simplify_total={simplify.total}`
-   If `review` data is present, add: `review_verdict="{review.verdict}"`
-4. On failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
-5. On success: silent.
-
-**Note:** PostHog `/batch/` always returns HTTP 200 even for invalid API keys — the only meaningful guard is the non-empty key check in step 1.
-
-#### 12c-standalone. Print Handoff
-
-Print the handoff block with a quality summary:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SHIP COMPLETE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Branch: {branch-name}
-Commit: {short-sha} {commit-message}
-{PR: #{pr-number} {pr-url}  OR  PR: skipped}
-
-QUALITY
--------
-Simplify:     {simplify_total} fixes {if > 0: ({category}: {count}, ...)}
-CI:           {Pass | {ci_fix_attempts} fix attempt(s)}
-Coverage:     {coverage_before}% → {coverage_after}% ({+/-}{coverage_delta}%)
-Requirements: {req_met}/{req_total} met{if req_partial > 0: , {req_partial} partial}
-
-NEXT STEPS
-----------
-1. /clear
-2. /review
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### When merge-mode is ON — Review & Merge
-
-{Skip the handoff block above. Instead, run review and merge automatically.}
-
-Run an inline review with these autonomous-mode modifications:
-
-#### 12a. Gather Review Context
-1. Get the PR diff: `gh pr diff {pr-number}`
-2. Acceptance criteria are already known from Step 2
-
-#### 12b. Launch Review Agents
-
-Launch review agents in parallel using the Agent tool:
-
-**Agent 1: Code Review** (always run)
-- **Type**: `feature-dev:code-reviewer`
-- **Prompt**: "Review this PR diff for bugs, logic errors, code quality, and CLAUDE.md compliance. Apply confidence scoring — only report findings ≥80 confidence. Here is the diff: {diff}. Here are the CLAUDE.md contents: {CLAUDE.md content}."
-
-**Agent 2: Silent Failure Hunter** (always run)
-- **Type**: `general-purpose`
-- **Prompt**: "Analyze this PR diff for silent failures, inadequate error handling, swallowed errors, and inappropriate fallback behavior. For each finding, include the file path, line number, and a confidence score (0-100). Only report findings with confidence ≥80. Here is the diff: {diff}."
-
-**Agent 3: Test Analyzer** — only if test files changed
-- **Type**: `general-purpose`
-- **Prompt**: "Review this PR diff for test coverage quality and completeness. Identify critical gaps in test coverage, missing edge case tests, and inadequate assertions. For each finding, include confidence score (0-100). Only report findings ≥80. Here is the diff: {diff}."
-
-**Agent 4: Comment Analyzer** — only if comments/docs were added or modified
-- **Type**: `general-purpose`
-- **Prompt**: "Analyze the comments and documentation in this PR diff for accuracy, completeness, and long-term maintainability. Check that comments accurately reflect the code they describe. For each finding, include confidence score (0-100). Only report findings ≥80. Here is the diff: {diff}."
-
-**Agent 5: Type Design Analyzer** — only if new type/interface/struct definitions were added
-- **Type**: `general-purpose`
-- **Prompt**: "Analyze the type design in this PR diff. Review new types for encapsulation, invariant expression, usefulness, and enforcement. For each finding, include confidence score (0-100). Only report findings ≥80. Here is the diff: {diff}."
-
-#### 12c. Evaluate & Act
-
-Collect findings, verify against source files, categorize.
-
-**Verdict logic:**
-- **SHIP IT** → continue automatically, no pause
-- **NEEDS FIXES** (only code quality issues, no AC gaps) → auto-fix all, no pause
-- **NEEDS WORK** (AC gaps) → **PAUSE** — requires human decision
-
-**Capture review metrics**: After the verdict is determined, record:
-- `review_verdict`: the verdict string (`"SHIP IT"`, `"NEEDS FIXES"`, or `"NEEDS WORK"`)
-- `review_findings`: total count of validated findings across all review agents
-- `review_fixes_applied`: count of findings that will be auto-fixed (`0` for SHIP IT, count for NEEDS FIXES)
-- `review_agents`: list of agent type names that were launched (e.g., `["code-reviewer", "silent-failure-hunter", "test-analyzer"]`)
-Store these for use in Step 12e.2 metrics.
-
-If `POSTHOG_SCRIPT` is set, fire `shipwright_review_complete`:
-```bash
-python3 "$POSTHOG_SCRIPT" shipwright_review_complete \
-  --project {project} --task {task_id} \
-  verdict="{review_verdict}" findings={review_findings} fixes_applied={review_fixes_applied} \
-  "agents={review_agents_json_array}"
-```
-
-#### 12d. Fix Issues (if NEEDS FIXES)
-1. Apply fixes using Edit tool
-2. Run detected validation commands
-3. Commit: `fix: address review feedback for {task-id}`
-4. Push to remote
-
-#### 12e. Update Planning Doc
-1. Change task status from `[🔨]` to `[x] PR #{number}` in both Appendix and Feature Summary
-2. Commit: `chore: mark {task-id} done (PR #{number})`
-
-#### 12e.2. Append Metrics
-
-After marking done, append one JSONL line to `planning/{folder-name}/metrics.jsonl` (create the file if it doesn't exist). See `references/metrics-schema.md` for the full field specification.
-
-> **Note:** In standalone mode, metrics are written earlier in Step 12a-standalone (without `review` data). This step only runs in merge-mode where the review has already completed inline.
-
-```json
-{"task":"{task-id}","title":"{task title}","estimated_h":{hours},"actual_h":{actual_hours},"complexity":{complexity_score},"retries":{retry_count},"ci_fix_attempts":{ci_attempt},"pr":{pr_number},"hotfixes":0,"files_changed":{files_changed_count},"started_at":"{TASK_STARTED_AT}","ts":"{ISO timestamp}","simplify":{"total":{simplify_total},"dry":{simplify_dry},"dead_code":{simplify_dead_code},"naming":{simplify_naming},"complexity":{simplify_complexity},"consistency":{simplify_consistency}},"requirements":{"met":{req_met},"partial":{req_partial},"not_met":{req_not_met},"unverifiable":{req_unverifiable},"total":{req_total}},"review":{"verdict":"{review_verdict}","findings":{review_findings},"fixes_applied":{review_fixes_applied},"agents":{review_agents_json_array}},"ci":{"fix_attempts":{ci_attempt},"failures":{ci_failures_json_array}},"model":"{model_tier}","coverage":{"before":{coverage_before},"after":{coverage_after},"delta":{coverage_delta}}}
-```
-
-Field derivation:
-- `started_at`: the `$TASK_STARTED_AT` value recorded in Step 6b (`null` if Step 6b didn't run, e.g., older plugin version).
-- `actual_h`: elapsed time from Step 6 branch creation to now (approximate from wall clock or git timestamps)
-- `complexity`: from the task's Complexity field in the planning doc (0 if not set — pre-B1.2 planning docs)
-- `retries`: 0 in standalone dev-task; passed from dev-loop retryMap when called via dev-loop
-- `ci_fix_attempts`: number of CI fix subagent attempts in Step 11b (0 if CI passed on first try or no CI configured)
-- `files_changed`: count from `git diff --stat main...{branch}` (before merge)
-- `simplify.*`: tallied in Step 8. All 0 if no simplify fixes were needed.
-- `requirements.*`: tallied in Step 9. If Step 9 was not reached, omit the `requirements` field entirely.
-- `review.*`: captured in Step 12c (merge-mode only). In standalone mode, the `review` field is omitted — `/review` will enrich the metrics line later (see review.md Step 10b).
-- `ci.fix_attempts`: mirrors top-level `ci_fix_attempts`. `ci.failures`: from Step 11b.3 collection. Empty array `[]` if CI passed on first try.
-- `model`: from the task's Model field in the planning doc, or the current session model if not specified. Use `null` if unknown.
-- `coverage.*`: from Step 10 coverage gate. Use `null` for any field that couldn't be measured.
-- `research.*`: from Step 7a research agent output. Omit the `research` field entirely if the research agent was not invoked for this task (e.g., no docs/ directory found).
-
-This step is silent — no output. JSONL format means one JSON object per line; append-only. Old metrics.jsonl files without the new fields remain valid — see `references/metrics-schema.md` for backward compatibility rules.
-
-#### 12e.3. PostHog Export (silent)
-
-Auto-export task completion to PostHog. Same logic as Step 12b-standalone — only fires `shipwright_task_completed` (sub-phase events are already fired incrementally):
-
-1. If `POSTHOG_SCRIPT` is empty or `POSTHOG_PROJECT_API_KEY` is unset, skip silently.
-2. Read the last line of `planning/{folder-name}/metrics.jsonl`.
-3. Fire `shipwright_task_completed`:
-   ```bash
-   python3 "$POSTHOG_SCRIPT" shipwright_task_completed \
-     --project {project} --task {task_id} --ts "{ts from jsonl}" \
-     started_at="$TASK_STARTED_AT" estimated_h={estimated_h} actual_h={actual_h} \
-     complexity={complexity} ci_fix_attempts={ci_fix_attempts} \
-     simplify_total={simplify.total} review_verdict="{review.verdict}"
-   ```
-   Omit `simplify_total` and `review_verdict` if those fields are absent in the record.
-4. On failure: print `⚠ PostHog export failed: {error} — metrics saved locally in metrics.jsonl`. Do NOT fail the task.
-5. On success: silent.
-
-#### 12f. Learning Capture (Optional)
-Check if the `learning-loop` plugin is available by checking if `/learn` skill exists.
-- If available: review findings for patterns, auto-stage genuine learnings via `/learn`, then run `/learn-promote`
-- If not available: skip this step
-
-#### 12g. Merge
-Auto-merge with squash: `gh pr merge {pr-number} --squash --delete-branch`
-
-Print the completion block:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TASK COMPLETE (merge-mode)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Task:   {task-id} — {task title}
-Branch: {branch} → merged to main
-PR:     #{pr-number} — squash-merged
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+**Tally requirement statuses** for metrics: `req_met`, `req_partial`, `req_not_met`, `req_total`. Store for Step 11.
 
 ---
 
-## Handling Legacy Planning Docs
+## Step 8: Pre-Ship Checks
 
-If the planning doc lacks Status/Branch/Context columns (auto-detected by checking for `| Status |` in the Appendix table header), run this migration before proceeding with the normal flow:
+Run the project's validation commands based on detected toolchain:
+- Node.js: `bun validate` or `bun lint && bun test && bun build`
+- Rust: `cargo clippy --workspace -- -D warnings && cargo test --workspace`
+- Go: `go vet ./... && go test ./...`
+- Python: `ruff check . && pytest`
 
-1. **Add Status column** to the Appendix and all feature Summary tables — insert `| [ ] |` as the first column for every task row
-2. **Compute and add Branch field** to each task's field table using the naming convention: `feat/{task-id-lowered-dots-to-dashes}-{first-3-4-words-kebab}`
-3. **Generate Context field** for each task from its parent feature Overview section (2-3 sentences)
-4. **Commit**: `chore: migrate {doc-name} to new planning format`
-5. Then proceed with Step 1 (Find Planning Doc) using the migrated doc
+### CI Fix Loop
+
+If checks fail:
+1. Read the error output carefully
+2. Apply a targeted fix
+3. Re-run checks
+4. Repeat up to 3 times
+
+If checks still fail after 3 attempts, mark the task `blocked` in todos.json with a note explaining the failure, and stop.
+
+---
+
+## Step 9: Push & Create PR
+
+```bash
+git -C ~/worktrees/{repo}-{branch-slug} add -A
+git -C ~/worktrees/{repo}-{branch-slug} commit -m "feat: {task title}"
+git -C ~/worktrees/{repo}-{branch-slug} push -u origin {branch}
+```
+
+Write the PR body to a temp file to avoid permission prompt issues:
+
+```bash
+# Write body to /tmp/sw-pr-{task-id}.txt first, then:
+gh pr create \
+  --repo {org}/{repo} \
+  --title "feat({id}): {task title}" \
+  --body-file /tmp/sw-pr-{task-id}.txt
+rm /tmp/sw-pr-{task-id}.txt
+```
+
+PR body:
+```
+## Summary
+{2-3 bullets summarizing the changes}
+
+## Acceptance Criteria
+{task acceptance criteria as a checklist}
+
+## Test Plan
+- {key scenarios verified}
+- [x] Lint and tests passing
+
+Session: {session}
+Task: {id}
+```
+
+Record `pr_created_at` and `pr_number` for metrics.
+
+---
+
+## Step 10: Update Queue
+
+Update the task in `state/todos.json`:
+- Set `status: "pr_open"`
+- Set `pr: {pr_number}`
+- Set `prCreatedAt: "{ISO timestamp}"`
+
+Write the updated todos.json.
+
+---
+
+## Step 11: Write Metrics
+
+Append one line to `planning/{session}/metrics.jsonl` (create file if it doesn't exist):
+
+```json
+{
+  "task_id": "{id}",
+  "session": "{session}",
+  "repo": "{repo}",
+  "queued_at": "{task.addedAt}",
+  "execution_started_at": "{recorded in Step 1}",
+  "pr_created_at": "{recorded in Step 9}",
+  "merged_at": null,
+  "ci_attempts": {count from Step 8 fix loop},
+  "simplify": {
+    "dry": {simplify_dry},
+    "dead_code": {simplify_dead_code},
+    "naming": {simplify_naming},
+    "complexity": {simplify_complexity},
+    "total": {simplify_total}
+  },
+  "requirements": {
+    "met": {req_met},
+    "partial": {req_partial},
+    "not_met": {req_not_met},
+    "total": {req_total}
+  },
+  "review_iterations": 0,
+  "first_time_merge": null,
+  "learnings_captured": 0,
+  "tokens": {
+    "execution": { "input": null, "output": null, "cost_usd": null },
+    "review": null,
+    "total_cost_usd": null
+  }
+}
+```
+
+Token fields are populated from the headless run's usage output if available. Leave null if not available.
+
+---
+
+## Step 12: Learning Loop
+
+Review the changes made during this task. Look for:
+
+- A pattern that exists in the codebase that you didn't know about upfront (would have saved exploration time)
+- An error or edge case that wasn't in the acceptance criteria but should have been
+- A project convention that isn't documented in `CLAUDE.md`
+
+If you find 1-2 genuine learnings that would help future executions of similar tasks, append them to `CLAUDE.md` in the repo under a `## Learnings` section (or add to an existing relevant section).
+
+Format: `- {what you assumed} → {what actually happened} → {what to do instead}`
+
+Only add learnings that are specific and actionable. Do not add generic programming advice.
+
+If no genuine learnings found, skip this step.
+
+---
+
+## Done
+
+Print:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DONE: {id}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PR: #{pr_number} — {pr_url}
+Checks: {ci_attempts} attempt(s)
+Learnings: {count captured}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```

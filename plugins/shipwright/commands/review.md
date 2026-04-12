@@ -1,341 +1,252 @@
 ---
-description: Auto-detecting code review — recovers task from branch name, verifies PR against planning doc acceptance criteria, runs parallel review agents, captures learnings
+description: Review open PRs grouped by session — patch CI failures, address blocking comments, merge when green
+allowed-tools: Bash, Read, Glob, Grep, Edit, Write
 ---
 
 # Review
 
-Auto-detecting code review for a fresh session. Follow all steps in order. Only pause where explicitly marked — keep the flow fast.
+Process open PRs from the shipwright queue. Group by session for shared context. Patch, approve, and merge.
+
+**This command runs autonomously. Do not pause for user input unless a fundamental acceptance criteria gap requires a design decision.**
 
 ---
 
-## Step 0: Setup
+## Step 1: Find Open PRs
 
-### 0a. Check Recommended Plugins
+Read `state/todos.json`. Find all `shipwright` tasks with `status: "pr_open"`.
 
-Check if the following plugins are installed by looking for their skills in the available skills list:
+If none, print:
+```
+No open PRs to review.
+```
+and stop.
 
-| Plugin | Check For | Used In |
-|--------|-----------|---------|
-| `learning-loop` | `/learn` skill | Step 11 (Learning Capture) |
+Group tasks by `session`. Process one session at a time — reviewing related PRs together gives the reviewer full context on the feature being built.
 
-If any are missing, present:
-
+For the first session with open PRs, print:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RECOMMENDED PLUGINS
+REVIEWING SESSION: {session}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-The following plugins enhance this workflow:
-
-MISSING:
-  ✗ learning-loop — captures review learnings
-    Install: /plugin install learning-loop@app-vitals/marketplace
-
-INSTALLED:
-  ✓ {installed plugins}
-
-Continue without them? (Yes / Install first)
+Open PRs ({count}):
+{For each task: "  #{pr} — {id}: {title}"}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-If all plugins are installed, skip the prompt and continue. If plugins are missing and the user chooses to continue, note which are unavailable so later steps can skip those features.
+---
 
-### 0b. Detect Project Toolchain
+## Step 2: Load Session Context
 
-Auto-detect the project toolchain (run once, reuse throughout):
+Before reviewing individual PRs, load shared context:
 
-1. Scan the project root for config files:
-   - `package.json` + lockfile → Node.js (detect manager: pnpm/yarn/npm/bun)
-   - `Cargo.toml` → Rust
-   - `go.mod` → Go
-   - `pyproject.toml` / `setup.py` → Python
-   - `Gemfile` → Ruby
-   - `Makefile` → Generic Make
+1. Read all tasks in this session from `state/todos.json` — understand the full feature scope and what's already merged
+2. Read the planning folder if it exists: `planning/{session}/`
+3. For each open PR, note its dependencies — review PRs whose dependencies are all `merged` first
 
-2. For Node.js: read `package.json` scripts for `validate`, `build`, `test`, `lint`, `typecheck`/`check`
+---
 
-3. Store the detected commands for use in Steps 5b and 8.
+## Step 3: Review Each PR
 
-Refer to `references/toolchain-patterns.md` for the full detection lookup table.
+For each open PR in dependency order:
 
-## Step 1: Auto-Detect Context
+### 3a. Fetch PR Context
 
-Gather context automatically — no arguments needed:
-
-1. Get current branch: `git branch --show-current`
-2. If on `main`, tell the user: "You're on the main branch. Switch to a feature branch first, or pass a branch name." and stop.
-3. Find the PR for this branch: `gh pr list --head {branch} --json number,title,url --jq '.[0]'`
-4. If no PR found, tell the user: "No PR found for branch {branch}. Push and create a PR first (or run /dev-task to complete development)." and stop.
-
-## Step 2: Recover Task ID
-
-Parse the branch name to recover the task ID:
-
-1. Strip the `feat/` prefix
-2. Extract the task ID pattern from the beginning: the prefix letters + numbers separated by dashes map back to the dotted task ID. M can be numeric (`1`, `2`) or a test suffix (`t1`, `t2`). Uppercase all alphabetic characters in the resulting ID.
-   - Pattern: `{letters}-{N}-{M}` → `{LETTERS}-{N}.{M}`
-   - Example: `feat/mr-2-1-extract-types-libs` → prefix `mr-2-1` → task ID `MR-2.1`
-   - Example: `feat/pb-1-t1-unit-tests-badge-icon` → prefix `pb-1-t1` → task ID `PB-1.T1`
-   - The prefix ends when you hit a segment that is longer than 2 characters or doesn't match the `[a-z]+\d*` pattern (i.e., the start of the kebab-case description slug)
-3. Search `planning/**/*_Task_Breakdown.md` for this task ID
-4. If the task ID can't be recovered from the branch name or isn't found in any planning doc:
-   - Ask the user: "Couldn't recover task ID from branch `{branch}`. What's the task ID? (e.g., MR-2.1)"
-   - Use the user-provided ID to find the task
-
-## Step 3: Gather Context
-
-Fetch all sources in parallel:
-
-1. **Task details from planning doc**: Extract acceptance criteria, context, description, test type (if present)
-2. **PR details**: `gh pr view {pr-number} --json title,body,baseRefName,headRefName,additions,deletions,changedFiles`
-3. **PR diff**: `gh pr diff {pr-number}`
-
-Present a summary:
-
+```bash
+gh pr view {pr_number} --repo {org}/{repo} \
+  --json number,title,headRefName,baseRefName,state,statusCheckRollup,reviewDecision,body,additions,deletions,changedFiles
+gh pr diff {pr_number} --repo {org}/{repo}
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REVIEW CONTEXT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Task: {task-id} — {task title}
-PR:   #{pr-number} — {pr title}
-Base: {base branch} ← {head branch}
+Print:
+```
+PR #{pr_number} — {title}
 Size: +{additions} -{deletions} across {changedFiles} files
-
-Acceptance Criteria:
-{numbered list from planning doc}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CI: {overall status}
+Review: {reviewDecision}
 ```
 
-Proceed directly to the review — the user invoked this command, no confirmation needed.
+### 3b. Handle CI
 
-## Step 4: Launch Review Agents
+**All checks PASS or SKIPPED** → proceed to 3c
 
-First, analyze the diff to determine which conditional agents to run:
-- **Test files changed?** — glob the diff for `*.test.*`, `*.spec.*`, `tests/`, `*_test.go`, `*_test.rs`, `test_*.py` paths
-- **Comments added/modified?** — scan the diff for doc comments (`/**`, `///`, `#[doc`, `"""`) or substantial comment blocks (3+ consecutive comment lines)
-- **New types introduced?** — scan the diff for added `interface `, `type ` (TS), `struct ` (Rust/Go), `class ` (Python/Ruby), `dataclass` definitions
-
-Then launch review agents in parallel using the Agent tool:
-
-### Always run (core review):
-
-**Agent 1: Code Review** (confidence-scored)
-- **Type**: `feature-dev:code-reviewer`
-- **Prompt**: "Review this PR diff for bugs, logic errors, code quality, and CLAUDE.md compliance. Apply confidence scoring — only report findings ≥80 confidence. Here is the diff: {diff}. Here are the CLAUDE.md contents: {CLAUDE.md content}."
-
-**Agent 2: Silent Failure Hunter**
-- **Type**: `general-purpose`
-- **Prompt**: "Analyze this PR diff for silent failures, inadequate error handling, swallowed errors, and inappropriate fallback behavior. For each finding, include the file path, line number, a description of the issue, and a confidence score (0-100). Only report findings with confidence ≥80. Here is the diff: {diff}."
-
-### Conditionally run (based on diff analysis):
-
-**Agent 3: Test Analyzer** — only if test files changed
-- **Type**: `general-purpose`
-- **Prompt**: "Review this PR diff for test coverage quality and completeness. Identify critical gaps in test coverage, missing edge case tests, and inadequate assertions. For each finding, include file path, description, and confidence score (0-100). Only report findings ≥80. Here is the diff: {diff}."
-
-**Agent 4: Comment Analyzer** — only if comments/docs were added or modified
-- **Type**: `general-purpose`
-- **Prompt**: "Analyze the comments and documentation in this PR diff for accuracy, completeness, and long-term maintainability. Check that comments accurately reflect the code they describe. For each finding, include file path, description, and confidence score (0-100). Only report findings ≥80. Here is the diff: {diff}."
-
-**Agent 5: Type Design Analyzer** — only if new type/interface/struct definitions were added
-- **Type**: `general-purpose`
-- **Prompt**: "Analyze the type design in this PR diff. Review new types for encapsulation, invariant expression, usefulness, and enforcement. For each finding, include file path, description, and confidence score (0-100). Only report findings ≥80. Here is the diff: {diff}."
-
-Present which agents were selected and why (1 line each):
-```
-Agents launched: code-reviewer, silent-failure-hunter{, test-analyzer}{, comment-analyzer}{, type-design-analyzer}
-{1-line reason for each conditional agent that was included or excluded}
-```
-
-## Step 5: Validate Findings
-
-Collect all findings from the agents that ran.
-
-- **code-reviewer** findings already use confidence ≥80 scoring — pass through directly without re-scoring
-- **All other agents**: read the actual source file to verify each finding is accurate (not a false positive from reading only the diff), assign a confidence score (0-100), discard findings with confidence < 80
-
-Categorize remaining findings: **Bug**, **Style**, **Pattern**, **Security**, **Performance**, **Test Gap**, **Comment**, **Type Design**
-
-## Step 5b: Coverage Verification
-
-Run coverage checks for each package with changed files in the PR, using the detected toolchain from Step 0:
-
-1. **Detect changed packages**: From the diff, identify which packages/modules were modified
-2. **Run tests with coverage**: Use the detected test command with coverage enabled (e.g., `--coverage` flag for vitest/jest, `--cov` for pytest, `tarpaulin` for Rust)
-3. **Compare to threshold**: Use the threshold from the planning doc's Project Metadata (default: 90%)
-
-Add coverage results to the review report in Step 7. If coverage is below the threshold for any package, add it as a finding with category **Coverage** and confidence 100.
-
-## Step 6: Requirements Verification
-
-For each acceptance criterion from the planning doc, evaluate against the PR diff:
-
-| Status | Meaning |
-|--------|---------|
-| MET | Clear evidence in the diff that this criterion is satisfied |
-| PARTIAL | Some progress but incomplete implementation |
-| NOT MET | No evidence of implementation |
-| UNVERIFIABLE | Cannot determine from code alone |
-
-## Step 7: Present Report
-
-Display the combined review report:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CODE REVIEW REPORT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## Code Issues ({count} findings, {N} agents ran)
-
-| # | Category | File:Line | Issue | Confidence |
-|---|----------|-----------|-------|------------|
-{one row per validated finding, sorted by confidence desc}
-
-## Coverage
-
-| Package | Type | Lines | Branches | Target | Status |
-|---------|------|-------|----------|--------|--------|
-{one row per affected package — PASS if above threshold, FAIL if at/below}
-
-## Requirements Verification
-
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-{one row per acceptance criterion}
-
-## Verdict
-
-{One of:}
-- SHIP IT — All criteria met, no blocking issues
-- NEEDS FIXES — {N} issues to resolve before merging
-- NEEDS WORK — Acceptance criteria gaps require implementation work
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-## Step 7b: Submit GitHub Review
-
-After determining the verdict, submit a **formal GitHub review** to structurally enforce it — a plain comment is not enough, as it doesn't change `reviewDecision` and won't block merges.
-
-- **SHIP IT** → `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — SHIP IT. All criteria met, no blocking issues."`
-- **NEEDS FIXES** or **NEEDS WORK** → `gh pr review {pr-number} --repo {owner/repo} --request-changes --body "{condensed findings: one line per issue, category + file:line + description}"`
-
-This sets the PR's `reviewDecision` to `APPROVED` or `CHANGES_REQUESTED`. The pr-health cron and GitHub's branch protection both read this field — a formal review is what actually enforces the gate.
-
-**Pause point:** Ask the user which findings to fix (if any). The user may dismiss some findings.
-
-## Step 8: Fix Issues
-
-For each finding the user approved for fixing:
-
-1. Read the full file containing the issue
-2. Apply the fix using Edit tool
-3. Explain what was changed and why (1-2 sentences)
-
-After all fixes are applied:
-
-1. Review the changed files for consistency and clarity (inline simplification pass)
-2. Run the detected validation commands from Step 0 (e.g., `{manager} validate`, `cargo clippy`, `go vet`, `pytest`)
-3. For multi-ecosystem projects, run validation for each ecosystem
-
-If checks fail, fix the failures before proceeding.
-
-## Step 9: Commit & Push
-
-If fixes were applied in Step 8:
-
-1. Run `git status` and `git diff --stat`
-2. Stage and commit with: `fix: address review feedback for {task-id}`
-3. Push to the remote branch
-4. Inform the user: "Committed and pushed review fixes: {short-sha}"
-
-No pause — the commit message is always the same. If no fixes were applied, skip to Step 10.
-
-## Step 10: Update Planning Doc
-
-If the verdict is **SHIP IT**:
-
-1. Get the PR number from Step 1
-2. In the planning doc **Appendix: Complete Task List** table, change the task's status from `[🔨]` to `[x] PR #{number}`
-3. In the **{Feature Name} Summary** table, change the same task's status from `[🔨]` to `[x] PR #{number}`
-4. Commit: `chore: mark {task-id} done (PR #{number})`
-5. Push to the current branch
-
-If the verdict is not SHIP IT, skip this step.
-
-## Step 10b: Enrich Metrics with Review Data
-
-After the review verdict is determined, update the task's metrics record with review data. This enriches the record that `/dev-task` wrote (which omitted `review` in standalone mode).
-
-1. Find the planning doc folder for this task (already known from Step 2)
-2. Read `planning/{folder-name}/metrics.jsonl`
-3. Find the JSON line where the `task` field matches the current task ID
-4. Parse the JSON object and add the `review` fields:
-   ```json
-   "review": {
-     "verdict": "{verdict from Step 7}",
-     "findings": {count of validated findings from Step 5},
-     "fixes_applied": {count of fixes applied in Step 8},
-     "agents": ["code-reviewer", "silent-failure-hunter", ...]
-   }
+**Any check FAILING**:
+1. Get failure logs:
+   ```bash
+   gh api repos/{org}/{repo}/actions/runs?branch={branch} \
+     --jq '.workflow_runs[0] | {id, status, conclusion}'
+   gh api repos/{org}/{repo}/actions/runs/{run_id}/jobs \
+     --jq '.jobs[] | select(.conclusion=="failure") | {name, id}'
+   gh api repos/{org}/{repo}/actions/jobs/{job_id}/logs
    ```
-5. Write the updated JSON line back to `metrics.jsonl`, replacing the original line for this task
-6. **Edge case:** If no metrics line exists for this task (dev-task ran before v1.4.0 or metrics were not written), append a new line with `task`, `title`, `ts` (current timestamp), and `review` fields only. This partial record will be excluded from non-review aggregates by `/metrics` but included in review aggregates.
+2. Diagnose: lint error, type error, test failure, build error
+3. Set up worktree if not present (all work happens in worktrees — see workspace `CLAUDE.md`):
+   ```bash
+   git -C ~/src/{repo} fetch origin
+   git -C ~/src/{repo} worktree add ~/worktrees/{repo}-{branch-slug} origin/{branch} 2>/dev/null || \
+     git -C ~/worktrees/{repo}-{branch-slug} pull
+   ```
+4. Apply a targeted fix. Read the full file before editing — understand why the failure is happening.
+5. Verify locally:
+   ```bash
+   # Run the specific failing check in the worktree, e.g.:
+   cd ~/worktrees/{repo}-{branch-slug} && bun lint 2>&1 | tail -20
+   cd ~/worktrees/{repo}-{branch-slug} && bun test --passWithNoTests 2>&1 | tail -20
+   ```
+6. Commit and push:
+   ```bash
+   git -C ~/worktrees/{repo}-{branch-slug} add -A
+   git -C ~/worktrees/{repo}-{branch-slug} commit -m "fix: address CI failure for {id}"
+   git -C ~/worktrees/{repo}-{branch-slug} push
+   ```
+7. Wait for CI: poll every 60s up to 5 minutes:
+   ```bash
+   gh api repos/{org}/{repo}/actions/runs?branch={branch} \
+     --jq '.workflow_runs[0] | {status, conclusion}'
+   ```
+8. If CI still failing after 3 fix attempts: mark task `blocked` in todos.json with the failure details. Skip to next PR.
 
-This step runs regardless of the verdict (SHIP IT, NEEDS FIXES, or NEEDS WORK) — all verdicts are valuable data.
+**Checks PENDING**: wait up to 5 minutes, polling every 60s.
 
-This step is silent — no output to the user.
+### 3c. Code Review
 
-## Step 11: Learning Capture (Optional)
+Read the full diff carefully. This is not a quick scan — read every changed file.
 
-Check if the `learning-loop` plugin is available (look for `/learn` in available skills).
+**Check against acceptance criteria:**
 
-If available:
-1. Review the findings from Step 5 and fixes from Step 8. Look for:
-   - Patterns that appeared multiple times across different files
-   - Issues that suggest a missing convention or guideline
-   - Bugs that could be prevented by a documented rule
-2. If 1-2 genuine learnings are identified, auto-stage them using `/learn`, then run `/learn-promote` to route them to their final destination immediately.
-3. If no genuine patterns were found, skip — do not force learnings.
+For each criterion in `task.acceptanceCriteria`, evaluate:
+- **MET** — clear evidence in the diff
+- **PARTIAL** — core behavior present but incomplete
+- **NOT MET** — no evidence
 
-If not available: skip this step entirely.
+**Check for code quality issues across five categories:**
 
-## Step 12: Final Commit, Push & Merge
+1. **Silent failures** — error cases that are swallowed, logged but not surfaced, or silently return bad data
+2. **Logic errors** — off-by-ones, wrong conditionals, missing null checks in paths that will actually be hit
+3. **Test gaps** — changed code paths with no test coverage, edge cases that are obviously missing
+4. **Pattern violations** — code that doesn't follow the patterns in `CLAUDE.md` or visible in the rest of the codebase (naming, error handling, file structure)
+5. **Scope creep** — changes outside the acceptance criteria that introduce risk
 
-If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were modified):
+For each finding, record: file, line, category, description, confidence (0-100). Only surface findings with confidence ≥ 80.
 
-1. Stage the changed files
-2. Commit with: `chore: promote learnings from /review`
-3. Push to the remote branch
+**Verdict:**
+- **SHIP IT** — all criteria MET or PARTIAL, no high-confidence blocking issues
+- **NEEDS FIXES** — blocking issues found (logic errors, silent failures); fix before merging
+- **NEEDS WORK** — acceptance criteria NOT MET; gap requires implementation work, not just fixes
 
-**Pause point:** Ask the user: "Merge PR #{pr-number}? (Yes / No)"
+### 3d. Fix Blocking Issues (NEEDS FIXES only)
 
-If yes:
+For each blocking finding:
+1. Read the full file containing the issue
+2. Apply the fix with Edit
+3. Verify with a targeted test run if applicable
+4. Note the fix in the review comment
 
-1. If the initial verdict in Step 7 was **NEEDS FIXES** or **NEEDS WORK** (i.e., a `--request-changes` review was submitted in Step 7b), re-submit as an approval now that fixes are verified:
-   `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — fixes verified, approving."`
-2. Merge the PR: `gh pr merge {pr-number} --squash --delete-branch`
+If NEEDS WORK: comment on the PR with the specific gap, update task to `blocked` in todos.json, skip to next PR.
 
-After merge (or if user declines merge), scan the planning doc Appendix for the **suggested next task**: find `[ ]` tasks whose dependencies are all `[x]` (or have no dependencies).
+### 3e. Commit Fixes and Submit Review
 
-Print the completion block:
+If fixes were applied:
+```bash
+git -C ~/worktrees/{repo}-{branch-slug} add -A
+git -C ~/worktrees/{repo}-{branch-slug} commit -m "fix: address review findings for {id}"
+git -C ~/worktrees/{repo}-{branch-slug} push
+```
+
+Submit a formal GitHub review — a comment alone doesn't set `reviewDecision` and won't satisfy branch protection:
+
+```bash
+# SHIP IT (or after fixing NEEDS FIXES):
+gh pr review {pr_number} --repo {org}/{repo} \
+  --approve \
+  --body "shipwright:review — SHIP IT.
+Criteria: {met_count} met, {partial_count} partial.
+{If fixes applied: 'Fixed: {brief list of what was fixed.}'}"
+
+# NEEDS WORK:
+gh pr review {pr_number} --repo {org}/{repo} \
+  --request-changes \
+  --body "shipwright:review — NEEDS WORK.
+{List each NOT MET criterion and what's missing.}"
+```
+
+### 3f. Update from Main and Merge
+
+Update the branch before merging:
+```bash
+gh api -X PUT repos/{org}/{repo}/pulls/{pr_number}/update-branch
+```
+
+If the update triggers CI, wait for it to pass (same polling pattern as 3b, 5 min timeout).
+
+Merge:
+```bash
+gh pr merge {pr_number} --repo {org}/{repo} --squash --delete-branch
+```
+
+---
+
+## Step 4: Update Queue
+
+For each merged PR, update the task in `state/todos.json`:
+- `status: "merged"`
+- `mergedAt: "{ISO timestamp}"`
+
+Write todos.json. Check if any `pending` tasks now have all dependencies `merged` — note them in the output so the next execution cron tick picks them up.
+
+---
+
+## Step 5: Update Metrics
+
+For each merged task, update its record in `planning/{session}/metrics.jsonl`. Find the line by `task_id` and add:
+
+```json
+{
+  "merged_at": "{ISO timestamp}",
+  "review": {
+    "verdict": "SHIP IT | NEEDS FIXES | NEEDS WORK",
+    "findings": {count of ≥80 confidence findings},
+    "fixes_applied": {count of fixes made in 3d},
+    "ci_fix_attempts": {count from 3b}
+  },
+  "review_iterations": {total fix rounds},
+  "first_time_merge": {true if ci_fix_attempts == 0 and fixes_applied == 0},
+  "tokens": {
+    "execution": "{existing}",
+    "review": { "input": null, "output": null, "cost_usd": null },
+    "total_cost_usd": null
+  }
+}
+```
+
+---
+
+## Step 6: Learning Loop
+
+After processing the session, look for patterns worth capturing:
+
+- CI failures that point to a missing check in the dev-task workflow
+- Code patterns that should be in `CLAUDE.md`
+- Acceptance criteria that were systematically incomplete (planning signal)
+
+If 1-2 genuine actionable learnings found, append to `CLAUDE.md` in the repo:
+`- {assumption} → {what happened} → {what to do instead}`
+
+Only add learnings that are specific and actionable. No generic advice.
+
+---
+
+## Done
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REVIEW COMPLETE
+REVIEW COMPLETE — {session}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Merged:  {list "#{pr} {id}: {title}"}
+Blocked: {list with reason, or "none"}
+Learnings: {count}
 
-Task: {task-id} — {task title}
-PR:   #{pr-number} — {merged | ready to merge}
-
-AVAILABLE TASKS
-───────────────
-{List [ ] tasks with all deps satisfied:}
-- {PREFIX-N.M}: {task title} ({hours}h)
-
-NEXT: /dev-task {suggested-task-id}
+{If newly unblocked tasks exist:}
+Ready for execution:
+  {list task IDs}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
