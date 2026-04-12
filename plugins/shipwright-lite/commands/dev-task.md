@@ -112,6 +112,15 @@ Review `git diff main...HEAD` in the worktree. Look for and fix:
 
 Apply fixes with Edit. Run typecheck if applicable.
 
+**Tally simplify fixes** for metrics (count each category separately):
+- `simplify_dry` — DRY violations extracted
+- `simplify_dead_code` — unused imports/vars removed
+- `simplify_naming` — names clarified
+- `simplify_complexity` — logic simplified
+- `simplify_total` — sum of above
+
+Store these counts for Step 11.
+
 ---
 
 ## Step 7: Verify Acceptance Criteria
@@ -125,6 +134,8 @@ For each acceptance criterion in the task, evaluate against the diff:
 | NOT MET | No evidence |
 
 Print the results. If any criterion is NOT MET, implement what's missing before continuing.
+
+**Tally requirement statuses** for metrics: `req_met`, `req_partial`, `req_not_met`, `req_total`. Store for Step 11.
 
 ---
 
@@ -211,6 +222,19 @@ Append one line to `planning/{session}/metrics.jsonl` (create file if it doesn't
   "pr_created_at": "{recorded in Step 9}",
   "merged_at": null,
   "ci_attempts": {count from Step 8 fix loop},
+  "simplify": {
+    "dry": {simplify_dry},
+    "dead_code": {simplify_dead_code},
+    "naming": {simplify_naming},
+    "complexity": {simplify_complexity},
+    "total": {simplify_total}
+  },
+  "requirements": {
+    "met": {req_met},
+    "partial": {req_partial},
+    "not_met": {req_not_met},
+    "total": {req_total}
+  },
   "review_iterations": 0,
   "first_time_merge": null,
   "learnings_captured": 0,

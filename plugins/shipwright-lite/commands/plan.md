@@ -118,9 +118,31 @@ For each task, determine:
 
 ### Dependency Map
 
-After listing all tasks, draw the dependency map explicitly. Tasks with no dependencies are the starting point. The execution cron uses this to know what's ready to run.
+The dependency map is the core output of planning — it's what tells the execution cron what's ready to run. Every task must have its dependencies explicitly stated.
 
-Present the full task list and dependency map to the user for review. Iterate until approved.
+After listing all tasks, present the map in two forms:
+
+**1. Visual graph** (show execution order):
+```
+[START]
+  ├─ {PREFIX}-1.1: {title} (no deps)
+  └─ {PREFIX}-1.2: {title} (no deps)
+        └─ {PREFIX}-2.1: {title} (needs 1.1, 1.2)
+              └─ {PREFIX}-2.2: {title} (needs 2.1)
+```
+
+**2. Summary table** (what the cron sees):
+```
+Task        | Depends on        | Blocks
+{PREFIX}-1.1 | —                | 2.1
+{PREFIX}-1.2 | —                | 2.1
+{PREFIX}-2.1 | 1.1, 1.2         | 2.2
+{PREFIX}-2.2 | 2.1              | —
+```
+
+Tasks with no dependencies are ready to execute immediately. The execution cron picks the earliest-queued ready task each tick.
+
+Present both the task list and dependency map to the user for review. Iterate until approved — the map must be correct before writing to the queue, as the cron depends on it.
 
 ---
 
