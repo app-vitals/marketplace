@@ -1,21 +1,21 @@
 # Shipwright Lite
 
-A streamlined dev pipeline plugin built on top of what Claude Code now does natively.
+A streamlined dev pipeline plugin built on what Claude Code now does natively.
 
-Shipwright is an excellent piece of work — it established the planning doc format, the CI fix loop, metrics tracking, and the review pipeline that this team runs on. This plugin is not a replacement. It's an experiment: **start with the minimum viable harness, measure it against Shipwright, and add back proven pieces as needed.**
+Shipwright proved that an agentic dev pipeline is possible — planning docs, CI fix loops, metrics, multi-agent review. That work was genuinely valuable and changed how this team ships software. Shipwright Lite is what comes next: now that the concept is proven, what does the right shape look like going forward?
 
 ## Why
 
-Shipwright was built when Claude Code was younger. Over the past year, the platform has grown significantly — native plan mode, the Agent tool with worktree isolation, TodoWrite for task tracking, and stronger out-of-the-box code intelligence. Features that required custom scaffolding in early 2025 are now handled natively or with lighter prompting.
+Shipwright was built when Claude Code was a younger platform. The scaffolding it added was necessary then. Over the past year, Claude Code has grown significantly — native plan mode, the Agent tool with worktree isolation, stronger out-of-the-box code intelligence. The platform has caught up to a lot of what Shipwright built by hand.
 
-This creates an opportunity to test a leaner pipeline:
+That's an opportunity. Not to undo the work — to evolve it:
 
 - Planning happens conversationally (in Slack with Bodhi) rather than through a structured 10-phase command
 - Execution and review run as autonomous crons rather than manually-invoked skills
-- Token costs are visible per-task (headless runs expose usage) — enabling direct cost comparison
-- The todos queue is the shared state, replacing the planning doc as the execution artifact
+- Token costs are visible per-task (headless runs expose usage) — enabling direct comparison
+- The todos queue is the shared state, keeping things simple and inspectable
 
-The goal is a metrics-grounded answer to: **how much of Shipwright's scaffolding does the job actually need?**
+Shipwright Lite is its own thing. It will evolve on its own terms, informed by what the data shows.
 
 ## Comparison
 
@@ -118,12 +118,11 @@ Every task writes a metrics record to `planning/{session}/metrics.jsonl` — the
 
 ## Roadmap
 
-Features from Shipwright that may be added back as the metrics justify them:
+Shipwright Lite will evolve based on what the data shows. Known areas to explore:
 
 - **Multi-agent review** — if single-agent review quality is insufficient (measure: review iteration rate)
 - **Parallel execution** — if sequential throughput becomes a bottleneck (measure: time-to-merge)
-- **Complexity scoring** — if model routing is needed for cost optimization
-- **Dev-loop** — if cron-per-task overhead outweighs the simplicity benefit
-- **Planning retrospective** — if planning quality becomes a bottleneck (measure: rework rate)
+- **Richer planning artifacts** — if the todos schema needs more context for complex tasks
+- **Tighter learning loop** — if CLAUDE.md updates aren't sticking across sessions
 
-The metrics format is intentionally compatible with Shipwright so the comparison is apples-to-apples.
+The metrics format is intentionally compatible with Shipwright so comparisons are straightforward.
