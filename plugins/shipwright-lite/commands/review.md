@@ -79,7 +79,7 @@ Review: {reviewDecision}
    gh api repos/app-vitals-com/{repo}/actions/jobs/{job_id}/logs
    ```
 2. Diagnose: lint error, type error, test failure, build error
-3. Set up worktree if not present:
+3. Set up worktree if not present (all work happens in worktrees — see workspace `CLAUDE.md`):
    ```bash
    git -C ~/src/{repo} fetch origin
    git -C ~/src/{repo} worktree add ~/worktrees/{repo}-{branch-slug} origin/{branch} 2>/dev/null || \

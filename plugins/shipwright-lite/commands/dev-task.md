@@ -53,14 +53,14 @@ Write the updated todos.json.
 
 ## Step 3: Set Up Worktree
 
+All work happens in a worktree — see workspace `CLAUDE.md` for the convention. Branch slug = branch name with `/` replaced by `-`.
+
 ```bash
 git -C ~/src/{repo} pull
 git -C ~/src/{repo} worktree add ~/worktrees/{repo}-{branch-slug} origin/main -b {branch}
 ```
 
-Where `{branch-slug}` is the branch name with `/` replaced by `-`.
-
-If the worktree already exists (interrupted prior run), remove it first:
+If the worktree already exists (interrupted prior run):
 ```bash
 git -C ~/src/{repo} worktree remove ~/worktrees/{repo}-{branch-slug} --force
 git -C ~/src/{repo} worktree add ~/worktrees/{repo}-{branch-slug} origin/main -b {branch}
