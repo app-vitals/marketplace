@@ -1,0 +1,19 @@
+{
+  "name": "changelog-review",
+  "version": "0.1.0",
+  "description": "Walk through git commits one at a time to review what shipped. Summarizes API, web, schema, and business logic changes per commit with interactive Q&A.",
+  "author": {
+    "name": "App Vitals",
+    "url": "https://github.com/app-vitals"
+  },
+  "repository": "https://github.com/app-vitals/app-vitals-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "changelog",
+    "review",
+    "git",
+    "commits",
+    "walkthrough",
+    "shipping"
+  ]
+}
