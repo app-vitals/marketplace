@@ -193,17 +193,7 @@ flowchart LR
 
 ## PostHog — Automatic Pipeline Telemetry
 
-Add `POSTHOG_PROJECT_API_KEY` to your project's `.claude/settings.json` env block:
-
-```json
-{
-  "env": {
-    "POSTHOG_PROJECT_API_KEY": "phc_your_key_here"
-  }
-}
-```
-
-If the key is absent, all PostHog calls are silently skipped — no errors, just no events.
+Set `POSTHOG_PROJECT_API_KEY` as an environment variable. If absent, all PostHog calls are silently skipped — no errors, just no events.
 
 Events fired across the full task lifecycle:
 
