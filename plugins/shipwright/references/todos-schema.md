@@ -34,16 +34,17 @@ The `source: "shipwright"` field distinguishes them from `eng-execute` tasks.
 ## Status Flow
 
 ```
-pending → in_progress → pr_open → merged
-                      ↘ blocked
+pending → in_progress → pr_open → approved → merged
+                      ↘ blocked            ↗
 ```
 
 | Status | Set by | Meaning |
 |---|---|---|
-| `pending` | `/plan` | Queued, waiting for dependencies |
+| `pending` | `plan-session` | Queued, waiting for dependencies |
 | `in_progress` | `dev-task` Step 2 | Execution has started |
-| `pr_open` | `dev-task` Step 10 | PR created, waiting for review |
-| `merged` | `review` Step 4 | Merged, done |
+| `pr_open` | `dev-task` Step 9 | PR created, waiting for review |
+| `approved` | `review` | Review passed, merge pending |
+| `merged` | `review` Step 13 | Merged, done |
 | `blocked` | `dev-task` or `review` | Failed — needs human intervention |
 
 ## Field Reference
