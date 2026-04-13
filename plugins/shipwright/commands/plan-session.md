@@ -9,7 +9,7 @@ arguments:
     required: true
 ---
 
-# Plan: $ARGUMENTS
+# Plan Session: $ARGUMENTS
 
 Parse `$ARGUMENTS` to extract:
 - **repo**: first argument
