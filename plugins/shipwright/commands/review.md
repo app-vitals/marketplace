@@ -1,5 +1,5 @@
 ---
-description: Review open PRs from the queue — process session by session, patch CI failures, merge when green
+description: Review open PRs from the queue — process session by session, patch CI failures, merge only when green with no fixes applied this cycle
 allowed-tools: Bash, Read, Glob, Grep, Edit, Write
 ---
 
@@ -214,8 +214,9 @@ If fixes were applied in Step 8:
 2. Stage and commit with: `fix: address review feedback for {task-id}`
 3. Push to the remote branch
 4. Inform the user: "Committed and pushed review fixes: {short-sha}"
+5. **Stop here.** The task remains `pr_open`. CI must re-run on the fix commits before the next review cycle picks it up. Do not proceed to Steps 10–12.
 
-No pause — the commit message is always the same. If no fixes were applied, skip to Step 10.
+If no fixes were applied, proceed to Step 10.
 
 ## Step 10: Update Queue
 
@@ -267,6 +268,8 @@ If available:
 If not available: skip this step entirely.
 
 ## Step 12: Final Commit, Push & Merge
+
+This step is only reached when no fixes were applied this cycle (i.e., the verdict was SHIP IT on the first pass). If fixes were committed in Step 9, the review stopped there — this step does not run.
 
 If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were modified):
 
