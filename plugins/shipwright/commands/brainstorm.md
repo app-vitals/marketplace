@@ -127,9 +127,9 @@ What does a successful outcome look like — from both the user's perspective an
 
 After completing all discovery questions, spawn the `agents/researcher.md` agent with:
 - The feature list gathered in Phase 1
-- Task: "For each of these features, identify: (1) existing code patterns or utilities in this codebase that should be reused, (2) any relevant external APIs or libraries, (3) architectural constraints or risks the planning session should account for."
+- Task: "For each of these features, identify: (1) existing code patterns or utilities in this codebase that should be reused, (2) any relevant external APIs or libraries, (3) architectural constraints or risks the planning session should account for, (4) complexity risks — things that look simple in the spec but may be disproportionately complex in the code, require refactoring tightly coupled areas, or introduce unjustified complexity."
 
-Incorporate the research output into the Technical Considerations for each feature in the PRD. If the researcher surfaces constraints or risks not mentioned by the user, add them to the Open Questions section.
+Incorporate the research output into the Technical Considerations for each feature in the PRD. Surface complexity risks as a dedicated **Complexity Flags** section (see Phase 3). If the researcher surfaces constraints or risks not mentioned by the user, add them to the Open Questions section.
 
 ## Phase 3: Draft PRODUCT-SPEC.md
 
@@ -145,6 +145,17 @@ Fill in each section from your gathered information:
 - Map Q8 → Open Questions
 - Map Q9 → Success Criteria
 - Map Phase 2 output → Technical Considerations per feature
+- Map Phase 2 complexity risks → Complexity Flags section
+
+**Complexity Flags format:** Each flag should name the feature, describe the risk, and suggest a simpler alternative if one exists:
+```
+### Complexity Flags
+
+- ⚠ **{Feature}**: {What looks simple but isn't, and why} — consider {simpler alternative} if scope allows
+- ⚠ **{Feature}**: {Tight coupling / missing abstraction / hidden scope} — plan-session will investigate
+```
+
+If no complexity risks were found, omit the section entirely.
 
 **Acceptance criteria format:** Every feature must have at least one acceptance criterion written as a testable checkbox:
 - `- [ ] {Specific, observable, testable outcome}` 
@@ -182,6 +193,7 @@ Features: {N}
   ...
 
 Open Questions: {N flagged for plan-session}
+Complexity Flags: {N risks flagged}
 
 NEXT: /plan-session $ARGUMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
