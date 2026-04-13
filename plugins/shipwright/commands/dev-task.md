@@ -43,6 +43,14 @@ Deps:    {dependencies or "none"}
 
 Record `task_started_at` (current ISO timestamp) for metrics.
 
+Resolve the PostHog send script (silent — used throughout):
+
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+```
+
+If `POSTHOG_SCRIPT` is empty, all PostHog calls in this task are silently skipped.
+
 Now detect the project toolchain for `{repo}` (used throughout):
 
 ### 0b. Detect Project Toolchain
@@ -96,6 +104,14 @@ Update `state/todos.json`:
 - Set `startedAt: "{ISO timestamp}"`
 
 Write the updated todos.json.
+
+If `POSTHOG_SCRIPT` is set, fire `shipwright_task_started`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" shipwright_task_started \
+  --project {repo} --task {id} --ts "{task_started_at}" \
+  title="{title}" layer="{layer}" estimated_h={hours} session="{session}"
+```
 
 ## Step 3: Build Feature-Dev Prompt
 
@@ -369,7 +385,7 @@ REQUIREMENTS VERIFICATION
 - `req_total`: total criteria evaluated
 Store these counts for use in Step 10b metrics.
 
-If any criterion is PARTIAL or NOT MET after the fix loop, mark the task `blocked` in todos.json with a note and stop.
+If any criterion is PARTIAL or NOT MET after the fix loop, mark the task `blocked` in todos.json with a note. If `POSTHOG_SCRIPT` is set, fire `shipwright_task_blocked` with `reason="requirements_not_met"`. Stop.
 
 ## Step 8: Pre-Ship Checks
 
@@ -490,7 +506,7 @@ If PR creation fails, OR if CI checks fail after max retries (Step 9b.5), after 
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ```
 
-This cleanup ensures no orphaned PRs or branches are left behind. Mark the task `blocked` in todos.json with failure details — the execution cron will not pick it up until a human intervenes.
+This cleanup ensures no orphaned PRs or branches are left behind. Mark the task `blocked` in todos.json with failure details. If `POSTHOG_SCRIPT` is set, fire `shipwright_task_blocked` with `reason="pr_creation_failed"`. The execution cron will not pick it up until a human intervenes.
 
 ## Step 9b: CI Gate
 
@@ -643,7 +659,7 @@ Failing checks:
 ```
 
 **When merge-mode is OFF (standalone):**
-Run PR Failure Cleanup (Step 9) and stop. Mark the task `blocked` in todos.json with the failure details.
+Run PR Failure Cleanup (Step 9) and stop. Mark the task `blocked` in todos.json with the failure details. If `POSTHOG_SCRIPT` is set, fire `shipwright_task_blocked` with `reason="ci_max_retries_exhausted"`.
 
 ## Step 10: Update Queue & Metrics
 

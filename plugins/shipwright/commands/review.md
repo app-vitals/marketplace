@@ -13,6 +13,14 @@ Process open PRs from the shipwright queue. Group by session for shared context.
 
 ## Step 1: Find Open PRs
 
+Resolve the PostHog send script (silent — used throughout):
+
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+```
+
+If `POSTHOG_SCRIPT` is empty, all PostHog calls in this command are silently skipped.
+
 Read `state/todos.json`. Find all `shipwright` tasks with `status: "pr_open"`.
 
 If none, print:
@@ -227,6 +235,14 @@ Update the task in `state/todos.json`:
 
 Write todos.json. This signals that the review passed — the queue entry will be updated to `merged` after the actual merge in Step 13.
 
+If `POSTHOG_SCRIPT` is set, fire `shipwright_task_approved`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" shipwright_task_approved \
+  --project {repo} --task {id} \
+  pr={pr_number} findings={findings_count} fixes_applied={fixes_applied_count} session="{session}"
+```
+
 If the verdict is not SHIP IT, skip this step.
 
 ## Step 10b: Enrich Metrics with Review Data
@@ -293,6 +309,14 @@ If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were m
    `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — fixes verified, approving."`
 2. Merge the PR: `gh pr merge {pr-number} --squash --delete-branch`
 3. Update the task in `state/todos.json`: `status: "merged"`, `mergedAt: "{ISO timestamp}"`
+
+If `POSTHOG_SCRIPT` is set, fire `shipwright_task_merged`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" shipwright_task_merged \
+  --project {repo} --task {id} --ts "{mergedAt}" \
+  pr={pr_number} session="{session}"
+```
 
 Check todos.json for newly unblocked tasks (pending tasks whose dependencies are now all merged). Print the completion block:
 
