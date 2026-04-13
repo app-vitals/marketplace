@@ -223,10 +223,9 @@ If no fixes were applied, proceed to Step 10.
 If the verdict is **SHIP IT**:
 
 Update the task in `state/todos.json`:
-- `status: "merged"`
-- `mergedAt: "{ISO timestamp}"`
+- `status: "approved"`
 
-Write todos.json. Check if any `pending` tasks now have all dependencies `merged` — note them in the output so the next execution tick picks them up.
+Write todos.json. This signals that the review passed — the queue entry will be updated to `merged` after the actual merge in Step 13.
 
 If the verdict is not SHIP IT, skip this step.
 
@@ -267,9 +266,22 @@ If available:
 
 If not available: skip this step entirely.
 
-## Step 12: Final Commit, Push & Merge
+## Step 12: CI Gate
 
 This step is only reached when no fixes were applied this cycle (i.e., the verdict was SHIP IT on the first pass). If fixes were committed in Step 9, the review stopped there — this step does not run.
+
+Before merging, verify CI is green. **Do not use `gh pr checks`** — it requires the Checks API which is GitHub Apps-only and fails with fine-grained PATs. Use the Actions API instead:
+
+```
+gh api "repos/{owner}/{repo}/actions/runs?branch={branch}&per_page=5" \
+  -q '.workflow_runs[] | "\(.name): \(.status) \(.conclusion)"'
+```
+
+- If any run is `status: in_progress` — stop. CI is still running. The next review cycle will retry.
+- If any run has `conclusion: failure` or `conclusion: cancelled` — stop. Print the failing run names. Do not merge until CI is fixed.
+- If all runs are `status: completed` with `conclusion: success` — proceed to Step 13.
+
+## Step 13: Final Commit, Push & Merge
 
 If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were modified):
 
@@ -280,6 +292,7 @@ If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were m
 1. If the initial verdict in Step 7 was **NEEDS FIXES** or **NEEDS WORK** (i.e., a `--request-changes` review was submitted in Step 7b), re-submit as an approval now that fixes are verified:
    `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — fixes verified, approving."`
 2. Merge the PR: `gh pr merge {pr-number} --squash --delete-branch`
+3. Update the task in `state/todos.json`: `status: "merged"`, `mergedAt: "{ISO timestamp}"`
 
 Check todos.json for newly unblocked tasks (pending tasks whose dependencies are now all merged). Print the completion block:
 
