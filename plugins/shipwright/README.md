@@ -1,4 +1,4 @@
-# Shipwright v2.1.0
+# Shipwright v3.0.0
 
 A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, perform multi-agent code reviews, and conduct integrated project research — for any software project.
 
@@ -193,18 +193,21 @@ flowchart LR
 
 ## PostHog — Automatic Pipeline Telemetry
 
-Set `POSTHOG_PROJECT_API_KEY` in your environment. `/dev-task` fires 6 events at pipeline checkpoints — no other configuration needed.
+Set `POSTHOG_PROJECT_API_KEY` as an environment variable. If absent, all PostHog calls are silently skipped — no errors, just no events.
 
-| Event | Trigger | Key Properties |
-|-------|---------|---------------|
-| `shipwright_task_started` | Branch created (Step 6b) | task_id · estimated_h · complexity · branch · model |
-| `shipwright_simplify_complete` | Simplify pass done (Step 8) | total · dry · dead_code · naming · complexity_fixes · consistency |
-| `shipwright_pr_created` | PR created (Step 11) | pr · files_changed |
-| `shipwright_ci_result` | CI passes or exhausts (Step 11b) | passed_first_try · fix_attempts · failures[] · exhausted |
-| `shipwright_review_complete` | Review verdict (Step 12c, merge-mode) | verdict · findings · fixes_applied · agents[] |
-| `shipwright_task_completed` | Task complete (Step 12) | actual_h · started_at · simplify_total · review_verdict |
+Events fired across the full task lifecycle:
 
-The `distinct_id` is `shipwright/{project}/{task_id}` across all events. Build a funnel from `task_started → pr_created → task_completed` to see where tasks drop off — tasks that appear in `task_started` but not in `task_completed` were abandoned mid-pipeline.
+| Event | Fired by | Trigger |
+|-------|----------|---------|
+| `shipwright_task_started` | `dev-task` | Task marked `in_progress` |
+| `shipwright_simplify_complete` | `dev-task` | Simplify pass done |
+| `shipwright_pr_created` | `dev-task` | PR created |
+| `shipwright_ci_result` | `dev-task` | CI passes or exhausts retries |
+| `shipwright_task_blocked` | `dev-task` | Task blocked (requirements, PR failure, CI exhausted) |
+| `shipwright_task_approved` | `review` | Review verdict: SHIP IT |
+| `shipwright_task_merged` | `review` | PR merged |
+
+Build a funnel from `task_started → pr_created → task_approved → task_merged` to measure cycle time and identify where tasks drop off.
 
 ---
 
