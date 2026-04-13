@@ -241,12 +241,12 @@ BLOCKER:  {if BLOCKED: describe what is blocking you}
 
 Parse the subagent's STATUS report:
 
-- **DONE**: Store the RESEARCH_METRICS block for Step 12e.2. Proceed to Step 8.
-- **DONE_WITH_CONCERNS**: Read the concerns. If they indicate correctness or scope gaps, address them before Step 8. If they are observations only (e.g., "this file is growing large"), note them and proceed.
+- **DONE**: Store the RESEARCH_METRICS block for Step 10b. Proceed to Step 6.
+- **DONE_WITH_CONCERNS**: Read the concerns. If they indicate correctness or scope gaps, address them before Step 6. If they are observations only (e.g., "this file is growing large"), note them and proceed.
 - **NEEDS_CONTEXT**: Provide the missing context and re-dispatch with the same prompt augmented with the answer.
 - **BLOCKED**: Assess the blocker. If it is a context problem, re-dispatch with more context. If the task is too large, break it into smaller sub-tasks. If the plan is wrong, escalate to the user.
 
-Extract from RESEARCH_METRICS for Step 12e.2: `docs_scanned`, `docs_selected`, `docs_loaded` (as JSON array), `web_search` (boolean), `web_queries` (integer).
+Extract from RESEARCH_METRICS for Step 10b: `docs_scanned`, `docs_selected`, `docs_loaded` (as JSON array), `web_search` (boolean), `web_queries` (integer).
 
 > **CRITICAL — DO NOT SKIP STEPS 8–12**
 > After the implementation subagent completes (Step 7), you MUST continue through ALL remaining steps: Simplify (8), Spec Compliance Check (8.5), Requirements Verification (9), Pre-Ship Checks (10), Push & PR (11), CI Gate (11b), Handoff (12). Do NOT stop or ask to run a separate workflow.
@@ -270,7 +270,7 @@ After implementation completes, run a simplification pass:
    - `simplify_complexity`: count of complexity reductions
    - `simplify_consistency`: count of consistency fixes
    - `simplify_total`: sum of above
-   Store these counts for use in Step 12e.2 metrics. If no fixes were needed, all counts are 0.
+   Store these counts for use in Step 10b metrics. If no fixes were needed, all counts are 0.
 5. Run the detected typecheck command (if applicable) to verify types still pass after cleanup
 
 If `POSTHOG_SCRIPT` is set, fire `shipwright_simplify_complete`:
@@ -325,9 +325,9 @@ If all criteria are MET, write "## All Criteria Met".
 
 **Handle the result:**
 
-- **All MET**: Proceed to Step 9.
+- **All MET**: Proceed to Step 8.
 - **Any NOT MET**:
-  1. Fix the gaps (re-enter the implementation subagent from Step 7b with specific fix instructions)
+  1. Fix the gaps (re-enter the implementation subagent from Step 5b with specific fix instructions)
   2. Run `{validate command}` to confirm the fix doesn't break existing tests
   3. Re-dispatch the spec compliance subagent to confirm all criteria are now MET
   4. Repeat until all are MET
@@ -367,7 +367,7 @@ REQUIREMENTS VERIFICATION
 - `req_not_met`: count of NOT_MET criteria
 - `req_unverifiable`: count of UNVERIFIABLE criteria
 - `req_total`: total criteria evaluated
-Store these counts for use in Step 12e.2 metrics.
+Store these counts for use in Step 10b metrics.
 
 If any criterion is PARTIAL or NOT MET after the fix loop, mark the task `blocked` in todos.json with a note and stop.
 
@@ -408,7 +408,7 @@ COVERAGE REPORT
 - `coverage_before`: If the test framework reports a baseline (e.g., from a prior run on main, or a coverage badge), use it. Otherwise, set to `null`.
 - `coverage_after`: The line coverage percentage reported for changed packages (use the lowest package coverage if multiple).
 - `coverage_delta`: `coverage_after - coverage_before` if both are available, otherwise `null`.
-Store these values for use in Step 12e.2 metrics. Coverage measurement is best-effort — if the toolchain doesn't support baseline comparison, only `coverage_after` is populated.
+Store these values for use in Step 10b metrics. Coverage measurement is best-effort — if the toolchain doesn't support baseline comparison, only `coverage_after` is populated.
 
 If any coverage is below the threshold, log the warning and auto-proceed — do not stop.
 
@@ -432,7 +432,7 @@ Create a PR:
 - {1-3 bullet points summarizing the changes}
 
 ## Acceptance Criteria
-{Copy the acceptance criteria table from Step 9, or list criteria from the task}
+{Copy the acceptance criteria table from Step 7, or list criteria from the task}
 
 ## Test Plan
 - {Key test scenarios verified}
@@ -449,7 +449,7 @@ Generated with [Claude Code](https://claude.com/claude-code)
    ```
    The temp file path MUST include the task ID to avoid collisions — `/tmp` is shared across all worktrees.
    Do NOT use `--body "$(cat <<'EOF'..."` — this produces a different command string each time and cannot be matched by `Bash(gh pr create:*)`.
-4. Display the PR URL. Store it as `{pr-url}` for use in Step 11b.5.
+4. Display the PR URL. Store it as `{pr-url}` for use in Step 9b.5.
 
 5. If `POSTHOG_SCRIPT` is set, fire `shipwright_pr_created`:
 
@@ -529,12 +529,12 @@ gh pr checks {pr-number} --watch
 
 Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If the command times out, treat it as a failure.
 
-**No CI configured:** If `gh pr checks {pr-number}` returns no checks (empty output), skip the rest of Step 11b and proceed to Step 12. Print:
+**No CI configured:** If `gh pr checks {pr-number}` returns no checks (empty output), skip the rest of Step 9b and proceed to Step 10. Print:
 ```
 ⏭ No CI checks configured — skipping CI gate
 ```
 
-**All checks pass:** Print the following and proceed to Step 12:
+**All checks pass:** Print the following and proceed to Step 10:
 ```
 ✓ CI checks passed
 ```
@@ -561,7 +561,7 @@ python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
 
 Collect all failure output into a single context block for the fix subagent. If `--failed` is not supported by the installed `gh` version, fall back to `gh run view {run-id} --log 2>&1 | tail -200`.
 
-4. **Record failure summary**: Append a one-line description of the CI failure to the `ci_failures[]` array (e.g., `"jest: 2 test suites failed"`, `"eslint: 4 lint errors in src/api/routes.ts"`, `"merge conflict with origin/main"`). Keep each entry under 100 characters. This array is written to metrics in Step 12e.2.
+4. **Record failure summary**: Append a one-line description of the CI failure to the `ci_failures[]` array (e.g., `"jest: 2 test suites failed"`, `"eslint: 4 lint errors in src/api/routes.ts"`, `"merge conflict with origin/main"`). Keep each entry under 100 characters. This array is written to metrics in Step 10b.
 
 ### 11b.4. Fix Loop
 
@@ -624,7 +624,7 @@ While `ci_attempt < ci_max_retries`:
      --project {project} --task {task_id} \
      passed_first_try=false fix_attempts={ci_attempt} "failures={ci_failures_json_array}"
    ```
-   Proceed to Step 12.
+   Proceed to Step 10.
 
 6. **Checks still failing:** Collect new failure logs (repeat 11b.3) and continue the loop.
 
