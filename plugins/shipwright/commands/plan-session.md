@@ -1,5 +1,5 @@
 ---
-description: Kick off a planning session with Bodhi — explore the problem, research solutions, and queue tasks for execution
+description: Engineer planning pass — reads the product spec, explores the codebase, flags complexity, and produces a task queue
 arguments:
   - name: repo
     description: The repo to plan work for (e.g., vitals-os)
@@ -15,112 +15,101 @@ Parse `$ARGUMENTS` to extract:
 - **repo**: first argument
 - **session**: second argument
 
-This is a conversational planning session. Work through the problem with the user organized around four layers: business logic, views/UX, APIs, and DB. Do not rush to a task breakdown — understand the problem first, then design the solution, then produce tasks.
+This is the engineering planning pass. The product spec (what and why) is already done — either from `/brainstorm` or handed in directly. This session translates that spec into a concrete technical design and task queue.
+
+**Input:** `planning/{session}/PRODUCT-SPEC.md` (or a verbal description if no spec exists)
+**Output:** Tasks in `state/todos.json`, ready for `dev-task` to execute
 
 ---
 
 ## Step 1: Load Context
 
-Before asking any questions, load context:
-
 1. Read `CLAUDE.md` in the repo worktree if available, otherwise read from `~/src/{repo}/`
-2. Glob the repo structure to understand the codebase layout (top-level directories, key files)
+2. Glob the repo structure to understand the codebase layout
 3. Read `state/todos.json` — check for any existing tasks in this session to avoid duplicates
-4. Check `planning/{session}/` — if a planning folder exists, read any docs there (including `PRODUCT-SPEC.md` from `/brainstorm`)
+4. Read `planning/{session}/PRODUCT-SPEC.md` if it exists — this is the primary input
 
 Present a brief orientation:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PLANNING SESSION: {session}
+PLAN SESSION: {session}
 Repo: {repo}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{1-2 sentences on what you found: key layers, recent activity, any existing tasks for this session}
+Spec: {found / not found}
+{If found: 1-2 sentences summarizing what's being built}
+{If not found: "No PRODUCT-SPEC.md found — I'll ask for a description."}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Then ask: **"What's the problem we're solving?"**
+If no spec exists, ask: **"What are we building?"** and collect enough to proceed. Keep it brief — this is an engineering session, not a discovery session.
 
 ---
 
-## Step 2: Understand the Problem
+## Step 2: Explore the Codebase
 
-Listen to the user's description. Organize your understanding across four layers — ask about each one until you have a clear picture:
+Map the spec to the codebase across four layers. For each layer that the spec touches:
 
-**Business logic** — what rules or behaviors are new, changing, or being removed?
-**Views/UX** — what screens or flows are changing? What does the user experience look like?
-**APIs** — what endpoints are new, changing, or removed? Group any business logic changes under the API that owns them.
-**DB** — what schema changes are needed? New tables, columns, indexes, migrations?
+**Business logic** — find where the relevant rules/behaviors currently live; identify what's new vs. what's changing
+**Views/UX** — find the affected components or pages; understand the current rendering patterns
+**APIs** — find the relevant endpoints and their handlers; note request/response shapes that will change
+**DB** — find the schema files and any existing migrations; understand the current data model
 
-Not every feature touches all four layers. Skip any that don't apply.
+For each layer:
+1. Read the files most likely affected
+2. Look for existing patterns to reuse (functions, types, abstractions)
+3. Identify what's NEW vs what's a MODIFICATION
 
-Do not move to solution design until the problem is clear across all relevant layers.
+**Flag complexity risks as you go** — call these out before proposing a design:
+- Tightly coupled code that's hard to extend without broader refactoring
+- Missing abstractions that would need to be built first
+- Features that look simple in the spec but are disproportionately complex in the code
+- Cross-layer dependencies that constrain the order of implementation
+- Anything in the spec that would introduce unjustified complexity — surface it and suggest a simpler alternative
 
----
-
-## Step 3: Explore the Codebase
-
-With the problem understood, explore the relevant code for each layer:
-
-1. Find the files most likely affected — read them
-2. Look for existing patterns that solve similar problems (search for related functions, types, API shapes)
-3. Check for prior art: similar features already in the codebase that can be extended or reused
-4. Identify what's NEW vs what's a MODIFICATION of existing code
-
-**Flag complexity risks as you go.** If you find something that will make a change harder than it looks, call it out explicitly before the design is approved:
-- Existing code that's tightly coupled and hard to extend
-- Missing abstractions that would require significant refactoring first
-- Features that seem simple but would introduce disproportionate complexity
-- Dependencies between layers that constrain the implementation order
-
-Surface what you find:
-- "This looks like it extends X in `src/billing/...`"
-- "There's already a pattern for Y in `src/api/...` we can follow"
-- "This would require a new table — here's how the existing schema is structured"
-- "⚠ This change touches the auth middleware which is shared across all routes — higher risk than it appears"
+Example flags:
+- "⚠ This touches the auth middleware which is shared across all routes — higher risk than it appears"
+- "⚠ The spec adds X to the billing API but the billing service has no test coverage — any change here is risky without tests first"
+- "⚠ This feature requires a new abstraction that doesn't exist yet — adds ~2h of foundational work before the feature itself"
 
 ---
 
-## Step 4: Research (if needed)
+## Step 3: Research (if needed)
 
-If the problem involves external patterns, libraries, or approaches that aren't obvious from the codebase, do a web search:
-
+If the implementation approach isn't clear from the codebase, do a web search:
 - What are the common approaches to this problem?
-- What do popular projects in this ecosystem do?
 - Are there libraries that handle this, or is custom code the right call?
 
-Bias toward **the simplest solution that fits the existing codebase patterns**. Novel approaches have a cost — they require more context, more documentation, and more review. Only recommend something new if the simpler path has a genuine limitation.
-
-Summarize your research findings to the user before moving to design.
+Bias toward the simplest solution that fits existing patterns. Summarize findings before moving to design.
 
 ---
 
-## Step 5: Propose a Design
+## Step 4: Propose a Design
 
-Present a concrete design organized by layer:
+Present a concrete technical design organized by layer:
 
-**Business logic** — what rules/behaviors are being added or changed and where they live
+**Business logic** — what rules/behaviors are added or changed and where they live in the code
 **Views/UX** — what components or pages change and how
 **APIs** — what endpoints change, what request/response shapes look like
 **DB** — schema changes, migration approach
 
-Also call out:
-- What files will change
+Also include:
+- Specific files that will change
 - How it integrates with existing patterns
-- Any complexity risks identified in Step 3 that the design addresses (or accepts)
+- Any complexity risks from Step 2 and how the design addresses (or explicitly accepts) them
 - What gets tested and how
 
-Keep it simple. If two approaches exist, recommend one and explain why. The user can push back.
+Keep it simple. If two approaches exist, recommend one and explain why.
 
-Iterate on feedback. Don't move to task breakdown until the user has signed off on the design.
+Iterate on feedback. Do not move to task breakdown until the design is approved.
 
 ---
 
-## Step 6: Task Breakdown
+## Step 5: Task Breakdown
 
 Break the approved design into tasks. Each task should be independently shippable (its own PR).
 
-For each task, determine:
+For each task:
 - **ID**: `{PREFIX}-{N}.{M}` — prefix is 2-3 letters from the feature name
 - **Title**: short, verb-first (e.g., "Add billing schema migration")
 - **Description**: what to build, not how
@@ -132,11 +121,9 @@ For each task, determine:
 
 ### Dependency Map
 
-The dependency map is the core output of planning — it's what tells the execution cron what's ready to run. Every task must have its dependencies explicitly stated.
+Present the map in two forms:
 
-After listing all tasks, present the map in two forms:
-
-**1. Visual graph** (show execution order):
+**1. Visual graph:**
 ```
 [START]
   ├─ {PREFIX}-1.1: {title} (no deps)
@@ -145,24 +132,22 @@ After listing all tasks, present the map in two forms:
               └─ {PREFIX}-2.2: {title} (needs 2.1)
 ```
 
-**2. Summary table** (what the cron sees):
+**2. Summary table:**
 ```
-Task        | Depends on        | Blocks
-{PREFIX}-1.1 | —                | 2.1
-{PREFIX}-1.2 | —                | 2.1
-{PREFIX}-2.1 | 1.1, 1.2         | 2.2
-{PREFIX}-2.2 | 2.1              | —
+Task         | Depends on  | Blocks
+{PREFIX}-1.1 | —           | 2.1
+{PREFIX}-1.2 | —           | 2.1
+{PREFIX}-2.1 | 1.1, 1.2    | 2.2
+{PREFIX}-2.2 | 2.1         | —
 ```
 
-Tasks with no dependencies are ready to execute immediately. The execution cron picks the earliest-queued ready task each tick.
-
-Present both the task list and dependency map to the user for review. Iterate until approved — the map must be correct before writing to the queue, as the cron depends on it.
+Present the task list and dependency map as a first pass. The engineer reviews and iterates — they may catch implementation details, missing edge cases, or better task splits. Iterate until approved.
 
 ---
 
-## Step 7: Write to Queue
+## Step 6: Write to Queue
 
-Once the user approves the task breakdown, write each task to `state/todos.json`.
+Once the task breakdown is approved, write each task to `state/todos.json`.
 
 Read the current `state/todos.json` first. Append the new tasks — do not overwrite existing entries.
 
@@ -207,13 +192,3 @@ BLOCKED (waiting on deps):
 The execution cron will pick up ready tasks automatically.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
-
----
-
-## Notes
-
-- Planning is a conversation, not a ceremony. Skip steps that don't apply.
-- If the user already has a design in mind, go straight to task breakdown.
-- If the problem is obvious and the solution is clear, move fast — don't manufacture process.
-- The goal is a queue of well-defined, independently-shippable tasks. That's it.
-- The task breakdown is a first pass — present it to the engineer for review and iteration before treating it as final. The engineer may catch implementation details, missing edge cases, or better task splits that the conversation didn't surface.
