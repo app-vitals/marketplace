@@ -15,7 +15,7 @@ Parse `$ARGUMENTS` to extract:
 - **repo**: first argument
 - **session**: second argument
 
-This is a conversational planning session. Work through the problem with the user. Do not rush to a task breakdown — understand the problem first, then design the solution, then produce tasks.
+This is a conversational planning session. Work through the problem with the user organized around four layers: business logic, views/UX, APIs, and DB. Do not rush to a task breakdown — understand the problem first, then design the solution, then produce tasks.
 
 ---
 
@@ -26,7 +26,7 @@ Before asking any questions, load context:
 1. Read `CLAUDE.md` in the repo worktree if available, otherwise read from `~/src/{repo}/`
 2. Glob the repo structure to understand the codebase layout (top-level directories, key files)
 3. Read `state/todos.json` — check for any existing tasks in this session to avoid duplicates
-4. Check `planning/{session}/` — if a planning folder exists, read any docs there
+4. Check `planning/{session}/` — if a planning folder exists, read any docs there (including `PRODUCT-SPEC.md` from `/brainstorm`)
 
 Present a brief orientation:
 
@@ -45,30 +45,39 @@ Then ask: **"What's the problem we're solving?"**
 
 ## Step 2: Understand the Problem
 
-Listen to the user's description. Ask clarifying questions until you can answer:
+Listen to the user's description. Organize your understanding across four layers — ask about each one until you have a clear picture:
 
-- What's broken or missing?
-- Who's affected and how?
-- What does done look like?
-- Are there constraints (performance, backwards compatibility, deadline)?
+**Business logic** — what rules or behaviors are new, changing, or being removed?
+**Views/UX** — what screens or flows are changing? What does the user experience look like?
+**APIs** — what endpoints are new, changing, or removed? Group any business logic changes under the API that owns them.
+**DB** — what schema changes are needed? New tables, columns, indexes, migrations?
 
-Do not move to solution design until the problem is clear. It's better to ask one more question than to build the wrong thing.
+Not every feature touches all four layers. Skip any that don't apply.
+
+Do not move to solution design until the problem is clear across all relevant layers.
 
 ---
 
 ## Step 3: Explore the Codebase
 
-With the problem understood, explore the relevant code:
+With the problem understood, explore the relevant code for each layer:
 
 1. Find the files most likely affected — read them
 2. Look for existing patterns that solve similar problems (search for related functions, types, API shapes)
 3. Check for prior art: similar features already in the codebase that can be extended or reused
 4. Identify what's NEW vs what's a MODIFICATION of existing code
 
+**Flag complexity risks as you go.** If you find something that will make a change harder than it looks, call it out explicitly before the design is approved:
+- Existing code that's tightly coupled and hard to extend
+- Missing abstractions that would require significant refactoring first
+- Features that seem simple but would introduce disproportionate complexity
+- Dependencies between layers that constrain the implementation order
+
 Surface what you find:
 - "This looks like it extends X in `src/billing/...`"
 - "There's already a pattern for Y in `src/api/...` we can follow"
 - "This would require a new table — here's how the existing schema is structured"
+- "⚠ This change touches the auth middleware which is shared across all routes — higher risk than it appears"
 
 ---
 
@@ -88,12 +97,17 @@ Summarize your research findings to the user before moving to design.
 
 ## Step 5: Propose a Design
 
-Present a concrete design — not a vague direction, a specific plan:
+Present a concrete design organized by layer:
 
+**Business logic** — what rules/behaviors are being added or changed and where they live
+**Views/UX** — what components or pages change and how
+**APIs** — what endpoints change, what request/response shapes look like
+**DB** — schema changes, migration approach
+
+Also call out:
 - What files will change
-- What new code will be added
-- What the data model looks like (if applicable)
 - How it integrates with existing patterns
+- Any complexity risks identified in Step 3 that the design addresses (or accepts)
 - What gets tested and how
 
 Keep it simple. If two approaches exist, recommend one and explain why. The user can push back.
@@ -202,3 +216,4 @@ The execution cron will pick up ready tasks automatically.
 - If the user already has a design in mind, go straight to task breakdown.
 - If the problem is obvious and the solution is clear, move fast — don't manufacture process.
 - The goal is a queue of well-defined, independently-shippable tasks. That's it.
+- The task breakdown is a first pass — present it to the engineer for review and iteration before treating it as final. The engineer may catch implementation details, missing edge cases, or better task splits that the conversation didn't surface.
