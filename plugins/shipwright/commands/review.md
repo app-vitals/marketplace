@@ -1,48 +1,55 @@
 ---
-description: Auto-detecting code review — recovers task from branch name, verifies PR against planning doc acceptance criteria, runs parallel review agents, captures learnings
+description: Review open PRs from the queue — process session by session, patch CI failures, merge only when green with no fixes applied this cycle
+allowed-tools: Bash, Read, Glob, Grep, Edit, Write
 ---
 
 # Review
 
-Auto-detecting code review for a fresh session. Follow all steps in order. Only pause where explicitly marked — keep the flow fast.
+Process open PRs from the shipwright queue. Group by session for shared context. Patch, approve, and merge.
+
+**This command runs autonomously. Do not pause for user input unless a fundamental acceptance criteria gap requires a design decision.**
 
 ---
 
-## Step 0: Setup
+## Step 1: Find Open PRs
 
-### 0a. Check Recommended Plugins
+Resolve the PostHog send script (silent — used throughout):
 
-Check if the following plugins are installed by looking for their skills in the available skills list:
-
-| Plugin | Check For | Used In |
-|--------|-----------|---------|
-| `learning-loop` | `/learn` skill | Step 11 (Learning Capture) |
-
-If any are missing, present:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RECOMMENDED PLUGINS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-The following plugins enhance this workflow:
-
-MISSING:
-  ✗ learning-loop — captures review learnings
-    Install: /plugin install learning-loop@app-vitals/marketplace
-
-INSTALLED:
-  ✓ {installed plugins}
-
-Continue without them? (Yes / Install first)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
 ```
 
-If all plugins are installed, skip the prompt and continue. If plugins are missing and the user chooses to continue, note which are unavailable so later steps can skip those features.
+If `POSTHOG_SCRIPT` is empty, all PostHog calls in this command are silently skipped.
 
-### 0b. Detect Project Toolchain
+Read `state/todos.json`. Find all `shipwright` tasks with `status: "pr_open"`.
 
-Auto-detect the project toolchain (run once, reuse throughout):
+If none, print:
+```
+No open PRs to review.
+```
+and stop.
+
+Group tasks by `session`. Process one session at a time — reviewing related PRs together gives the reviewer full context on the feature being built.
+
+For the first session with open PRs, print:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REVIEWING SESSION: {session}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Open PRs ({count}):
+{For each task: "  #{pr} — {id}: {title}"}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+## Step 2: Gather Context Per PR
+
+For each open PR in the session:
+
+1. **Task details from todos.json**: `id`, `title`, `acceptanceCriteria`, `repo`, `session`
+2. **PR details**: `gh pr view {pr} --repo {org}/{repo} --json number,title,headRefName,baseRefName,additions,deletions,changedFiles,statusCheckRollup,reviewDecision`
+3. **PR diff**: `gh pr diff {pr} --repo {org}/{repo}`
+
+Auto-detect the project toolchain for the repo (used in Steps 5b and 8):
 
 1. Scan the project root for config files:
    - `package.json` + lockfile → Node.js (detect manager: pnpm/yarn/npm/bun)
@@ -54,61 +61,25 @@ Auto-detect the project toolchain (run once, reuse throughout):
 
 2. For Node.js: read `package.json` scripts for `validate`, `build`, `test`, `lint`, `typecheck`/`check`
 
-3. Store the detected commands for use in Steps 5b and 8.
-
 Refer to `references/toolchain-patterns.md` for the full detection lookup table.
 
-## Step 1: Auto-Detect Context
-
-Gather context automatically — no arguments needed:
-
-1. Get current branch: `git branch --show-current`
-2. If on `main`, tell the user: "You're on the main branch. Switch to a feature branch first, or pass a branch name." and stop.
-3. Find the PR for this branch: `gh pr list --head {branch} --json number,title,url --jq '.[0]'`
-4. If no PR found, tell the user: "No PR found for branch {branch}. Push and create a PR first (or run /dev-task to complete development)." and stop.
-
-## Step 2: Recover Task ID
-
-Parse the branch name to recover the task ID:
-
-1. Strip the `feat/` prefix
-2. Extract the task ID pattern from the beginning: the prefix letters + numbers separated by dashes map back to the dotted task ID. M can be numeric (`1`, `2`) or a test suffix (`t1`, `t2`). Uppercase all alphabetic characters in the resulting ID.
-   - Pattern: `{letters}-{N}-{M}` → `{LETTERS}-{N}.{M}`
-   - Example: `feat/mr-2-1-extract-types-libs` → prefix `mr-2-1` → task ID `MR-2.1`
-   - Example: `feat/pb-1-t1-unit-tests-badge-icon` → prefix `pb-1-t1` → task ID `PB-1.T1`
-   - The prefix ends when you hit a segment that is longer than 2 characters or doesn't match the `[a-z]+\d*` pattern (i.e., the start of the kebab-case description slug)
-3. Search `planning/**/*_Task_Breakdown.md` for this task ID
-4. If the task ID can't be recovered from the branch name or isn't found in any planning doc:
-   - Ask the user: "Couldn't recover task ID from branch `{branch}`. What's the task ID? (e.g., MR-2.1)"
-   - Use the user-provided ID to find the task
-
-## Step 3: Gather Context
-
-Fetch all sources in parallel:
-
-1. **Task details from planning doc**: Extract acceptance criteria, context, description, test type (if present)
-2. **PR details**: `gh pr view {pr-number} --json title,body,baseRefName,headRefName,additions,deletions,changedFiles`
-3. **PR diff**: `gh pr diff {pr-number}`
-
-Present a summary:
+Present a summary per PR:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REVIEW CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Task: {task-id} — {task title}
-PR:   #{pr-number} — {pr title}
+Task: {id} — {title}
+PR:   #{pr} — {pr title}
 Base: {base branch} ← {head branch}
 Size: +{additions} -{deletions} across {changedFiles} files
 
 Acceptance Criteria:
-{numbered list from planning doc}
+{numbered list from task.acceptanceCriteria}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
-
-Proceed directly to the review — the user invoked this command, no confirmation needed.
 
 ## Step 4: Launch Review Agents
 
@@ -251,18 +222,26 @@ If fixes were applied in Step 8:
 2. Stage and commit with: `fix: address review feedback for {task-id}`
 3. Push to the remote branch
 4. Inform the user: "Committed and pushed review fixes: {short-sha}"
+5. **Stop here.** The task remains `pr_open`. CI must re-run on the fix commits before the next review cycle picks it up. Do not proceed to Steps 10–12.
 
-No pause — the commit message is always the same. If no fixes were applied, skip to Step 10.
+If no fixes were applied, proceed to Step 10.
 
-## Step 10: Update Planning Doc
+## Step 10: Update Queue
 
 If the verdict is **SHIP IT**:
 
-1. Get the PR number from Step 1
-2. In the planning doc **Appendix: Complete Task List** table, change the task's status from `[🔨]` to `[x] PR #{number}`
-3. In the **{Feature Name} Summary** table, change the same task's status from `[🔨]` to `[x] PR #{number}`
-4. Commit: `chore: mark {task-id} done (PR #{number})`
-5. Push to the current branch
+Update the task in `state/todos.json`:
+- `status: "approved"`
+
+Write todos.json. This signals that the review passed — the queue entry will be updated to `merged` after the actual merge in Step 13.
+
+If `POSTHOG_SCRIPT` is set, fire `shipwright_task_approved`:
+
+```bash
+python3 "$POSTHOG_SCRIPT" shipwright_task_approved \
+  --project {repo} --task {id} \
+  pr={pr_number} findings={findings_count} fixes_applied={fixes_applied_count} session="{session}"
+```
 
 If the verdict is not SHIP IT, skip this step.
 
@@ -303,7 +282,22 @@ If available:
 
 If not available: skip this step entirely.
 
-## Step 12: Final Commit, Push & Merge
+## Step 12: CI Gate
+
+This step is only reached when no fixes were applied this cycle (i.e., the verdict was SHIP IT on the first pass). If fixes were committed in Step 9, the review stopped there — this step does not run.
+
+Before merging, verify CI is green. **Do not use `gh pr checks`** — it requires the Checks API which is GitHub Apps-only and fails with fine-grained PATs. Use the Actions API instead:
+
+```
+gh api "repos/{owner}/{repo}/actions/runs?branch={branch}&per_page=5" \
+  -q '.workflow_runs[] | "\(.name): \(.status) \(.conclusion)"'
+```
+
+- If any run is `status: in_progress` — stop. CI is still running. The next review cycle will retry.
+- If any run has `conclusion: failure` or `conclusion: cancelled` — stop. Print the failing run names. Do not merge until CI is fixed.
+- If all runs are `status: completed` with `conclusion: success` — proceed to Step 13.
+
+## Step 13: Final Commit, Push & Merge
 
 If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were modified):
 
@@ -311,31 +305,30 @@ If learning capture wrote any changes (i.e., CLAUDE.md or CLAUDE.local.md were m
 2. Commit with: `chore: promote learnings from /review`
 3. Push to the remote branch
 
-**Pause point:** Ask the user: "Merge PR #{pr-number}? (Yes / No)"
-
-If yes:
-
 1. If the initial verdict in Step 7 was **NEEDS FIXES** or **NEEDS WORK** (i.e., a `--request-changes` review was submitted in Step 7b), re-submit as an approval now that fixes are verified:
    `gh pr review {pr-number} --repo {owner/repo} --approve --body "shipwright:review — fixes verified, approving."`
 2. Merge the PR: `gh pr merge {pr-number} --squash --delete-branch`
+3. Update the task in `state/todos.json`: `status: "merged"`, `mergedAt: "{ISO timestamp}"`
 
-After merge (or if user declines merge), scan the planning doc Appendix for the **suggested next task**: find `[ ]` tasks whose dependencies are all `[x]` (or have no dependencies).
+If `POSTHOG_SCRIPT` is set, fire `shipwright_task_merged`:
 
-Print the completion block:
+```bash
+python3 "$POSTHOG_SCRIPT" shipwright_task_merged \
+  --project {repo} --task {id} --ts "{mergedAt}" \
+  pr={pr_number} session="{session}"
+```
+
+Check todos.json for newly unblocked tasks (pending tasks whose dependencies are now all merged). Print the completion block:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REVIEW COMPLETE
+REVIEW COMPLETE — {session}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Merged:  {list "#{pr} {id}: {title}"}
+Blocked: {list with reason, or "none"}
 
-Task: {task-id} — {task title}
-PR:   #{pr-number} — {merged | ready to merge}
-
-AVAILABLE TASKS
-───────────────
-{List [ ] tasks with all deps satisfied:}
-- {PREFIX-N.M}: {task title} ({hours}h)
-
-NEXT: /dev-task {suggested-task-id}
+{If newly unblocked tasks:}
+Ready for execution:
+  {list task IDs}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

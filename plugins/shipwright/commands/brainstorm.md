@@ -127,9 +127,33 @@ What does a successful outcome look like — from both the user's perspective an
 
 After completing all discovery questions, spawn the `agents/researcher.md` agent with:
 - The feature list gathered in Phase 1
-- Task: "For each of these features, identify: (1) existing code patterns or utilities in this codebase that should be reused, (2) any relevant external APIs or libraries, (3) architectural constraints or risks the planning session should account for."
+- Task: "For each of these features, identify: (1) existing code patterns or utilities in this codebase that should be reused, (2) any relevant external APIs or libraries, (3) architectural constraints or risks the planning session should account for, (4) complexity risks — things that look simple in the spec but may be disproportionately complex in the code, require refactoring tightly coupled areas, or introduce unjustified complexity. For each complexity risk, describe the technical concern and its likely business impact (scope creep, timeline, fragility)."
 
-Incorporate the research output into the Technical Considerations for each feature in the PRD. If the researcher surfaces constraints or risks not mentioned by the user, add them to the Open Questions section.
+Store the research output — it feeds both Phase 2b and Phase 3.
+
+## Phase 2b: Complexity Review (PO Decision Gate)
+
+If the researcher identified any complexity risks, present them to the user **in plain language** before drafting the spec. Translate every technical concern into terms a non-technical product owner can act on.
+
+Format each flag as:
+```
+⚠ {Feature name}
+What this means: {Plain-English description of why it's harder than it looks}
+Business impact: {What this costs — e.g., "doubles the scope", "higher risk of bugs elsewhere", "needs foundational work before the feature itself"}
+Options:
+  → Keep as-is (worth the cost)
+  → Simplify: {concrete suggestion for a smaller version}
+  → Flag for engineering review
+```
+
+Example translations:
+- "touches shared auth middleware" → "Changing this affects login across the whole app — more things could break, more testing needed"
+- "missing abstraction needed first" → "Before we can build this, we'd need to build some underlying plumbing first — that's extra scope you may not have accounted for"
+- "no test coverage in billing" → "The billing area has no safety nets right now — changes here carry more risk until we add them"
+
+For each flag, ask the user: **"How do you want to handle this?"** Wait for their answer before moving on. Record their decision — it will be reflected in the spec.
+
+If no complexity risks were found, skip Phase 2b entirely and proceed to Phase 3.
 
 ## Phase 3: Draft PRODUCT-SPEC.md
 
@@ -145,6 +169,7 @@ Fill in each section from your gathered information:
 - Map Q8 → Open Questions
 - Map Q9 → Success Criteria
 - Map Phase 2 output → Technical Considerations per feature
+- Map Phase 2b decisions → adjust feature scope if simplified, or add to Open Questions if flagged for engineering
 
 **Acceptance criteria format:** Every feature must have at least one acceptance criterion written as a testable checkbox:
 - `- [ ] {Specific, observable, testable outcome}` 
@@ -181,6 +206,7 @@ Features: {N}
 {  Feature name} — {N} requirements, {N} acceptance criteria
   ...
 
+Complexity Flags: {N reviewed — N simplified, N accepted, N flagged for eng}
 Open Questions: {N flagged for plan-session}
 
 NEXT: /plan-session $ARGUMENTS
