@@ -8,10 +8,10 @@ relationship with a PR -- whether it's been reviewed, posted, merged, or cleaned
 ```json
 {
   "pr": 123,
-  "repo": "ok-wow",
-  "org": "ok-wow",
+  "repo": "app-vitals",
+  "org": "app-vitals",
   "title": "Add billing webhook handler",
-  "author": "agent-okwow",
+  "author": "agent-bot",
   "branch": "feat/ts-1.1-billing-webhook",
   "taskId": "TS-1.1",
   "session": "may-billing-refactor",
@@ -48,8 +48,8 @@ pending -> reviewing -> staged -> posted -> merged -> cleaned
 | Field | Type | Description |
 |---|---|---|
 | `pr` | number | PR number |
-| `repo` | string | Repository name (e.g., `ok-wow`) |
-| `org` | string | GitHub org (e.g., `ok-wow`) |
+| `repo` | string | Repository name (e.g., `app-vitals`) |
+| `org` | string | GitHub org (e.g., `app-vitals`) |
 | `title` | string | PR title |
 | `author` | string | PR author login |
 | `branch` | string | Head branch name |
