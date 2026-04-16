@@ -20,6 +20,7 @@ This is a **Claude Code plugin marketplace** - a collection of plugins that exte
 - **terraform** - Opinionated Terraform best practices for Claude Code
 - **entropy-patrol** - Continuous code health enforcement via golden principles
 - **repo-readiness** - Agent-readiness audit and bootstrapping for codebases
+- **changelog-review** - Walk through git commits to review what shipped with interactive Q&A
 
 ## Architecture
 

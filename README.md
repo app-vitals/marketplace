@@ -26,6 +26,7 @@ Add this marketplace to Claude Code:
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
 | [entropy-patrol](plugins/entropy-patrol/README.md) | 0.2.0 | Continuous code health enforcement via golden principles |
 | [repo-readiness](plugins/repo-readiness/README.md) | 0.1.0 | Agent-readiness audit and bootstrapping for codebases |
+| [changelog-review](plugins/changelog-review/README.md) | 0.1.0 | Walk through git commits to review what shipped — per-commit summaries with interactive Q&A |
 
 ### ralph-orchestrator
 
