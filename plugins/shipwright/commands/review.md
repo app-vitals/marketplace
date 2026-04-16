@@ -1,21 +1,23 @@
 ---
 description: Review open PRs -- deep single-pass review with inline comments, policy-controlled posting and merging
 allowed-tools: Bash, Read, Write, Glob, Grep, Agent
-argument-hint: "[--post <pr-number>]"
+argument-hint: "[org/repo#number]"
 ---
 
 # Review
 
 Review open PRs with policy-controlled posting. Reviews are staged for owner
-confirmation by default. Run with `--post <pr>` to post a staged review.
+confirmation by default.
 
 ---
 
 ## Arguments
 
 Parse `$ARGUMENTS`:
-- `--post <number>`: post a staged review (skip to Step 13)
-- No arguments: normal review flow (Step 1 onward)
+- `org/repo#number` (e.g. `app-vitals/vitals-os#123`): target a specific PR. If a staged
+  review exists in `state/reviews.json`, post it. Otherwise, review it.
+- `number` or `#number`: same, using the default repo from `state/todos.json`
+- No arguments: normal review flow — find the next PR to review from the queue
 
 ---
 
@@ -360,7 +362,7 @@ hunks are valid for inline comments. Move others to the review body.
    Review ready for #{pr} ({repo}): {title}
    Verdict: {APPROVE|COMMENT} -- {findingsCount} findings
    Review: state/reviews/PR_REVIEW_{pr}.md
-   Post with: /shipwright:review --post {pr}
+   Post with: /shipwright:review {org}/{repo}#{pr}
    ```
 3. Print: `Review staged for #{pr}. Slack notification sent.`
 
@@ -423,15 +425,17 @@ python3 "$POSTHOG_SCRIPT" shipwright_task_reviewed \
 
 ---
 
-## Step 13: Post a Staged Review (`--post {pr}`)
+## Step 13: Targeted PR (argument provided)
 
-When invoked as `/shipwright:review --post 123`:
+When invoked with a specific PR (e.g. `/shipwright:review app-vitals/vitals-os#123` or
+`/shipwright:review 123`):
 
-1. Read `state/reviews.json`, find the entry for PR 123
-2. If `status != "staged"`: print error and stop:
-   ```
-   PR #{pr} is not staged for posting (status: {status})
-   ```
+1. Parse the argument: extract `org`, `repo`, and `pr` number. For bare numbers,
+   infer `org/repo` from `state/todos.json` (the repo of the first shipwright task)
+   or from the current workspace repo.
+2. Read `state/reviews.json`, find the entry for this PR.
+
+**If entry exists with `status: "staged"`** — post it:
 3. Read `state/reviews/pr_review_{pr}.json`
 4. Submit:
    ```bash
@@ -443,6 +447,10 @@ When invoked as `/shipwright:review --post 123`:
 7. Print: `Posted review for #{pr}: {html_url}`
 8. If the PR maps to a shipwright task and verdict is APPROVE: update `state/todos.json`
    to set `status: "approved"`
+
+**If no entry or entry is not staged** — review it:
+3. Skip Step 3 (queue building) and go directly to Step 4 (checkout) with this
+   specific PR as the target.
 
 ---
 
