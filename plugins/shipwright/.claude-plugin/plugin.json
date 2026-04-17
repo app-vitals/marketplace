@@ -1,6 +1,6 @@
 {
   "name": "shipwright",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "description": "Shipwright — conversational planning, queue-driven execution, and policy-controlled code review for any software project",
   "author": {
     "name": "App Vitals",
