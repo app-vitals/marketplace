@@ -47,6 +47,15 @@ marketplace/
 │       └── TESTING.md        # Manual test plan
 ```
 
+## Conventions
+
+- **Never use client names in public content** — no org names, repo names, or agent names in plugin examples, docs, or README content. Use `app-vitals` references instead. This repo is public; leaking client identifiers is not acceptable.
+
+## Gotchas
+
+- **Skills must use directory format** — `skills/<name>/SKILL.md` with YAML frontmatter (`name`, `description`). Flat `.md` files in `skills/` or `.claude/skills/` are NOT registered as invocable skills and will be silently ignored by Claude Code.
+- **Agent `--allowedTools` must include `Skill` and `Agent`** — when an agent spawns a Claude subprocess, missing these tools silently prevents the subprocess from invoking skills or dispatching subagents. Always include both in the allowlist if the agent needs to delegate.
+
 ## Development
 
 This is a documentation-only repository (markdown files). No build, lint, or test commands.
