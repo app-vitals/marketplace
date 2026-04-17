@@ -1,6 +1,5 @@
 ---
 description: Execute the next ready task from the queue — build feature, simplify, verify, ship PR
-allowed-tools: Bash, Read, Glob, Grep, Edit, Write
 ---
 
 # Dev Task

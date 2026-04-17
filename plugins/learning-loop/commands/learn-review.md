@@ -1,10 +1,6 @@
 ---
 name: learn-review
 description: Review staged learnings
-allowed-tools:
-  - Read
-  - Edit
-  - Glob
 ---
 
 # /learn-review - Review Learnings

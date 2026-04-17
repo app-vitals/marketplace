@@ -2,12 +2,6 @@
 name: learn-promote
 description: Route staged learnings to their final destination
 argument-hint: "[learning]"
-allowed-tools:
-  - Read
-  - Edit
-  - Write
-  - Glob
-  - Grep
   - Bash
   - AskUserQuestion
   - Skill
