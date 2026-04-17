@@ -7,14 +7,6 @@ description: >
   (3) End of session review,
   (4) Batch extraction from conversation history.
 model: sonnet
-tools:
-  - Read
-  - Edit
-  - Grep
-  - Glob
-  - WebSearch
-  - WebFetch
-  - AskUserQuestion
 ---
 
 # Learning Analyzer

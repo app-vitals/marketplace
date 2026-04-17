@@ -1,14 +1,6 @@
 ---
 description: Analyze codebase and generate or update project documentation
 argument-hint: "[module-or-topic]"
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - Bash
-  - AskUserQuestion
 ---
 
 # Research Docs

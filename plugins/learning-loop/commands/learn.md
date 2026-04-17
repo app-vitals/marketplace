@@ -2,11 +2,6 @@
 name: learn
 description: Capture a learning to staging
 argument-hint: "<insight>"
-allowed-tools:
-  - Read
-  - Edit
-  - Glob
-  - AskUserQuestion
 ---
 
 # /learn - Capture Learning

@@ -1,13 +1,6 @@
 ---
 description: Load relevant project docs and web research for a given task
 argument-hint: <task description>
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - WebSearch
-  - WebFetch
-  - Agent
 ---
 
 # Research: $ARGUMENTS

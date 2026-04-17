@@ -2,12 +2,6 @@
 name: review-pr
 description: Review a GitHub pull request. Automatically detects whether this is a first review or follow-up based on your GitHub review history.
 argument-hint: "<pr-number-or-url>"
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Glob
-  - Grep
   - Task
   - AskUserQuestion
 ---

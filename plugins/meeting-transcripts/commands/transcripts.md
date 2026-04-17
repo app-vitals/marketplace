@@ -2,10 +2,6 @@
 name: transcripts
 description: Browse and read meeting transcripts
 argument-hint: "[time reference or 'list']"
-allowed-tools:
-  - Bash
-  - Read
-  - AskUserQuestion
 ---
 
 # /transcripts - Browse and Read Meeting Transcripts

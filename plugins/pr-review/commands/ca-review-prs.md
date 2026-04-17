@@ -2,11 +2,6 @@
 name: ca-review-prs
 description: Fetch PRs needing review and process them in parallel using cloud-agent CLI
 argument-hint: "[pr-numbers...] or [repo] [--limit N]"
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - AskUserQuestion
 ---
 
 # Cloud Agent Parallel PR Review

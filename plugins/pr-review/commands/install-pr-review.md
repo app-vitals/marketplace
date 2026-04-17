@@ -1,8 +1,6 @@
 ---
 name: install-pr-review
 description: Install pr-review CLI tools to ~/.local/bin
-allowed-tools:
-  - Bash
 ---
 
 # Install pr-review CLI Tools

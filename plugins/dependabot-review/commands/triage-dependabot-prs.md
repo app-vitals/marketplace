@@ -1,12 +1,6 @@
 ---
 name: triage-dependabot-prs
 description: Triage all open Dependabot PRs in the current repo. Analyzes each one, posts patrol-style comments, and works to get them to merge-ready (enabling auto-merge on safe ones, explaining what's needed for others).
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
-  - Grep
-  - AskUserQuestion
 ---
 
 # Triage All Dependabot PRs

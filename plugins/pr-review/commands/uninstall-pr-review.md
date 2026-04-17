@@ -1,8 +1,6 @@
 ---
 name: uninstall-pr-review
 description: Remove pr-review CLI tools from ~/.local/bin
-allowed-tools:
-  - Bash
 ---
 
 # Uninstall pr-review CLI Tools
