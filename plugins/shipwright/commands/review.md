@@ -174,7 +174,22 @@ update `state/reviews.json` status back to `pending`, skip this PR, try the next
 
 ---
 
-## Step 6: Deep Review
+## Step 6: Classify Changes by Domain
+
+Before reading individual files, build a structural picture of what kind of work this PR does. Work from the PR body, commit messages, and file list:
+
+- **Why**: What problem is this solving? What's the motivation? (PR body, linked issues, commit messages)
+- **What changed**: High-level summary of affected areas — which features, services, or layers are touched
+- **Web view changes**: Any new or modified pages, components, or UI flows — identify business logic changes, not just layout tweaks
+- **API changes**: New, removed, or modified endpoints; changed request/response shapes; auth changes; new event streams (SSE, WebSocket)
+- **Database changes**: New tables or columns, dropped columns, index changes, migrations, schema-affecting model changes
+- **Architecture changes**: New services or packages, new ways of exposing functionality (new route groups, new event types, new integrations), changes to service boundaries
+
+Note which categories are present (even if "none") — this drives review focus and the Slack summary.
+
+---
+
+## Step 7: Deep Review
 
 Single-pass review. For each changed file:
 
@@ -194,7 +209,7 @@ Single-pass review. For each changed file:
 
 ---
 
-## Step 7: Score and Classify Findings
+## Step 8: Score and Classify Findings
 
 For each finding, assign confidence (0-100):
 
@@ -224,7 +239,7 @@ suggestions and nitpicks.
 
 ---
 
-## Step 8: Write Review File
+## Step 9: Write Review File
 
 Write `state/reviews/PR_REVIEW_{pr}.md`:
 
@@ -239,6 +254,20 @@ Write `state/reviews/PR_REVIEW_{pr}.md`:
 ## Summary
 
 {Brief description of what this PR does}
+
+## Change Summary
+
+**Why**: {motivation — problem being solved or feature being delivered}
+
+**What changed**: {high-level summary of affected areas}
+
+**Web view changes**: {new/modified pages or UI flows with business logic impact, or "none"}
+
+**API changes**: {new, removed, or modified endpoints; shape changes; new event mechanisms (SSE, WebSocket), or "none"}
+
+**Database changes**: {schema changes — tables, columns, indexes, migrations, or "none"}
+
+**Architecture changes**: {new services, new ways of exposing functionality, service boundary changes, or "none"}
 
 ## CI Status
 
@@ -306,7 +335,7 @@ Append an update section instead of creating a new file:
 
 ---
 
-## Step 9: Build Review JSON
+## Step 10: Build Review JSON
 
 Follow `references/post-review-guide.md` for the full mechanics.
 
@@ -340,7 +369,7 @@ hunks are valid for inline comments. Move others to the review body.
 
 ---
 
-## Step 10: Post or Stage
+## Step 11: Post or Stage
 
 ### If `auto_post_reviews` is true (policy):
 
@@ -352,22 +381,41 @@ hunks are valid for inline comments. Move others to the review body.
 2. Capture `html_url` from response
 3. Update `state/reviews.json`: `posted: true`, `postedAt: now`, `status: "posted"`
 4. Print: `Posted review for #{pr}: {html_url}`
+5. Post Slack message (see below)
 
 ### If `auto_post_reviews` is false (default):
 
 1. Update `state/reviews.json`: `status: "staged"`
-2. Post Slack message to the configured channel:
-   ```
-   Review ready for #{pr} ({repo}): {title}
-   Verdict: {APPROVE|COMMENT} -- {findingsCount} findings
-   Review: state/reviews/PR_REVIEW_{pr}.md
-   Post with: /shipwright:review {org}/{repo}#{pr}
-   ```
+2. Post Slack message to the configured channel (see below)
 3. Print: `Review staged for #{pr}. Slack notification sent.`
+
+### Slack Message (both paths)
+
+Send to the configured engineering channel:
+
+```
+*PR #{pr}: {title}*
+{url}
+
+*Why:* {motivation from Change Summary}
+
+*What changed:*
+{high-level summary from Change Summary}
+
+*Web view changes:* {value or "none"}
+*API changes:* {value or "none"}
+*Database changes:* {value or "none"}
+*Architecture changes:* {value or "none"}
+
+*Verdict:* {APPROVE|COMMENT} — {one-line reasoning}
+{if staged: Post with: /shipwright:review {org}/{repo}#{pr}}
+```
+
+Use the Slack MCP tool if available. If no Slack integration is configured, print the formatted message.
 
 ---
 
-## Step 11: Update reviews.json
+## Step 12: Update reviews.json
 
 Update the entry for this PR:
 
@@ -389,7 +437,7 @@ Write `state/reviews.json`.
 
 ---
 
-## Step 12: Enrich Metrics (if shipwright task)
+## Step 13: Enrich Metrics (if shipwright task)
 
 If the PR maps to a task in `state/todos.json` (via `taskId`):
 
@@ -424,7 +472,7 @@ python3 "$POSTHOG_SCRIPT" shipwright_task_reviewed \
 
 ---
 
-## Step 13: Targeted PR (argument provided)
+## Step 14: Targeted PR (argument provided)
 
 When invoked with a specific PR (e.g. `/shipwright:review app-vitals/vitals-os#123` or
 `/shipwright:review 123`):
@@ -458,7 +506,8 @@ When invoked with a specific PR (e.g. `/shipwright:review app-vitals/vitals-os#1
 7. Capture `html_url`
 8. Update `state/reviews.json`: `posted: true`, `postedAt: now`, `status: "posted"`
 9. Print: `Posted review for #{pr}: {html_url}`
-10. If the PR maps to a shipwright task and verdict is APPROVE: update `state/todos.json`
+10. Post Slack message using the format from Step 11
+11. If the PR maps to a shipwright task and verdict is APPROVE: update `state/todos.json`
     to set `status: "approved"`
 
 **If no entry or entry is not staged** — review it:
