@@ -80,7 +80,9 @@ This template is used by `/plan-session` Phase 4 to generate the task breakdown 
 - **Edge Cases**: {List specific edge cases to handle}
 - **Error Handling**: {Strategy — e.g., "toast user on failure, log to console, never silently swallow"}
 - **Scope Boundaries**: {What's explicitly NOT included}
-- **Backward Compatibility**: {What existing behavior must be preserved}
+- **Backward Compatibility**:
+  - Breaking changes: {none / list any renames or removals of DB tables/columns, API endpoints/fields, client methods}
+  - Safe to deploy standalone: {yes — no removals or renames / no — explain what breaks and how task sequencing prevents a broken intermediate state}
 - **Performance**: {Constraints or "no special requirements"}
 
 ---
