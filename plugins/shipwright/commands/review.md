@@ -66,12 +66,23 @@ If `cleanup_merged_worktrees` is true:
 
 ## Step 3: Find PRs to Review
 
+Before building the queue, resolve the current GitHub CLI user:
+```bash
+CURRENT_USER=$(gh api /user -q '.login')
+```
+
 Build the review queue from two sources.
 
 ### Source A: Shipwright Todos (if `review_shipwright_prs` is true)
 
 Read `state/todos.json`. Find tasks with `source: "shipwright"` and `status: "pr_open"`.
 For each, extract `pr`, `repo`, `session`, `id` (task ID).
+
+Exclude tasks where the PR author matches `CURRENT_USER` — you can't review your own PRs.
+Check the author via:
+```bash
+gh pr view {pr} --repo {org}/{repo} --json author -q '.author.login'
+```
 
 ### Source B: External PRs (if `review_external_prs` is true)
 
@@ -83,7 +94,7 @@ gh pr list --state open --repo {org}/{repo} \
 
 Exclude:
 - Draft PRs
-- PRs authored by this agent
+- PRs where `author.login == CURRENT_USER` (can't review your own PRs)
 - PRs already in Source A
 
 ### Deduplication and Filtering
@@ -96,9 +107,41 @@ Read `state/reviews.json`. For each candidate PR:
   ```bash
   gh pr view {pr} --repo {org}/{repo} --json headRefOid -q '.headRefOid'
   ```
-  If `headRefOid` differs from `lastReviewedCommit`: eligible for re-review.
+  If `headRefOid` differs from `lastReviewedCommit`: potentially eligible for re-review —
+  but also check whether prior comments are resolved (see below).
   If same: skip.
 - **Entry with `status: "cleaned"` or `"merged"`**: skip.
+
+#### Prior Comment Resolution Check (re-reviews only)
+
+For any PR eligible for re-review (`reviewCount >= 1`), check whether the inline comments
+from the previous review have been resolved before reviewing again:
+
+```bash
+gh api graphql -f query='
+{
+  repository(owner: "{org}", name: "{repo}") {
+    pullRequest(number: {pr}) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes {
+              author { login }
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+Count threads where `comments[0].author.login == CURRENT_USER` and `isResolved == false`.
+If any such unresolved threads exist: **skip this PR**. The author needs to address the
+previous findings first. Print: `Skipping #{pr} — {N} prior comment(s) unresolved.`
+
+If all prior threads are resolved (or there were no inline comments), proceed with re-review.
 
 Also skip if another reviewer has unresolved substantive feedback the author hasn't
 addressed -- check existing reviews and comments:
