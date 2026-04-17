@@ -1,6 +1,6 @@
 {
   "name": "meeting-transcripts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Browse and read meeting transcripts captured by the mt CLI tool. Provides a /transcripts command to list recent recordings and read specific transcripts by time reference.",
   "author": {
     "name": "app-vitals",

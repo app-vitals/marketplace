@@ -1,6 +1,6 @@
 {
   "name": "dependabot-review",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI-powered triage of Dependabot PRs. Analyzes individual PRs and posts patrol-style risk assessments. Bulk command works through all open Dependabot PRs and gets them to merge-ready.",
   "author": {
     "name": "app-vitals",
