@@ -57,18 +57,7 @@ Review this pull request: $ARGUMENTS
    - Find CLAUDE.md files in directories containing changed files
    - Note relevant patterns, conventions, and requirements
 
-8. **Classify changes by domain** — before reading individual files, build a structural picture of what kind of work this PR does. Work from the PR body, commit messages, and file list:
-
-   - **Why**: What problem is this solving? What's the motivation? (PR body, linked issue, commit messages)
-   - **What changed**: High-level summary of affected areas — which features, services, or layers are touched
-   - **Web view changes**: Any new or modified pages, components, or UI flows — identify business logic changes, not just layout tweaks
-   - **API changes**: New, removed, or modified endpoints; changed request/response shapes; auth changes; new event streams (SSE, WebSocket)
-   - **Database changes**: New tables or columns, dropped columns, index changes, migrations, schema-affecting model changes
-   - **Architecture changes**: New services or packages, new ways of exposing functionality (new route groups, new event types, new integrations), changes to service boundaries
-
-   Note which categories are present (even if "none") — this drives the review focus and the Slack summary.
-
-9. **Deep review** - For each changed file:
+8. **Deep review** - For each changed file:
    - Read the full file for context (not just the diff)
    - Check adherence to CLAUDE.md guidelines
    - Look for bugs, logic errors, edge cases
@@ -79,13 +68,13 @@ Review this pull request: $ARGUMENTS
 
 ### Issue Classification
 
-10. **Score each issue** on confidence (0-100):
-    - **90-100**: Critical bug or explicit CLAUDE.md violation
-    - **75-89**: Important issue, likely to cause problems
-    - **50-74**: Valid concern but lower impact
-    - **Below 50**: Nitpick or possible false positive
+9. **Score each issue** on confidence (0-100):
+   - **90-100**: Critical bug or explicit CLAUDE.md violation
+   - **75-89**: Important issue, likely to cause problems
+   - **50-74**: Valid concern but lower impact
+   - **Below 50**: Nitpick or possible false positive
 
-11. **Categorize findings**:
+10. **Categorize findings**:
     - **Critical Issues** (confidence 90+): Must fix before merge
     - **Important Issues** (confidence 75-89): Should fix
     - **Suggestions** (confidence 50-74): Consider fixing
@@ -93,7 +82,7 @@ Review this pull request: $ARGUMENTS
 
 ### Draft Review
 
-12. **Write review to file**: `PR_REVIEW_<number>.md`
+11. **Write review to file**: `PR_REVIEW_<number>.md`
 
     This file is a **draft for the reviewer** (the `gh auth` user) to iterate on before posting. Write in a collaborative tone - Claude is presenting findings to the reviewer for discussion.
 
@@ -109,20 +98,6 @@ Review this pull request: $ARGUMENTS
     ## Summary
 
     <Brief description of what this PR does>
-
-    ## Change Summary
-
-    **Why**: <motivation — problem being solved or feature being delivered>
-
-    **What changed**: <high-level summary of affected areas>
-
-    **Web view changes**: <new/modified pages or UI flows with business logic impact, or "none">
-
-    **API changes**: <new, removed, or modified endpoints; shape changes; new event mechanisms (SSE, WebSocket), or "none">
-
-    **Database changes**: <schema changes — tables, columns, indexes, migrations, or "none">
-
-    **Architecture changes**: <new services, new ways of exposing functionality, service boundary changes, or "none">
 
     ## CI Status
 
@@ -156,7 +131,7 @@ Review this pull request: $ARGUMENTS
     <Summary reasoning>
     ```
 
-13. **Present to user**:
+12. **Present to user**:
     - Show the draft review
     - Ask: "Review draft saved to PR_REVIEW_<number>.md. Would you like to:"
       - Edit the review
@@ -276,29 +251,6 @@ Review this pull request: $ARGUMENTS
 ## Posting the Review
 
 When user requests posting, use the `post-review` skill to submit the review to GitHub. It handles building the review JSON, mapping inline comments to diff lines, and submitting via `gh api`. Note: posting an update creates a new review — it does not modify the previous one.
-
-### Slack Notification
-
-After the GitHub review is posted, send a Slack message to the project's engineering channel with the following structure:
-
-```
-*PR #<number>: <title>*
-<url>
-
-*Why:* <motivation from Change Summary>
-
-*What changed:*
-<high-level summary from Change Summary>
-
-*Web view changes:* <value or "none">
-*API changes:* <value or "none">
-*Database changes:* <value or "none">
-*Architecture changes:* <value or "none">
-
-*Verdict:* <APPROVE / COMMENT> — <one-line reasoning>
-```
-
-Use the Slack MCP tool if available. If no Slack integration is configured, print the formatted message so the user can paste it manually.
 
 ---
 
