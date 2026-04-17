@@ -1,6 +1,5 @@
 ---
 description: Review open PRs -- deep single-pass review with inline comments, policy-controlled posting and merging
-allowed-tools: Bash, Read, Write, Glob, Grep, Agent
 argument-hint: "[org/repo#number]"
 ---
 
