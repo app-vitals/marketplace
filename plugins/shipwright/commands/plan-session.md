@@ -72,6 +72,16 @@ Example flags:
 - "⚠ The spec adds X to the billing API but the billing service has no test coverage — any change here is risky without tests first"
 - "⚠ This feature requires a new abstraction that doesn't exist yet — adds ~2h of foundational work before the feature itself"
 
+**Breaking Change Scan** — additions are safe to deploy at any time; renames and removals are not. For any rename or removal in the spec, grep for all current callers before proposing tasks:
+
+- **DB**: dropping or renaming a table or column — who reads or writes it?
+- **API**: removing or renaming an endpoint or response field — who calls it?
+- **Client/types**: removing or renaming a method or interface — who imports it?
+
+List every consumer found. A task that drops the old interface while leaving consumers on the old code creates a broken intermediate state that cannot be deployed safely.
+
+Additions (new tables, nullable columns, new endpoints, new optional fields, new methods) are safe. Flag only renames and removals.
+
 ---
 
 ## Step 3: Research (if needed)
@@ -140,6 +150,17 @@ Task         | Depends on  | Blocks
 {PREFIX}-2.1 | 1.1, 1.2    | 2.2
 {PREFIX}-2.2 | 2.1         | —
 ```
+
+### Breaking Change Safety
+
+Before finalizing the task list, check each task for renames or removals flagged in Step 2. For each one, the task must do one of:
+
+1. **Atomic update** — include all consumer updates in the same task. One PR removes the old thing and updates every caller.
+2. **Add → migrate → remove** — split into three sequential tasks: (a) add the new thing alongside the old, (b) migrate all consumers to the new, (c) remove the old.
+
+A task that drops or renames something while a later task updates the consumers is not safe to deploy independently — that gap is a broken intermediate state in production.
+
+If a task has no renames or removals, mark it: `Safe to deploy standalone: yes`.
 
 Present the task list and dependency map as a first pass. The engineer reviews and iterates — they may catch implementation details, missing edge cases, or better task splits. Iterate until approved.
 
