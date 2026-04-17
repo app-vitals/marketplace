@@ -6,6 +6,13 @@ description: >
   are insufficient, and returns distilled, curated context. All reasoning
   stays inside this agent — only clean output returns to the caller.
 model: sonnet
+tools:
+  - Read
+  - Glob
+  - Grep
+  - WebSearch
+  - WebFetch
+  - Write
 ---
 
 # Research Agent
