@@ -436,17 +436,31 @@ When invoked with a specific PR (e.g. `/shipwright:review app-vitals/vitals-os#1
 2. Read `state/reviews.json`, find the entry for this PR.
 
 **If entry exists with `status: "staged"`** — post it:
-3. Read `state/reviews/pr_review_{pr}.json`
-4. Submit:
+
+> **Design note**: When `auto_post_reviews` is false, the cron stages reviews and
+> notifies the owner. Explicitly targeting a staged PR (`/shipwright:review {pr}`) IS
+> the posting confirmation — the owner ran the command knowing a review is staged.
+> No additional confirmation prompt is needed; targeted invocation is the approval gesture.
+
+3. Read `state/reviews/PR_REVIEW_{pr}.md` and extract the verdict and findings summary
+4. Print what is about to be posted so the owner can see it before the API call fires:
+   ```
+   Posting staged review for #{pr}: {title}
+   Verdict: {APPROVE|COMMENT} — {findingsCount} findings
+   {One-line key findings summary, or "No blocking issues" if clean}
+   Review file: state/reviews/PR_REVIEW_{pr}.md
+   ```
+5. Read `state/reviews/pr_review_{pr}.json`
+6. Submit:
    ```bash
    gh api -X POST /repos/{org}/{repo}/pulls/{pr}/reviews \
      --input state/reviews/pr_review_{pr}.json
    ```
-5. Capture `html_url`
-6. Update `state/reviews.json`: `posted: true`, `postedAt: now`, `status: "posted"`
-7. Print: `Posted review for #{pr}: {html_url}`
-8. If the PR maps to a shipwright task and verdict is APPROVE: update `state/todos.json`
-   to set `status: "approved"`
+7. Capture `html_url`
+8. Update `state/reviews.json`: `posted: true`, `postedAt: now`, `status: "posted"`
+9. Print: `Posted review for #{pr}: {html_url}`
+10. If the PR maps to a shipwright task and verdict is APPROVE: update `state/todos.json`
+    to set `status: "approved"`
 
 **If no entry or entry is not staged** — review it:
 3. Skip Step 3 (queue building) and go directly to Step 4 (checkout) with this
