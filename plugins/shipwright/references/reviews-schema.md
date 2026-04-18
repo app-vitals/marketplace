@@ -15,6 +15,10 @@ relationship with a PR -- whether it's been reviewed, posted, merged, or cleaned
   "branch": "feat/ts-1.1-billing-webhook",
   "taskId": "TS-1.1",
   "session": "may-billing-refactor",
+  "additions": 45,
+  "deletions": 12,
+  "diffSize": 57,
+  "firstSeen": "2026-04-15T08:00:00Z",
   "lastReviewedAt": "2026-04-15T10:45:00Z",
   "lastReviewedCommit": "abc1234def5678",
   "reviewCount": 1,
@@ -55,6 +59,10 @@ pending -> reviewing -> staged -> posted -> merged -> cleaned
 | `branch` | string | Head branch name |
 | `taskId` | string \| null | Shipwright task ID if from todos.json |
 | `session` | string \| null | Shipwright session slug |
+| `additions` | number | Lines added at time of discovery |
+| `deletions` | number | Lines deleted at time of discovery |
+| `diffSize` | number | `additions + deletions` — used for queue prioritization |
+| `firstSeen` | ISO string | When the PR was first discovered in the queue |
 | `lastReviewedAt` | ISO string | When the last review was performed |
 | `lastReviewedCommit` | string | HEAD SHA at time of last review |
 | `reviewCount` | number | How many times this PR has been reviewed |
@@ -70,6 +78,11 @@ pending -> reviewing -> staged -> posted -> merged -> cleaned
 
 - `lastReviewedCommit` enables "new commits since last review" detection without
   re-fetching GitHub history. Compare against `gh pr view --json headRefOid`.
+- `diffSize` drives queue prioritization — smallest diffs are reviewed first, keeping
+  small PRs from being starved behind large ones. Set at `pending` time from the
+  `gh pr list` fetch (`additions + deletions`). Missing on entries created before
+  v4.1.0 — populated lazily on next review pass.
+- `firstSeen` is the tiebreaker when `diffSize` is equal or missing — oldest first.
 - `taskId` is nullable -- PRs not from shipwright todos still get reviewed when
   `review_external_prs` is enabled in agent-policy.md.
 - The `reviewing` status prevents concurrent cron runs from double-reviewing the

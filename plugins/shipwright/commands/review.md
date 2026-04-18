@@ -71,6 +71,35 @@ Before building the queue, resolve the current GitHub CLI user:
 CURRENT_USER=$(gh api /user -q '.login')
 ```
 
+### Step 3a: Drain Staged Queue (interactive mode)
+
+Read `state/reviews.json` for entries with `status: "staged"`.
+
+If any staged reviews exist, present them in priority order:
+1. **APPROVE verdicts first** — unblocking is highest value
+2. **Then by `diffSize` ascending** — smallest diffs are fastest to confirm
+
+Display:
+```
+## Staged Reviews ({N})
+| PR | Repo | Title | Verdict | Diff | Staged |
+|----|------|-------|---------|------|--------|
+| #123 | vitals-os | Add feature X | APPROVE | +45/-12 (57) | 2h ago |
+| #456 | vitals-os | Fix bug Y | COMMENT | +120/-30 (150) | 1h ago |
+
+Post staged reviews, or skip to new reviews?
+```
+
+**If posting**: work through them one at a time using the Step 14 posting mechanics
+(show review summary → confirm → post → move to next). After all staged reviews are
+processed or skipped, continue to Step 3b.
+
+**If skipping**: proceed directly to Step 3b.
+
+---
+
+### Step 3b: Build Review Queue
+
 Build the review queue from two sources.
 
 ### Source A: Shipwright Todos (if `review_shipwright_prs` is true)
@@ -89,7 +118,7 @@ gh pr view {pr} --repo {org}/{repo} --json author -q '.author.login'
 For each configured repo:
 ```bash
 gh pr list --state open --repo {org}/{repo} \
-  --json number,title,author,headRefName,baseRefName,isDraft,reviews,updatedAt
+  --json number,title,author,headRefName,baseRefName,isDraft,reviews,updatedAt,additions,deletions
 ```
 
 Exclude:
@@ -101,7 +130,16 @@ Exclude:
 
 Read `state/reviews.json`. For each candidate PR:
 
-- **No entry**: eligible (new PR)
+- **No entry**: eligible (new PR). Create a `pending` entry immediately:
+  ```json
+  {
+    "pr": {number}, "repo": "{repo}", "org": "{org}",
+    "title": "{title}", "author": "{author.login}", "branch": "{headRefName}",
+    "additions": {additions}, "deletions": {deletions},
+    "diffSize": {additions + deletions},
+    "firstSeen": "{now ISO}", "status": "pending"
+  }
+  ```
 - **Entry with `status: "reviewing"`**: skip (another run is working on it)
 - **Entry with `status: "staged"` or `"posted"`**: check for new commits since last review:
   ```bash
@@ -111,6 +149,9 @@ Read `state/reviews.json`. For each candidate PR:
   but also check whether prior comments are resolved (see below).
   If same: skip.
 - **Entry with `status: "cleaned"` or `"merged"`**: skip.
+
+If a `pending` entry is missing `diffSize` (created before this field was added), populate
+it from the Source B fetch before sorting.
 
 #### Prior Comment Resolution Check (re-reviews only)
 
@@ -152,7 +193,8 @@ If there are CHANGES_REQUESTED reviews from others with no subsequent commits, s
 
 ### Pick Next PR
 
-From eligible candidates, pick the oldest (by `createdAt` or `firstSeen`).
+From eligible candidates, sort by `diffSize` ascending (smallest diff first). Pick the
+first. For ties or missing `diffSize`, fall back to `firstSeen` ascending.
 
 If nothing to review:
 ```
