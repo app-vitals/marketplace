@@ -22,7 +22,7 @@ Add this marketplace to Claude Code:
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
 | [dependabot-review](plugins/dependabot-review/README.md) | 0.1.1 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
 | [discovery-report](plugins/discovery-report/README.md) | 1.1.0 | Generate dark-theme HTML discovery reports (with optional Playwright-based PDF export) |
-| [shipwright](plugins/shipwright/README.md) | 4.1.0 | Structured dev pipeline — plan, build, review, research, ship |
+| [shipwright](plugins/shipwright/README.md) | 4.1.1 | Structured dev pipeline — plan, build, review, research, ship |
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
 | [entropy-patrol](plugins/entropy-patrol/README.md) | 0.2.0 | Continuous code health enforcement via golden principles |
 | [repo-readiness](plugins/repo-readiness/README.md) | 0.1.0 | Agent-readiness audit and bootstrapping for codebases |

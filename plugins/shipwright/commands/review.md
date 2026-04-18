@@ -66,9 +66,10 @@ If `cleanup_merged_worktrees` is true:
 
 ## Step 3: Find PRs to Review
 
-Before building the queue, resolve the current GitHub CLI user:
+Before building the queue, resolve the current GitHub CLI user once and remember the value — substitute it directly into all subsequent commands that need it:
+
 ```bash
-CURRENT_USER=$(gh api /user -q '.login')
+gh api /user -q '.login'
 ```
 
 ### Step 3a: Drain Staged Queue (interactive mode)
