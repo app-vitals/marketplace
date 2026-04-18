@@ -277,6 +277,19 @@ Note which categories are present (even if "none") — this drives review focus 
 
 ## Step 7: Deep Review
 
+### Step 7a: PR Body Check
+
+Before reviewing code, validate the PR body:
+
+- **Empty or missing body** → finding, confidence 90: "PR body is empty — add a Summary and Test plan."
+- **Missing `## Summary` section** → finding, confidence 85: "PR body is missing a Summary section."
+- **Missing `## Test plan` section** → finding, confidence 85: "PR body is missing a Test plan section."
+- **Summary is a single word or only a URL** → finding, confidence 75: "PR summary is too sparse to convey intent."
+
+Body findings go into the review body (not inline comments — there's no file to attach them to).
+
+### Step 7b: Code Review
+
 Single-pass review. For each changed file:
 
 1. **Read the full file** (not just the diff) for complete context
