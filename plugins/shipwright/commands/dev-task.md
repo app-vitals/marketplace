@@ -42,13 +42,7 @@ Deps:    {dependencies or "none"}
 
 Record `task_started_at` (current ISO timestamp) for metrics.
 
-Resolve the PostHog send script (silent — used throughout):
-
-```bash
-POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
-```
-
-If `POSTHOG_SCRIPT` is empty, all PostHog calls in this task are silently skipped.
+Each PostHog call in this task is self-contained: it resolves the script path inline and silently skips if the script is not found. No shell variable is shared between steps.
 
 Now detect the project toolchain for `{repo}` (used throughout):
 
@@ -104,10 +98,11 @@ Update `state/todos.json`:
 
 Write the updated todos.json.
 
-If `POSTHOG_SCRIPT` is set, fire `shipwright_task_started`:
+Fire `shipwright_task_started` — re-resolve the script path inline:
 
 ```bash
-python3 "$POSTHOG_SCRIPT" shipwright_task_started \
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_task_started \
   --project {repo} --task {id} --ts "{task_started_at}" \
   title="{title}" layer="{layer}" estimated_h={hours} session="{session}"
 ```
@@ -385,7 +380,13 @@ REQUIREMENTS VERIFICATION
 - `req_total`: total criteria evaluated
 Store these counts for use in Step 10b metrics.
 
-If any criterion is PARTIAL or NOT MET after the fix loop, mark the task `blocked` in todos.json with a note. If `POSTHOG_SCRIPT` is set, fire `shipwright_task_blocked` with `reason="requirements_not_met"`. Stop.
+If any criterion is PARTIAL or NOT MET after the fix loop, mark the task `blocked` in todos.json with a note, then fire `shipwright_task_blocked`:
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_task_blocked \
+  --project {project} --task {task_id} reason="requirements_not_met"
+```
+Stop.
 
 ## Step 8: Pre-Ship Checks
 
@@ -467,10 +468,11 @@ Generated with [Claude Code](https://claude.com/claude-code)
    Do NOT use `--body "$(cat <<'EOF'..."` — this produces a different command string each time and cannot be matched by `Bash(gh pr create:*)`.
 4. Display the PR URL. Store it as `{pr-url}` for use in Step 9b.5.
 
-5. If `POSTHOG_SCRIPT` is set, fire `shipwright_pr_created`:
+5. Fire `shipwright_pr_created` — re-resolve the script path inline:
 
 ```bash
-python3 "$POSTHOG_SCRIPT" shipwright_pr_created \
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_pr_created \
   --project {project} --task {task_id} \
   pr={pr_number} files_changed={files_changed}
 ```
@@ -506,7 +508,13 @@ If PR creation fails, OR if CI checks fail after max retries (Step 9b.5), after 
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ```
 
-This cleanup ensures no orphaned PRs or branches are left behind. Mark the task `blocked` in todos.json with failure details. If `POSTHOG_SCRIPT` is set, fire `shipwright_task_blocked` with `reason="pr_creation_failed"`. The execution cron will not pick it up until a human intervenes.
+This cleanup ensures no orphaned PRs or branches are left behind. Mark the task `blocked` in todos.json with failure details, then fire `shipwright_task_blocked`:
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_task_blocked \
+  --project {project} --task {task_id} reason="pr_creation_failed"
+```
+The execution cron will not pick it up until a human intervenes.
 
 ## Step 9b: CI Gate
 
@@ -562,9 +570,10 @@ POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/s
 ✓ CI checks passed
 ```
 
-If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass case):
+Fire `shipwright_ci_result` (pass case) — re-resolve the script path inline:
 ```bash
-python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
   --project {project} --task {task_id} \
   passed_first_try=true fix_attempts=0 'failures=[]'
 ```
@@ -641,9 +650,10 @@ While `ci_attempt < ci_max_retries`:
    ```
    ✓ CI checks passed (after {ci_attempt} fix attempt(s))
    ```
-   If `POSTHOG_SCRIPT` is set, fire `shipwright_ci_result` (pass after fixes):
+   Fire `shipwright_ci_result` (pass after fixes) — re-resolve the script path inline:
    ```bash
-   python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
+   POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+   [ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_ci_result \
      --project {project} --task {task_id} \
      passed_first_try=false fix_attempts={ci_attempt} "failures={ci_failures_json_array}"
    ```
@@ -666,7 +676,12 @@ Failing checks:
 ```
 
 **When merge-mode is OFF (standalone):**
-Run PR Failure Cleanup (Step 9) and stop. Mark the task `blocked` in todos.json with the failure details. If `POSTHOG_SCRIPT` is set, fire `shipwright_task_blocked` with `reason="ci_max_retries_exhausted"`.
+Run PR Failure Cleanup (Step 9) and stop. Mark the task `blocked` in todos.json with the failure details, then fire `shipwright_task_blocked`:
+```bash
+POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/shipwright/*" 2>/dev/null | head -1)
+[ -n "$POSTHOG_SCRIPT" ] && python3 "$POSTHOG_SCRIPT" shipwright_task_blocked \
+  --project {project} --task {task_id} reason="ci_max_retries_exhausted"
+```
 
 ## Step 10: Update Queue & Metrics
 
