@@ -58,7 +58,7 @@ Manual test scenarios for each command across different project types.
 
 ### Run
 ```
-/plan-session test-feature
+/plan-session test-repo test-feature
 ```
 
 ### Verify
@@ -83,7 +83,7 @@ Manual test scenarios for each command across different project types.
 
 ### Run
 ```
-/plan-session test-feature
+/plan-session test-repo test-feature
 ```
 
 ### Verify
@@ -104,7 +104,7 @@ Manual test scenarios for each command across different project types.
 
 ### Run
 ```
-/plan-session test-feature
+/plan-session test-repo test-feature
 ```
 
 ### Verify
@@ -421,7 +421,7 @@ Run these across ALL scenarios to verify genericization:
 
 ### Run
 ```
-/plan-session test-feature
+/plan-session test-repo test-feature
 ```
 
 ### Verify
@@ -433,7 +433,7 @@ Run these across ALL scenarios to verify genericization:
 
 ### With historical metrics
 - [ ] Place a `planning/test-feature/metrics.jsonl` file with 5 sample entries
-- [ ] Re-run `/plan-session test-feature` — verify historical estimation accuracy is printed before hour assignment
+- [ ] Re-run `/plan-session test-repo test-feature` — verify historical estimation accuracy is printed before hour assignment
 - [ ] Delete `metrics.jsonl` — verify no errors on next run (graceful degradation)
 
 ---
@@ -839,7 +839,11 @@ Run these across ALL scenarios to verify genericization:
 - [ ] Phase 4 presents complete spec and iterates on feedback
 - [ ] Phase 5 writes `planning/april-2026-notifications/PRODUCT-SPEC.md`
 - [ ] Phase 5 prints BRAINSTORM COMPLETE block with feature count and next step
-- [ ] Running `/plan-session april-2026-notifications` after this succeeds (reads the spec)
+- [ ] Phase 0 detected repo name is printed in the summary
+- [ ] Handoff line is `NEXT: /plan-session {detected-repo} april-2026-notifications` (two args, no `{repo}` placeholder literal)
+- [ ] Handoff includes the "⚠ Do NOT skip /plan-session" block
+- [ ] Running the printed handoff command succeeds (reads the spec)
+- [ ] Resulting `state/todos.json` entries all have `repo` populated with the detected value
 
 ---
 
