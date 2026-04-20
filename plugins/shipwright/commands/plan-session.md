@@ -15,6 +15,18 @@ Parse `$ARGUMENTS` to extract:
 - **repo**: first argument
 - **session**: second argument
 
+**If only one argument is provided**, treat it as `session` and auto-detect `repo`:
+1. `git remote get-url origin` → parse owner/repo, strip trailing `.git`. Use the bare repo name.
+2. Fallback: `basename $(git rev-parse --show-toplevel)`
+
+Then print:
+```
+⚠ Auto-detected repo: {repo}
+This will be written to every task in state/todos.json and used by /dev-task to
+locate the source tree (~/src/{repo}). Confirm it is correct before proceeding.
+```
+Wait for user confirmation before continuing to Step 1.
+
 This is the engineering planning pass. The product spec (what and why) is already done — either from `/brainstorm` or handed in directly. This session translates that spec into a concrete technical design and task queue.
 
 **Input:** `planning/{session}/PRODUCT-SPEC.md` (or a verbal description if no spec exists)

@@ -24,6 +24,13 @@ Follow all phases in order. Proceed automatically between phases. The only pause
    - `Gemfile` → Ruby
    - `Makefile` → Generic Make
 
+2b. **Detect repo name** from git metadata (used in the handoff to `/plan-session` and written to every `state/todos.json` task):
+   - `git remote get-url origin` → parse the `owner/repo` segment, strip any trailing `.git`. Use the bare `{repo}` portion.
+   - Fallback if no remote: `basename $(git rev-parse --show-toplevel)`
+   - Last resort if not in a git repo: `basename $(pwd)` and print a warning.
+
+   Print `Detected repo: {repo}` in the Phase 0 summary so the user can catch a misdetection before investing time in the session.
+
 3. **Read project documentation** (lightweight scan — highlights only, no deep code dive):
    - `CLAUDE.md` — conventions, architecture decisions, and constraints
    - `README.md` — project overview and current capabilities
@@ -37,7 +44,7 @@ Follow all phases in order. Proceed automatically between phases. The only pause
 
 4. **Research existing context**: Spawn the `agents/researcher.md` agent with the task: "Based on the project documentation, summarize: (1) the project's current feature set and key modules, (2) architectural patterns a new feature should follow, (3) any existing utilities or abstractions available for reuse." Use the output to further enrich your understanding before asking questions — don't surface what the docs already made clear.
 
-Store detected toolchain, doc findings, and research output for use in Phase 1 (to inform questions) and Phase 2 (to enrich technical considerations).
+Store detected toolchain, detected repo name, doc findings, and research output for use in Phase 1 (to inform questions), Phase 2 (to enrich technical considerations), and Phase 5 (the `/plan-session` handoff).
 
 ## Phase 1: Interactive Discovery
 
@@ -209,9 +216,18 @@ Features: {N}
 Complexity Flags: {N reviewed — N simplified, N accepted, N flagged for eng}
 Open Questions: {N flagged for plan-session}
 
-NEXT: /plan-session $ARGUMENTS
+NEXT: /plan-session {repo} $ARGUMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Do NOT skip /plan-session. It is the ONLY command that writes tasks to
+`state/todos.json`, which is the queue `/dev-task` reads from. Bypassing it
+leaves the queue empty or stale and breaks the pipeline.
+
+If the work feels trivial, `/plan-session` will produce a single small task —
+that is the correct fast path. "Small" is NOT a reason to skip planning.
 ```
+
+Substitute `{repo}` with the value detected in Phase 0 step 2b. The handoff line must contain two arguments.
 
 ---
 
