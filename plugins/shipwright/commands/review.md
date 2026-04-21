@@ -185,12 +185,23 @@ previous findings first. Print: `Skipping #{pr} — {N} prior comment(s) unresol
 
 If all prior threads are resolved (or there were no inline comments), proceed with re-review.
 
-Also skip if another reviewer has unresolved substantive feedback the author hasn't
-addressed -- check existing reviews and comments:
+#### Teammate Comment Check
+
+Fetch reviews and comment timeline:
 ```bash
-gh pr view {pr} --repo {org}/{repo} --json reviews,comments
+gh pr view {pr} --repo {org}/{repo} --json reviews,comments,commits
 ```
-If there are CHANGES_REQUESTED reviews from others with no subsequent commits, skip.
+
+A **substantive teammate comment** is one where ALL of the following are true:
+- Author login does not contain `[bot]` and is not a known CI account
+- Body is not a trivial acknowledgement: not "LGTM", "+1", "thanks", "approved", or emoji-only
+- The comment was posted **after** the most recent commit push date (the author has not pushed since)
+
+Skip this PR if **any** of the following are true:
+- A teammate (not `CURRENT_USER`, not a bot) has a `CHANGES_REQUESTED` review with no commits since that review
+- A teammate has a substantive comment with no commits since that comment
+
+Print: `Skipping #{pr} — unresolved teammate feedback from @{login} ({type} on {date}). No commits since.`
 
 ### Pick Next PR
 
@@ -255,8 +266,10 @@ All subsequent steps run from `worktrees/{repo}-{branch-slug}/`.
 
 6. **CLAUDE.md files**: read root CLAUDE.md + CLAUDE.md files in directories containing changed files
 
-If another reviewer has unresolved substantive feedback that was missed in Step 3:
-update `state/reviews.json` status back to `pending`, skip this PR, try the next.
+Apply the teammate comment check from Step 3 using the fetched `reviews` and `comments`
+(they were just fetched above — no extra API call needed). If any substantive unresolved
+teammate feedback is found: update `state/reviews.json` status to `pending`, skip this PR,
+and return to Step 3b to pick the next candidate.
 
 ---
 
@@ -574,6 +587,25 @@ When invoked with a specific PR (e.g. `/shipwright:review app-vitals/vitals-os#1
 > notifies the owner. Explicitly targeting a staged PR (`/shipwright:review {pr}`) IS
 > the posting confirmation — the owner ran the command knowing a review is staged.
 > No additional confirmation prompt is needed; targeted invocation is the approval gesture.
+
+**2a. Re-fetch for new teammate feedback** before posting:
+```bash
+gh pr view {pr} --repo {org}/{repo} --json reviews,comments,commits
+```
+Apply the teammate comment check from Step 3, but restricted to feedback that arrived
+**after `lastReviewedAt`** in the reviews.json entry.
+
+If any substantive teammate comments or `CHANGES_REQUESTED` reviews arrived since the
+review was staged:
+- Update `state/reviews.json`: `status: "needs-rereview"`, `needsRereviewReason: "{summary}"`
+- Print:
+  ```
+  Not posting — new teammate feedback arrived since the review was staged:
+  - @{login} ({date}): "{first 120 chars of body}"
+  ...
+  Status set to needs-rereview. Re-run /shipwright:review {org}/{repo}#{pr} after the author responds.
+  ```
+- Stop.
 
 3. Read `state/reviews/PR_REVIEW_{pr}.md` and extract the verdict and findings summary
 4. Print what is about to be posted so the owner can see it before the API call fires:
