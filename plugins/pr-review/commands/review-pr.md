@@ -49,7 +49,8 @@ Review this pull request: $ARGUMENTS
    - Get the base branch: `gh pr view <number> --json baseRefName -q '.baseRefName'`
    - Get the diff against the base branch: `git diff <base>...HEAD` (not always main — PRs may target feature branches)
    - List changed files: `gh pr view <number> --json files`
-   - Check CI status: `gh pr checks <number>`
+   - Check CI status via Actions API (PATs lack Checks API access — do not use `gh pr checks`):
+     `gh api "repos/{owner}/{repo}/actions/runs?branch=$(gh pr view <number> --json headRefName -q '.headRefName')&per_page=5" --jq '.workflow_runs[] | {name, status, conclusion}'`
    - Read existing comments: `gh pr view <number> --json comments,reviews`
 
 7. **Find and read CLAUDE.md files**:

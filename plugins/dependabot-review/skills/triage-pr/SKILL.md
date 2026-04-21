@@ -26,7 +26,8 @@ Set REPO (e.g. `app-vitals/vitals-os`) and REPO_SLUG (replace `/` with `_`, e.g.
 
 ```bash
 gh pr view $PR --repo $REPO --json number,title,body,author,headRefName,baseRefName,files,url
-gh pr checks $PR --repo $REPO --json name,status,conclusion 2>/dev/null || true
+gh api "repos/$REPO/actions/runs?branch=$(gh pr view $PR --repo $REPO --json headRefName -q '.headRefName')&per_page=5" \
+  --jq '.workflow_runs[] | {name, status, conclusion}' 2>/dev/null || true
 ```
 
 Extract:
@@ -34,7 +35,7 @@ Extract:
 - `body` — Dependabot's description
 - `headRefName` — branch name
 - `files` — changed files
-- CI check statuses
+- CI check statuses (from Actions API — PATs do not have Checks API access)
 
 ## 3. Fetch the diff
 

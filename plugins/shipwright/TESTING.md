@@ -518,7 +518,7 @@ Run these across ALL scenarios to verify genericization:
 #### Verify
 - [ ] Step 11b.1 runs `git fetch origin main && git merge origin/main` after PR creation
 - [ ] Step 11b.1 pushes updated branch with `git push`
-- [ ] Step 11b.2 runs `gh pr checks {pr-number} --watch` (blocks until checks finish)
+- [ ] Step 11b.2 polls `gh api repos/{owner}/{repo}/actions/runs?branch={branch}` every 30s until all runs complete
 - [ ] On all checks passing, prints `✓ CI checks passed`
 - [ ] Proceeds to Step 12 (handoff in standalone, review+merge in merge-mode)
 
@@ -595,7 +595,7 @@ Run these across ALL scenarios to verify genericization:
 ### Timeout handling
 
 #### Verify
-- [ ] `gh pr checks --watch` uses 10-minute Bash timeout (600000ms)
+- [ ] Actions API polling uses 10-minute total timeout (20 polls × 30s)
 - [ ] If timeout fires (stuck check), treated as a failure — enters fix loop
 
 ---

@@ -1,6 +1,6 @@
 {
   "name": "dependabot-review",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AI-powered triage of Dependabot PRs across multiple repos. Stages patrol-style risk assessments for conversational review — nothing posts to GitHub until confirmed.",
   "author": {
     "name": "app-vitals",

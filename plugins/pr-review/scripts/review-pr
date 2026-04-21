@@ -35,7 +35,6 @@ echo ""
 exec claude "/pr-review:review-pr $*" \
   --allowedTools "Bash(gh pr view:*)" \
   --allowedTools "Bash(gh pr diff:*)" \
-  --allowedTools "Bash(gh pr checks:*)" \
   --allowedTools "Bash(gh pr checkout:*)" \
   --allowedTools "Bash(gh pr list:*)" \
   --allowedTools "Bash(gh api:*)" \
