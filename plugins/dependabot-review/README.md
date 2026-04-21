@@ -1,4 +1,4 @@
-# dependabot-review v0.2.0
+# dependabot-review v0.2.1
 
 AI-powered triage of Dependabot PRs across multiple repos. Stages patrol-style risk assessments for conversational review — you walk through them with the agent and decide which to post.
 
