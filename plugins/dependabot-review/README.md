@@ -1,48 +1,66 @@
-# dependabot-review
+# dependabot-review v0.2.0
 
-AI-powered triage of Dependabot PRs. Analyzes dependency updates and posts patrol-style risk assessments. Bulk command works through all open Dependabot PRs and gets them to merge-ready.
+AI-powered triage of Dependabot PRs across multiple repos. Stages patrol-style risk assessments for conversational review — you walk through them with the agent and decide which to post.
 
-Extracted from [patrol](https://github.com/app-vitals/patrol) — the same triage logic, now available as a Claude Code skill you can run on demand.
+Extracted from [patrol](https://github.com/app-vitals/patrol) — the same triage logic, now available as a Claude Code skill.
+
+## Workflow
+
+1. **Cron runs `/triage-dependabot-prs`** — scans repos, triages new Dependabot PRs, stages comments to `state/dependabot-reviews/`
+2. **Agent notifies you** — summary of what's staged
+3. **You review conversationally** — "walk me through the staged dependabot reviews" — agent presents each one and posts when you say go
+
+Nothing posts to GitHub until you confirm.
 
 ## Commands
 
 ### `/triage-dependabot-prs`
 
-Processes every open Dependabot PR in the current repo:
-1. Fetches all open Dependabot PRs
-2. Triages each one (patch/minor/major bump, security relevance, production impact)
-3. Posts a patrol-style comment on each PR
-4. Enables auto-merge on safe ones
-5. Digs deeper on review-flagged PRs to see if they can be cleared
-6. Outputs a summary table of what happened and what needs human attention
+Scans all repos in `repos/` for open Dependabot PRs. Triages any new ones and stages the comments. Does not post.
 
 ```
 /triage-dependabot-prs
 ```
 
+Updates `state/dependabot-reviews.json` and writes staged comment files to `state/dependabot-reviews/`.
+
 ## Skills
 
 ### `triage-dependabot-pr`
 
-Analyzes a single Dependabot PR and posts a risk assessment comment. Use this for one-off triage or as a building block.
+Analyzes a single Dependabot PR and stages a patrol-style comment. Use for one-off triage or as a building block for the bulk command.
 
 ```
 /triage-dependabot-pr 42
+/triage-dependabot-pr 42 --repo app-vitals/vitals-os
 ```
 
-Posts a comment like:
+Outputs the formatted comment inline and writes it to `state/dependabot-reviews/DEP_REVIEW_{repo}_{pr}.md`. Does not post to GitHub.
 
+## State file
+
+`state/dependabot-reviews.json` tracks all PRs:
+
+```json
+[
+  {
+    "pr": 42,
+    "repo": "vitals-os",
+    "org": "app-vitals",
+    "title": "Bump axios from 1.6.0 to 1.7.0",
+    "branch": "dependabot/npm_and_yarn/axios-1.7.0",
+    "firstSeen": "2026-04-21T10:00:00Z",
+    "lastTriagedAt": "2026-04-21T10:00:00Z",
+    "recommendation": "merge",
+    "stagedFile": "state/dependabot-reviews/DEP_REVIEW_app-vitals_vitals-os_42.md",
+    "status": "staged",
+    "postedAt": null,
+    "mergedAt": null
+  }
+]
 ```
-### ✅ Patrol: Safe to merge
 
-**Bumps axios from 1.6.0 to 1.7.0 — minor release, no breaking changes.**
-
-🏭 Production impact
-
-Axios 1.7 is a minor release that fixes response header handling. No deprecated APIs are removed. The project uses axios for HTTP requests in production paths, but the change is backward-compatible.
-
-🏔️ patrol · claude-sonnet-4-6
-```
+**Status flow:** `pending → staged → posted → merged`
 
 ## Risk assessment
 
@@ -56,10 +74,3 @@ Axios 1.7 is a minor release that fixes response header handling. No deprecated 
 - 🔴 Breaking change — major version bump or body mentions breaking changes
 - 🔒 Security relevant — CVE mentioned, or security-related package
 - 🏭 Production impact — package is in `dependencies`, not `devDependencies`
-
-## Relation to patrol
-
-[Patrol](https://github.com/app-vitals/patrol) runs automatically as a GitHub Action on every Dependabot PR. This plugin lets you run the same triage manually from Claude Code — useful for:
-- Repos that don't have patrol installed yet
-- Bulk processing a backlog of existing PRs
-- Reviewing patrol's work and double-checking its assessments

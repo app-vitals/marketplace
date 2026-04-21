@@ -1,90 +1,80 @@
 ---
 name: triage-dependabot-prs
-description: Triage all open Dependabot PRs in the current repo. Analyzes each one, posts patrol-style comments, and works to get them to merge-ready (enabling auto-merge on safe ones, explaining what's needed for others).
+description: Scan all repos in repos/ for open Dependabot PRs, triage new ones, and stage patrol-style comments for review. Does not post to GitHub — staged comments are reviewed conversationally before posting.
 ---
 
 # Triage All Dependabot PRs
 
-Work through every open Dependabot PR in the current repo and get them to merge-ready.
+Scan every repo in `repos/` for open Dependabot PRs, triage new ones, and stage comments for review.
 
-## 1. Detect repo
+## 1. Load state
 
-```bash
-gh repo view --json nameWithOwner -q '.nameWithOwner'
-```
+Read `state/dependabot-reviews.json`. Create `[]` if missing.
 
-Extract `owner` and `repo` from the output.
+## 2. Sync closed and merged PRs
 
-## 2. Fetch all open Dependabot PRs
+For each entry with `status` of `staged` or `posted`:
 
 ```bash
-gh pr list --author "app/dependabot" --state open --json number,title,url,headRefName,isDraft
+gh pr view {pr} --repo {org}/{repo} --json state -q '.state'
 ```
 
-If empty, report "No open Dependabot PRs found." and stop.
+- `MERGED` → set `status: "merged"`, `mergedAt: <now>`
+- `CLOSED` → set `status: "closed"`
 
-List the PRs found at the top of your response before diving in.
+## 3. Discover open Dependabot PRs
 
-## 3. Triage each PR
-
-For each PR, run the `triage-dependabot-pr` skill with the PR number as the argument.
-
-The skill handles fetching PR details and diff, analyzing risk, replacing any existing patrol comment, and posting the triage comment. Collect the recommendation (`merge`, `review`, or `hold`) from each skill run for use in step 4.
-
-## 4. Act on recommendations
-
-After triaging all PRs, take action:
-
-### For `merge` PRs:
-
-Enable auto-merge so they merge as soon as CI passes:
+For each directory in `repos/`:
 
 ```bash
-gh pr merge <number> --auto --squash
+# Get owner/repo for this directory
+git -C repos/{dirname} remote get-url origin
+# Parse owner/repo from the URL (strip .git suffix, handle both https and ssh formats)
+
+# List open Dependabot PRs
+gh pr list --repo {owner}/{repo} --author "app/dependabot" --state open --json number,title,headRefName
 ```
 
-If auto-merge is unavailable (branch protection not set up), note it and suggest merging manually.
+For each open PR not already present in state with a non-terminal status (`pending`, `staged`, `posted`):
+- Add a new entry: `{ pr, repo, org, title, branch, status: "pending", firstSeen: <now>, lastTriagedAt: null, recommendation: null, stagedFile: null, postedAt: null, mergedAt: null }`
 
-### For `review` PRs:
+## 4. Triage pending PRs
 
-Dig deeper — try to resolve the concern and move them to `merge`:
+For each entry with `status: "pending"`:
 
-1. **Read the package changelog or release notes** if Dependabot included a link in the body.
-2. **Search the codebase** for usage of the changed package:
-   ```bash
-   grep -r "require.*<package>" src/ --include="*.ts" --include="*.js" -l
-   ```
-3. **Check if the breaking API is actually used** — if the codebase doesn't use the changed API, the risk drops.
-4. If you can confirm the update is safe → upgrade the comment to `merge`, post an updated comment, enable auto-merge.
-5. If genuinely uncertain → leave as `review` and explain specifically what a human needs to check.
+Run the `triage-dependabot-pr` skill with `{pr} --repo {org}/{repo}`.
 
-### For `hold` PRs:
+The skill writes the staged comment file and updates the state entry to `staged`. Collect the recommendation from the skill output.
 
-1. Explain exactly why it's on hold.
-2. If a code change is needed to resolve compatibility, describe what the fix would look like.
-3. Don't auto-merge. Flag for human action.
+Process serially — merging one PR can affect others.
 
-## 5. Summary report
+## 5. Save state
 
-After processing all PRs, output a summary table:
+Write the updated `state/dependabot-reviews.json`.
+
+## 6. Report
+
+Output a summary table of all active entries (skip `merged` and `closed`):
 
 ```
 ## Dependabot Triage Summary
 
-| PR | Package | Bump | Recommendation | Action |
-|----|---------|------|---------------|--------|
-| #42 | axios | 1.6.0 → 1.7.0 | ✅ merge | Auto-merge enabled |
-| #41 | webpack | 4.x → 5.x | 🛑 hold | Breaking change — needs migration |
-| #40 | jest | 29.6 → 29.7 | ✅ merge | Auto-merge enabled |
+| Repo | PR | Title | Recommendation | Status |
+|------|-----|-------|---------------|--------|
+| vitals-os | #42 | Bump axios 1.6→1.7 | ✅ merge | staged |
+| vitals-os | #41 | Bump webpack 4→5 | 🛑 hold | staged |
 
-**Total**: X merge, Y review, Z hold
+New this run: N staged
+Already staged: M
+Merged/closed: P
 ```
 
-Then give a short paragraph on anything that needs human attention.
+If nothing to do: "No pending Dependabot PRs. All up to date."
+
+Staged reviews are ready for conversational walkthrough — run through them with the agent to review and post.
 
 ## Notes
 
 - Process PRs serially — don't parallelize, as merging one PR can create conflicts in others.
-- If a PR has merge conflicts, note it in the summary — it may need a rebase first (`gh pr comment <number> --body "@dependabot rebase"`).
-- The goal is: zero PRs left in an ambiguous state. Every PR should either be auto-merging or have a clear explanation of what's blocking it.
+- If a PR has merge conflicts, note it in the summary — it may need a rebase first (`gh pr comment <number> --body "@dependabot rebase" --repo {owner}/{repo}`).
 - Use `gh` CLI for all GitHub interactions. Respect the current `GH_TOKEN` / `gh auth` context.
