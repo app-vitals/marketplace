@@ -20,7 +20,7 @@ Add this marketplace to Claude Code:
 | [pr-review](plugins/pr-review/README.md) | 0.2.1 | Interactive PR review with local drafts and batch processing |
 | [meeting-transcripts](plugins/meeting-transcripts/README.md) | 1.0.1 | Browse and read meeting transcripts from the mt CLI |
 | [distill](plugins/distill/README.md) | 0.1.0 | Distill conversations into persistent context files |
-| [dependabot-review](plugins/dependabot-review/README.md) | 0.1.1 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
+| [dependabot-review](plugins/dependabot-review/README.md) | 0.2.0 | AI-powered triage of Dependabot PRs with patrol-style risk assessments |
 | [discovery-report](plugins/discovery-report/README.md) | 1.1.0 | Generate dark-theme HTML discovery reports (with optional Playwright-based PDF export) |
 | [shipwright](plugins/shipwright/README.md) | 4.1.5 | Structured dev pipeline — plan, build, review, research, ship |
 | [terraform](plugins/terraform/README.md) | 1.0.0 | Opinionated Terraform best practices — version pinning, tagging, pre-commit validation, Terratest |
