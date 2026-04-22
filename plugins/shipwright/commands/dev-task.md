@@ -547,13 +547,23 @@ If the merge produces **conflicts**: do NOT commit the merge. Instead, abort it 
 
 ### 11b.2. Wait for Checks
 
-```
-gh pr checks {pr-number} --watch
+Use the GitHub Actions API — agent PATs do not have Checks API access, so `gh pr checks` will not work.
+
+Resolve owner/repo and current HEAD SHA:
+```bash
+REPO=$(git remote get-url origin | sed 's|.*github.com[:/]||;s|\.git$||')
+HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-Use a **10-minute timeout** for this command (Bash tool `timeout: 600000`). If the command times out, treat it as a failure.
+Poll every 30 seconds for up to **10 minutes** (20 polls max). On each poll:
+```bash
+gh api "repos/$REPO/actions/runs?branch={branch}&per_page=10" \
+  --jq '[.workflow_runs[] | select(.head_sha == "'$HEAD_SHA'") | {id, name, status, conclusion}]'
+```
 
-**No CI configured:** If `gh pr checks {pr-number}` returns no checks (empty output), skip the rest of Step 9b and proceed to Step 10. Print:
+Filter to runs where `head_sha == HEAD_SHA`. Keep polling while any matching run has `status` of `queued`, `in_progress`, or `waiting`. If the poll times out at 10 minutes, treat it as a failure.
+
+**No CI configured:** If no matching runs appear after 60 seconds (2 polls), skip the rest of Step 9b and proceed to Step 10. Print:
 ```
 ⏭ No CI checks configured — skipping CI gate
 ```
@@ -565,7 +575,7 @@ POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/s
   passed_first_try=true fix_attempts=0 'failures=[]' no_ci=true
 ```
 
-**All checks pass:** Print the following and proceed to Step 10:
+**All checks pass:** If all matching runs have `conclusion == "success"`, print and proceed to Step 10:
 ```
 ✓ CI checks passed
 ```
@@ -578,15 +588,18 @@ POSTHOG_SCRIPT=$(find ~/.claude/plugins/cache -name "posthog_send.py" -path "*/s
   passed_first_try=true fix_attempts=0 'failures=[]'
 ```
 
-**Any check fails:** Continue to 11b.3.
+**Any check fails:** If any run has `conclusion != "success"` (e.g., `failure`, `cancelled`, `timed_out`), continue to 11b.3.
 
 ### 11b.3. Collect Failure Logs
 
-1. Get the failed check names:
-   `gh pr checks {pr-number} --json name,status,conclusion --jq '.[] | select(.conclusion == "failure")'`
+1. Get failed run IDs from the Actions API (reuse `$REPO` and `$HEAD_SHA` from 11b.2):
+   ```bash
+   gh api "repos/$REPO/actions/runs?branch={branch}&per_page=10" \
+     --jq '.workflow_runs[] | select(.head_sha == "'$HEAD_SHA'" and .conclusion == "failure") | {id, name}'
+   ```
 
-2. List the failed workflow runs for this branch:
-   `gh run list --branch {branch} --status failure --json databaseId,name,conclusion --limit 5`
+2. For each failed run, get per-job results:
+   `gh api "repos/$REPO/actions/runs/{run-id}/jobs" --jq '.jobs[] | {name, conclusion, steps: [.steps[] | select(.conclusion == "failure") | .name]}'`
 
 3. For each failed run, get the logs (truncated to last 200 lines per run to avoid context blowup):
    `gh run view {run-id} --log --failed 2>&1 | tail -200`
