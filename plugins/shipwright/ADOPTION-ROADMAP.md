@@ -257,41 +257,6 @@ claude --dangerously-skip-permissions \
 
 ---
 
-## Priority 8: Skill Auto-Extraction
-
-**Effort:** Medium (extends learning-loop integration)
-**Addresses:** Resolution patterns from successful retries and hotfixes are lost.
-
-### Current State
-Shipwright integrates with learning-loop to *stage* learnings during retrospectives, but doesn't automatically extract reusable patterns from successful problem resolution (retry > 0 then succeeded, or hotfix task resolved).
-
-### What OMC Does
-Automatically extracts debugging patterns from sessions into `.omc/skills/` directory. Patterns are injected into relevant agent contexts automatically.
-
-### Adoption Path
-After dev-loop retrospective, if specific conditions are met, auto-extract resolution patterns:
-
-**Trigger conditions:**
-- A task succeeded after retry (retryMap[taskId] > 0)
-- A hotfix task (HF-N) was created and resolved
-- A subagent's output contains an explicit "Root cause:" or "Fixed by:" section
-
-**Extraction format** (staged via learning-loop):
-```
-Shipwright/pattern: {problem-signature}
-When: {conditions that trigger this pattern}
-Resolution: {what fixed it}
-Source: {plan-name}/{task-id}, {date}
-```
-
-**Changes to dev-loop.md:**
-- Loop END (retrospective): If any retries or hotfixes occurred, scan subagent outputs for resolution patterns. For each pattern found, call `/learn` with the extraction.
-
-**Changes to dev-loop Phase 2a (context briefing):**
-- If `.claude.local.md` contains `Shipwright/pattern:` entries matching the current task's files or layer, include them in the context briefing so the subagent benefits from prior resolutions.
-
----
-
 ## Summary
 
 | # | Feature | Effort | Impact | Dependencies |
@@ -303,4 +268,3 @@ Source: {plan-name}/{task-id}, {date}
 | 5 | Timeout detection | Medium | Medium | #3 (for timeout values) |
 | 6 | File impact map | Medium | Medium | None |
 | 7 | CI wrapper | Low | Low | Permission pre-flight (existing) |
-| 8 | Skill auto-extraction | Medium | Low | learning-loop plugin |
