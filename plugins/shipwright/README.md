@@ -1,4 +1,4 @@
-# Shipwright v4.1.6
+# Shipwright v4.2.0
 
 A structured dev pipeline plugin for Claude Code. Plan sessions, execute tasks, run autonomous dev loops, perform multi-agent code reviews, and conduct integrated project research — for any software project.
 
@@ -127,7 +127,6 @@ Multi-agent code review that:
 - Launches parallel agents (code review, silent failure hunting, test analysis, comment review, type design)
 - Verifies acceptance criteria against the diff
 - Presents a confidence-scored report with structured findings
-- Optionally captures learnings (if learning-loop is installed)
 
 ### 5. Refresh Plan
 
@@ -230,34 +229,22 @@ Monorepo detection: pnpm workspaces, npm/yarn workspaces, Lerna, Nx, Turborepo, 
 
 ## Recommended Plugins
 
-Shipwright works standalone using Claude Code's built-in agent types (`feature-dev:code-reviewer`, `general-purpose`) for all core functionality. However, it's designed to integrate with these plugins for the full experience:
+Shipwright is self-contained. It uses Claude Code's built-in `general-purpose` agent type plus the bundled `shipwright:researcher` and `shipwright:code-reviewer` agents — no other plugins are required. These optional integrations add extra capability:
 
 | Plugin | Source | Used By | What It Enables |
 |--------|--------|---------|-----------------|
-| `learning-loop` | [app-vitals marketplace](https://github.com/app-vitals/marketplace) | `/review`, `/dev-task --merge` | After code review, captures patterns and recurring issues as learnings, then promotes them to CLAUDE.md so the project gets smarter over time |
 | `frontend-design` | [Claude Code plugins](https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design) | `/dev-task` | When a task is tagged with `Design Skill: frontend-design` in the planning doc, produces distinctive, high-quality UI instead of generic AI-generated interfaces |
 | `posthog` (optional) | [PostHog plugin](https://github.com/PostHog/posthog-mcp) | `/metrics` | Enables querying PostHog pipeline data via MCP. Only needs `POSTHOG_PROJECT_API_KEY` env var for event sending — the MCP server is optional for querying |
-
-### How Plugin Checks Work
-
-Each command (`/plan-session`, `/dev-task`, `/review`) runs a plugin check at startup:
-
-1. Checks for each recommended plugin by looking for its skills in the available skills list
-2. If any are missing, displays which are installed vs. missing with one-liner install commands
-3. Asks: "Continue without them? (Yes / Install first)"
-4. In merge-mode (`/dev-task --merge`, `/dev-loop`), the check is silent — logs missing plugins and auto-proceeds
 
 ### What Happens Without Them
 
 | Plugin | Without It | With It |
 |--------|-----------|---------|
-| `learning-loop` | Review findings are presented but not persisted. No `/learn` or `/learn-promote` runs. | Review findings that reveal patterns or missing conventions are captured as learnings and routed to CLAUDE.md or global config. |
 | `frontend-design` | UI tasks are implemented using standard code generation following existing codebase patterns. | UI tasks tagged with Design Skill get a dedicated design pass that produces polished, distinctive interfaces. |
 
 ### Installation
 
 ```
-/plugin install learning-loop@app-vitals/marketplace
 /plugin install frontend-design
 ```
 

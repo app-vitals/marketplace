@@ -288,29 +288,38 @@ Note which categories are present (even if "none") — this drives review focus 
 
 ---
 
-## Step 7: Deep Review
+## Step 7: Deep Review (dispatch `shipwright:code-reviewer` subagent)
 
-Single-pass review. For each changed file:
+Delegate the per-file review to the bundled `shipwright:code-reviewer` subagent. This
+keeps review context isolated from the main thread (policy, queue, posting).
 
-1. **Read the full file** (not just the diff) for complete context
-2. Check CLAUDE.md compliance
-3. Look for:
-   - Bugs and logic errors
-   - Edge cases and off-by-ones
-   - Error handling gaps (swallowed errors, missing validation)
-   - Security issues (injection, auth bypass, exposed secrets)
-   - Silent failures and inappropriate fallbacks
-   - **Breaking API changes** -- assume rolling deployments where clients and servers
-     don't deploy atomically. Flag removed endpoints, changed request/response shapes,
-     renamed fields as critical.
-4. If the PR maps to a shipwright task with `acceptanceCriteria`: verify each criterion
-   is satisfied by the diff
+Dispatch via the Agent tool with `subagent_type: "shipwright:code-reviewer"` and pass
+a single prompt block containing:
+
+- **PR metadata** — `number`, `title`, `author`, `headRefName`, `baseRefName`, `headRefOid`
+- **Full diff** — the `git diff "$base"...HEAD` output from Step 5.2
+- **Changed files** — the list extracted in Step 5.3
+- **CLAUDE.md contents** — root CLAUDE.md + any CLAUDE.md in directories containing
+  changed files (from Step 5.6). Include each as a labeled block so the subagent knows
+  which directory it governs.
+- **`acceptanceCriteria`** — if the PR maps to a shipwright task, paste the criteria;
+  otherwise omit the field
+- **Policy** — pass `min_confidence` and `max_findings` from Step 1
+
+The subagent returns a JSON object with `summary`, `findings[]`, `strengths[]`,
+`recommendation`, and `recommendation_reason`. Parse it and carry the data into Step 8.
+
+If the subagent returns malformed JSON, retry once with a reminder of the schema. If it
+still fails, fall back to an inline review in the main thread using the same rules
+(see `agents/code-reviewer.md` for the canonical rule set).
 
 ---
 
 ## Step 8: Score and Classify Findings
 
-For each finding, assign confidence (0-100):
+The subagent has already applied confidence scoring and verification (pre-existing
+filter, CLAUDE.md endorsement check, silent-failure detection, breaking-API rule,
+acceptance-criteria check). This step applies policy thresholds from `state/agent-policy.md`.
 
 | Range | Category | Meaning |
 |-------|----------|---------|
@@ -319,22 +328,13 @@ For each finding, assign confidence (0-100):
 | 50-74 | Suggestion | Valid concern, lower impact |
 | < 50 | Discard | Nitpick or false positive |
 
-**Before including any finding, verify it:**
-
-- Read the actual source file to confirm (not just the diff)
-- Check if pre-existing on base: `git show {base}:{file}` -- if the issue exists
-  on the base branch, it's out of scope. Drop it.
-- Don't echo CI failures -- the author can see those
-- Don't flag patterns the project's CLAUDE.md explicitly endorses
-- Don't suggest fixes the author didn't ask for -- call out the problem, optionally
-  suggest a fix
-
-Apply policy thresholds:
+Apply policy thresholds to the subagent's `findings[]`:
 - Drop findings below `min_confidence` (default 75)
 - Trim to `max_findings` (default 5), removing lowest confidence first
+- Group remaining findings by their `severity` field (`critical`, `important`, `suggestion`)
 
-**Keep it tight.** A good review has 2-5 actionable items. Drop low-confidence
-suggestions and nitpicks.
+**Keep it tight.** A good review has 2-5 actionable items. If the subagent returned
+more, trim to the highest-confidence few.
 
 ---
 

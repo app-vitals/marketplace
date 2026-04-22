@@ -31,8 +31,8 @@ Manual test scenarios for each command across different project types.
 | 8 | `/dev-loop` | Node.js | Multi-task loop | All tasks processed, planning doc updated |
 | 9 | `/review` | Node.js | Standalone review | Agents launched, findings reported, AC verified |
 | 10 | `/refresh-plan` | Any | Stale doc refresh | File paths updated, context regenerated |
-| 11 | `/plan-session` | Any | Planning retrospective | Phase 9 metrics, quality ratings, learnings staged |
-| 12 | `/dev-loop` | Any | Loop retrospective | Actual vs estimated, accuracy ratio, learnings staged |
+| 11 | `/plan-session` | Any | Planning retrospective | Phase 9 metrics and quality ratings |
+| 12 | `/dev-loop` | Any | Loop retrospective | Actual vs estimated, accuracy ratio |
 | 13 | `/dev-loop` | Any | Bug-fix task insertion | HF-N generated, picked up in next iteration |
 | 14 | `/dev-task` + `/dev-loop` | Any | PR/branch cleanup on failure | Orphan PRs closed, branches deleted, retry logic |
 | 15 | `/dev-loop` | Any | Parallel task execution | Batch selection, worktree isolation, post-sync |
@@ -159,7 +159,6 @@ Same as Scenario 4
 - [ ] Review uses generic Agent types (not pr-review-toolkit)
 - [ ] PR is squash-merged automatically
 - [ ] Planning doc status updated to [x] PR #{N}
-- [ ] Learning capture only runs if learning-loop plugin is installed
 
 ---
 
@@ -202,13 +201,12 @@ Same as Scenario 4
 - [ ] Step 2 recovers task ID from branch name
 - [ ] Step 3 gathers context in parallel
 - [ ] Step 4 launches appropriate agents based on diff analysis
-- [ ] Step 4 uses feature-dev:code-reviewer and general-purpose agents (not pr-review-toolkit)
+- [ ] Step 7 dispatches the `shipwright:code-reviewer` subagent (not pr-review-toolkit)
 - [ ] Step 5 validates findings against source files
 - [ ] Step 5b runs coverage with detected commands
 - [ ] Step 6 evaluates acceptance criteria
 - [ ] Step 7 presents structured report
 - [ ] Step 8 fixes use detected validation commands
-- [ ] Step 11 learning capture is conditional on plugin availability
 
 ---
 
@@ -244,8 +242,8 @@ Run these across ALL scenarios to verify genericization:
 - [ ] No references to hardcoded packages like "extension", "desktop", "packages/shared"
 - [ ] No `/feature-dev` skill invocation — replaced with inline implementation
 - [ ] No `/simplify` skill invocation — replaced with inline simplification
-- [ ] No `pr-review-toolkit:*` agent types — replaced with generic agents
-- [ ] No required `Skill(learn)` or `Skill(learning-loop:learn-promote)` — optional only
+- [ ] No `pr-review-toolkit:*` agent types — replaced with bundled `shipwright:code-reviewer`
+- [ ] No references to `learning-loop` — review findings live in `state/reviews/*.md` only
 - [ ] Coverage threshold defaults to 90% (configurable)
 - [ ] No `frontend-design` as required — optional Design Skill tag
 - [ ] No hardcoded layer names "Background/UI/Content Script/Shared" — uses auto-detected layers
@@ -261,15 +259,9 @@ Run these across ALL scenarios to verify genericization:
 ### Verify
 - [ ] Phase 9a evaluates all 6 dimensions with ratings (1-5)
 - [ ] Phase 9b prints metrics block with correct task counts, hours, and quality scores
-- [ ] Phase 9c stages learnings via `/learn` if `learning-loop` plugin is available
-- [ ] Phase 9c prints learnings as text if `learning-loop` is not available
-- [ ] Learnings use `Shipwright/planning:` prefix
-- [ ] Learnings are specific and actionable (not "planning went well")
-- [ ] Only dimensions rated 3 or below generate learnings
-
-### Without learning-loop
 - [ ] Findings are appended as `## Planning Retrospective` section in the planning doc
-- [ ] No errors or missing plugin warnings
+- [ ] Only dimensions rated 3 or below generate findings
+- [ ] No references to learning-loop or `/learn` in output
 
 ---
 

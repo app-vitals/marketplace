@@ -1,7 +1,7 @@
 {
   "name": "app-vitals-marketplace",
   "description": "A marketplace of Claude Code plugins",
-  "version": "2.9.7",
+  "version": "2.9.8",
   "autoUpdate": true,
   "owner": {
     "name": "app-vitals",
