@@ -283,6 +283,7 @@ Before reading individual files, build a structural picture of what kind of work
 - **API changes**: New, removed, or modified endpoints; changed request/response shapes; auth changes; new event streams (SSE, WebSocket)
 - **Database changes**: New tables or columns, dropped columns, index changes, migrations, schema-affecting model changes
 - **Architecture changes**: New services or packages, new ways of exposing functionality (new route groups, new event types, new integrations), changes to service boundaries
+- **Breaking changes**: Any changes that break backwards compatibility — removed endpoints, changed request/response shapes, renamed fields, dropped columns, changed auth semantics, changed event contracts. Assume rolling deployments; clients and servers don't update atomically.
 
 Note which categories are present (even if "none") — this drives review focus and the Slack summary.
 
@@ -367,6 +368,8 @@ Write `state/reviews/PR_REVIEW_{pr}.md`:
 **Database changes**: {schema changes — tables, columns, indexes, migrations, or "none"}
 
 **Architecture changes**: {new services, new ways of exposing functionality, service boundary changes, or "none"}
+
+**Breaking changes**: {removed endpoints, changed shapes, renamed fields, dropped columns, auth changes — or "none"}
 
 ## CI Status
 
@@ -505,6 +508,7 @@ Send to the configured engineering channel:
 *API changes:* {value or "none"}
 *Database changes:* {value or "none"}
 *Architecture changes:* {value or "none"}
+*Breaking changes:* {value or "none"}
 
 *Verdict:* {APPROVE|COMMENT} — {one-line reasoning}
 {if staged: Post with: /shipwright:review {org}/{repo}#{pr}}
