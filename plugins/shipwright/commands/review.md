@@ -279,10 +279,11 @@ Before reading individual files, build a structural picture of what kind of work
 
 - **Why**: What problem is this solving? What's the motivation? (PR body, linked issues, commit messages)
 - **What changed**: High-level summary of affected areas — which features, services, or layers are touched
-- **Web view changes**: Any new or modified pages, components, or UI flows — identify business logic changes, not just layout tweaks
+- **View changes**: Any new or modified pages, components, or UI flows — identify business logic changes, not just layout tweaks
 - **API changes**: New, removed, or modified endpoints; changed request/response shapes; auth changes; new event streams (SSE, WebSocket)
 - **Database changes**: New tables or columns, dropped columns, index changes, migrations, schema-affecting model changes
 - **Architecture changes**: New services or packages, new ways of exposing functionality (new route groups, new event types, new integrations), changes to service boundaries
+- **Breaking changes**: Any changes that break backwards compatibility — removed endpoints, changed request/response shapes, renamed fields, dropped columns, changed auth semantics, changed event contracts. Assume rolling deployments; clients and servers don't update atomically.
 
 Note which categories are present (even if "none") — this drives review focus and the Slack summary.
 
@@ -360,13 +361,15 @@ Write `state/reviews/PR_REVIEW_{pr}.md`:
 
 **What changed**: {high-level summary of affected areas}
 
-**Web view changes**: {new/modified pages or UI flows with business logic impact, or "none"}
+**View changes**: {new/modified pages or UI flows with business logic impact, or "none"}
 
 **API changes**: {new, removed, or modified endpoints; shape changes; new event mechanisms (SSE, WebSocket), or "none"}
 
 **Database changes**: {schema changes — tables, columns, indexes, migrations, or "none"}
 
 **Architecture changes**: {new services, new ways of exposing functionality, service boundary changes, or "none"}
+
+**Breaking changes**: {removed endpoints, changed shapes, renamed fields, dropped columns, auth changes — or "none"}
 
 ## CI Status
 
@@ -501,10 +504,11 @@ Send to the configured engineering channel:
 *What changed:*
 {high-level summary from Change Summary}
 
-*Web view changes:* {value or "none"}
+*View changes:* {value or "none"}
 *API changes:* {value or "none"}
 *Database changes:* {value or "none"}
 *Architecture changes:* {value or "none"}
+*Breaking changes:* {value or "none"}
 
 *Verdict:* {APPROVE|COMMENT} — {one-line reasoning}
 {if staged: Post with: /shipwright:review {org}/{repo}#{pr}}
