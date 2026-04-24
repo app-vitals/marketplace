@@ -279,7 +279,7 @@ Before reading individual files, build a structural picture of what kind of work
 
 - **Why**: What problem is this solving? What's the motivation? (PR body, linked issues, commit messages)
 - **What changed**: High-level summary of affected areas — which features, services, or layers are touched
-- **Web view changes**: Any new or modified pages, components, or UI flows — identify business logic changes, not just layout tweaks
+- **View changes**: Any new or modified pages, components, or UI flows — identify business logic changes, not just layout tweaks
 - **API changes**: New, removed, or modified endpoints; changed request/response shapes; auth changes; new event streams (SSE, WebSocket)
 - **Database changes**: New tables or columns, dropped columns, index changes, migrations, schema-affecting model changes
 - **Architecture changes**: New services or packages, new ways of exposing functionality (new route groups, new event types, new integrations), changes to service boundaries
@@ -361,7 +361,7 @@ Write `state/reviews/PR_REVIEW_{pr}.md`:
 
 **What changed**: {high-level summary of affected areas}
 
-**Web view changes**: {new/modified pages or UI flows with business logic impact, or "none"}
+**View changes**: {new/modified pages or UI flows with business logic impact, or "none"}
 
 **API changes**: {new, removed, or modified endpoints; shape changes; new event mechanisms (SSE, WebSocket), or "none"}
 
@@ -504,7 +504,7 @@ Send to the configured engineering channel:
 *What changed:*
 {high-level summary from Change Summary}
 
-*Web view changes:* {value or "none"}
+*View changes:* {value or "none"}
 *API changes:* {value or "none"}
 *Database changes:* {value or "none"}
 *Architecture changes:* {value or "none"}
